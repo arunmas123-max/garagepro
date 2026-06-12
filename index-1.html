@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Garage Pro">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json">
+<title>Garage Pro Kerala v7</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --ink:#111827;--bg:#f0ebe0;--rust:#c2410c;--rust2:#9a3412;
+  --green:#15803d;--green2:#d1fae5;--gold:#b45309;--gold2:#fef3c7;
+  --blue:#1d4ed8;--blue2:#dbeafe;--purple:#7c3aed;
+  --gray:#6b7280;--border:#e5e7eb;--red:#dc2626;
+  --sh:0 1px 4px rgba(0,0,0,.07),0 4px 14px rgba(0,0,0,.05);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;padding-bottom:76px}
+.hdr{background:var(--ink);color:#fff;padding:12px 14px 8px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-ic{background:var(--rust);width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-t{font-size:18px;font-weight:800}
+.logo-s{font-size:9px;opacity:.5;letter-spacing:1.5px;text-transform:uppercase}
+.hdr-st{display:flex;gap:10px;font-size:11px;opacity:.7;flex-wrap:wrap}
+.hbtn{background:rgba(255,255,255,.12);border:none;color:#fff;padding:5px 9px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+.tabs{background:#fff;display:flex;position:sticky;top:68px;z-index:99;border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab{flex:1;min-width:46px;padding:7px 2px 5px;text-align:center;font-size:9px;font-weight:700;color:#9ca3af;border-bottom:2px solid transparent;cursor:pointer;text-transform:uppercase;white-space:nowrap}
+.tab.on{color:var(--rust);border-bottom-color:var(--rust)}
+.tab i{font-size:14px;display:block;margin-bottom:1px}
+.pg{display:none;padding:11px}
+.pg.on{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.card{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;box-shadow:var(--sh)}
+.card-t{font-size:14px;font-weight:700;margin-bottom:10px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px}
+.sg4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.sc{background:#fff;border-radius:10px;padding:10px 8px;box-shadow:var(--sh);text-align:center}
+.sv{font-size:20px;font-weight:800;color:var(--rust);line-height:1}
+.sl{font-size:8px;color:#9ca3af;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;text-align:center;margin-top:7px;-webkit-appearance:none}
+.btn:active{opacity:.85;transform:scale(.98)}
+.b-rust{background:var(--rust);color:#fff}.b-ink{background:var(--ink);color:#fff}
+.b-green{background:var(--green);color:#fff}.b-blue{background:var(--blue);color:#fff}
+.b-gold{background:#d97706;color:#fff}.b-red{background:var(--red);color:#fff}
+.b-gray{background:#f3f4f6;color:#374151;border:1px solid var(--border)}
+.b-out{background:transparent;color:var(--rust);border:2px solid var(--rust)}
+.b-wa{background:#25d366;color:#fff}.b-sm{width:auto;padding:7px 12px;font-size:12px;margin-top:0}
+.b-purple{background:var(--purple);color:#fff}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:10px;font-weight:700;color:#9ca3af;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+input,select,textarea{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:#fafafa;color:var(--ink);-webkit-appearance:none;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--rust);background:#fff}
+textarea{resize:vertical;min-height:65px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.chips{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch;margin-bottom:8px}
+.chip{padding:5px 10px;background:#fff;border:1.5px solid var(--border);border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--gray);flex-shrink:0}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+/* CAT BADGES */
+.cat-badge{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+.cat-hb{background:#dbeafe;color:#1e40af}.cat-phb{background:#ede9fe;color:#5b21b6}
+.cat-sed{background:#d1fae5;color:#065f46}.cat-psed{background:#fef3c7;color:#92400e}
+.cat-suv{background:#fee2e2;color:#991b1b}.cat-psuv{background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7}
+/* SUGGEST */
+.sug-wrap{position:relative}
+.sug-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--rust);border-radius:0 0 8px 8px;z-index:50;max-height:200px;overflow-y:auto;box-shadow:var(--sh);display:none}
+.sug-item{padding:10px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.sug-item:last-child{border:none}
+.sug-item:active{background:#fff7ed}
+.sug-name{font-weight:600;font-size:13px}
+.sug-meta{font-size:10px;color:var(--gray);margin-top:1px}
+.sug-price{font-weight:700;color:var(--rust);font-size:12px;white-space:nowrap;margin-left:8px}
+/* ITEMS */
+.irow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f4f6}
+.irow:last-child{border:none}
+.i-name{font-weight:600;font-size:13px}
+.i-meta{font-size:10px;color:#9ca3af;margin-top:2px}
+.i-price{font-weight:700;color:var(--rust);font-size:13px;white-space:nowrap;margin-left:6px}
+.tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;margin-left:3px}
+.t-l{background:#fef3c7;color:#92400e}.t-p{background:#dbeafe;color:#1e40af}
+.t-s{background:#d1fae5;color:#065f46}.t-c{background:#fce7f3;color:#9d174d}
+.si{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:9px;margin:4px 0;display:flex;justify-content:space-between;align-items:center}
+.si-info{flex:1;min-width:0}
+.si-name{font-weight:600;font-size:12px}
+.si-pr{font-size:11px;color:var(--rust);margin-top:2px}
+.qc{display:flex;align-items:center;gap:5px;margin-left:6px;flex-shrink:0}
+.qb{width:26px;height:26px;border-radius:50%;border:none;font-size:14px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center}
+.est{background:linear-gradient(135deg,#fffbeb,#fef9e7);border:2px dashed #d97706;border-radius:10px;padding:12px;margin:8px 0}
+.er{display:flex;justify-content:space-between;padding:3px 0;font-size:12px}
+.er.tot{font-size:16px;font-weight:800;border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;color:var(--rust)}
+/* KANBAN */
+.kanban-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;min-width:480px}
+.kb-col{background:#f8f9fa;border-radius:10px;padding:8px}
+.kb-head{font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:6px;text-align:center;padding:4px;border-radius:6px}
+.kb-pending .kb-head{background:var(--gold2);color:#92400e}
+.kb-progress .kb-head{background:#fee2e2;color:#991b1b}
+.kb-ready .kb-head{background:var(--blue2);color:#1e40af}
+.kb-done .kb-head{background:var(--green2);color:#065f46}
+.kb-card{background:#fff;border-radius:7px;padding:8px;margin-bottom:5px;box-shadow:var(--sh);cursor:pointer}
+.kb-name{font-weight:700;font-size:12px}
+.kb-sub{color:var(--gray);font-size:10px;margin-top:1px}
+.kb-amt{color:var(--rust);font-weight:700;margin-top:3px;font-size:11px}
+/* PHOTOS */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.photo-add{aspect-ratio:1;border-radius:8px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:#fafafa;color:var(--gray);font-size:10px;font-weight:600;gap:2px}
+.photo-add span{font-size:20px}
+.photo-item{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;cursor:pointer}
+.photo-item img{width:100%;height:100%;object-fit:cover}
+.photo-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:8px;padding:2px;text-align:center;font-weight:600}
+/* REPORTS */
+.ptabs{display:flex;gap:5px;margin-bottom:10px}
+.ptab{flex:1;padding:8px;text-align:center;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:#f3f4f6;color:var(--gray)}
+.ptab.on{background:var(--ink);color:#fff}
+.inc-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6}
+.inc-row:last-child{border:none}
+.inc-lbl{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600}
+.inc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.inc-amt{font-size:15px;font-weight:800}
+.bar-w{height:5px;background:#f3f4f6;border-radius:3px;margin-top:3px;width:100px}
+.bar-f{height:100%;border-radius:3px;transition:width .5s}
+.chart-w{display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:6px}
+.cb-w{flex:1;display:flex;flex-direction:column;align-items:center}
+.c-bar{width:100%;border-radius:4px 4px 0 0;min-height:3px;position:relative}
+.c-lbl{font-size:8px;color:var(--gray);margin-top:2px}
+.c-val{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:7px;font-weight:700;white-space:nowrap}
+/* JOB CARDS */
+.jcard{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:var(--sh);border-left:4px solid #e5e7eb;cursor:pointer}
+.jcard.pending{border-left-color:var(--gold)}
+.jcard.in-progress{border-left-color:var(--rust)}
+.jcard.ready{border-left-color:var(--blue)}
+.jcard.completed{border-left-color:var(--green)}
+.jh{display:flex;justify-content:space-between;align-items:start}
+.jname{font-weight:700;font-size:14px}
+.jid{font-size:9px;color:#9ca3af;margin-top:1px}
+.jd{font-size:11px;color:var(--gray);margin-top:3px}
+.badge{padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;text-transform:uppercase}
+.b-pend{background:var(--gold2);color:#92400e}
+.b-prog{background:#fee2e2;color:#991b1b}
+.b-rdy{background:var(--blue2);color:#1e40af}
+.b-done{background:var(--green2);color:#065f46}
+.pay-badge{padding:2px 6px;border-radius:5px;font-size:9px;font-weight:700}
+.pp{background:var(--green2);color:#065f46}.ppa{background:var(--gold2);color:#92400e}.ppn{background:#fee2e2;color:#991b1b}
+/* STOCK */
+.st-item{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:var(--sh);border-left:4px solid var(--green);cursor:pointer}
+.st-item.low{border-left-color:var(--red)}
+.st-item.warn{border-left-color:#d97706}
+.st-bar{height:4px;background:#f3f4f6;border-radius:2px;margin-top:6px}
+.st-fill{height:100%;border-radius:2px}
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end}
+.modal.on{display:flex}
+.mbox{background:var(--bg);width:100%;max-height:91vh;border-radius:18px 18px 0 0;overflow-y:auto;animation:su .28s ease}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhead{display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1}
+.mt{font-size:16px;font-weight:700}
+.mc{background:#e5e7eb;border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.mbody{padding:12px}
+.srch{position:relative;margin-bottom:8px}
+.srch input{padding-left:34px}
+.srch::before{content:"🔍";position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none}
+.empty{text-align:center;padding:32px 16px;color:#d1d5db}
+.empty-i{font-size:40px;margin-bottom:8px}
+.ai-box{background:linear-gradient(135deg,#111827,#1f2937);color:#fff;border-radius:12px;padding:13px;margin-bottom:8px}
+.ai-lbl{font-size:9px;font-weight:700;opacity:.5;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.ai-out{font-size:13px;line-height:1.6;min-height:55px;white-space:pre-wrap}
+.ai-row{display:flex;gap:7px;margin-top:9px}
+.ai-in{flex:1;padding:9px 11px;border-radius:7px;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:13px;outline:none}
+.ai-in::placeholder{color:rgba(255,255,255,.35)}
+.ai-go{background:var(--rust);border:none;color:#fff;padding:9px 14px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:700}
+.qp{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-size:12px;font-weight:600;cursor:pointer;text-align:left;width:100%;margin-bottom:5px;color:var(--ink)}
+.fab{position:fixed;bottom:76px;right:14px;width:52px;height:52px;border-radius:50%;background:var(--rust);color:#fff;border:none;font-size:24px;box-shadow:0 4px 16px rgba(194,65,12,.4);cursor:pointer;z-index:89;display:flex;align-items:center;justify-content:center}
+.bk-warn{background:#fef3c7;color:#92400e;padding:8px 10px;border-radius:8px;font-size:11px;margin-bottom:8px}
+.inst-bar{background:linear-gradient(135deg,var(--rust),var(--rust2));color:#fff;padding:10px 12px;border-radius:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:12px}
+/* LABOUR RATE TABLE */
+.lr-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:var(--sh);cursor:pointer}
+.lr-name{font-weight:700;font-size:13px}
+.lr-cat{font-size:10px;color:var(--gray);margin-top:2px}
+.lr-prices{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.lr-p{background:#f8f9fa;border-radius:6px;padding:5px 4px;text-align:center}
+.lr-pl{font-size:9px;color:var(--gray);font-weight:600}
+.lr-pv{font-size:12px;font-weight:800;color:var(--rust)}
+.lr-p.highlight{background:var(--rust);color:#fff}
+.lr-p.highlight .lr-pl{color:rgba(255,255,255,.8)}
+.lr-p.highlight .lr-pv{color:#fff}
+</style>
+</head>
+<body>
+<div id="pinLock" style="position:fixed;inset:0;background:#111827;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+  <div style="font-size:44px">🔧</div>
+  <div style="color:#fff;font-weight:800;font-size:19px">Garage Pro Kerala</div>
+  <div id="pinMsg" style="color:#9ca3af;font-size:13px">Enter 4-digit PIN</div>
+  <input id="pinInp" type="password" inputmode="numeric" maxlength="4" style="width:150px;text-align:center;font-size:26px;letter-spacing:10px;padding:11px;border-radius:10px;border:none;outline:none;background:#f5f0e8">
+  <button onclick="pinSubmit()" style="background:#c2410c;color:#fff;border:none;padding:12px 34px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer">🔓 Unlock</button>
+</div>
+<script>
+(function(){
+  const saved=localStorage.getItem('gp_pin');
+  const msg=document.getElementById('pinMsg');
+  if(!saved){msg.textContent='ആദ്യ തവണ: പുതിയ 4-digit PIN set ചെയ്യൂ';}
+  window.pinSubmit=function(){
+    const v=document.getElementById('pinInp').value;
+    if(!/^\d{4}$/.test(v)){msg.textContent='4 digits വേണം';return;}
+    const s=localStorage.getItem('gp_pin');
+    if(!s){localStorage.setItem('gp_pin',v);document.getElementById('pinLock').remove();alert('✅ PIN set ആയി!\nഈ PIN ഓർത്തുവയ്ക്കൂ — രണ്ട് device-ലും ഇതേ PIN set ചെയ്യൂ');}
+    else if(v===s){document.getElementById('pinLock').remove();}
+    else{msg.textContent='❌ Wrong PIN — വീണ്ടും try ചെയ്യൂ';document.getElementById('pinInp').value='';}
+  };
+  document.getElementById('pinInp').addEventListener('keydown',e=>{if(e.key==='Enter')pinSubmit();});
+})();
+</script>
+
+<div id="syncNotif" style="display:none;position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#065f46;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.3)">
+  📱 New updates synced from other device!
+</div>
+<header class="hdr">
+  <div class="hdr-top">
+    <div class="logo">
+      <div class="logo-ic">🔧</div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7</div></div>
+    </div>
+    <div style="display:flex;gap:5px">
+      <button class="hbtn" onclick="doBackup()">💾 Backup</button>
+      <button class="hbtn" onclick="doRestore()">📂 Restore</button>
+    </div>
+  </div>
+  <div class="hdr-st" id="hdrSt">
+    <span>📋 <b id="hJ">0</b> today</span>
+    <span>💰 ₹<b id="hR">0</b></span>
+    <span>⏳ <b id="hP">0</b> pending</span>
+    <span>⚠️ <b id="hLow">0</b> low stock</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+    <div id="syncStatus" style="font-size:11px">🔄 Connecting...</div>
+    <button onclick="forcSync()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">🔄 Sync Now</button>
+  </div>
+</div>
+</header>
+
+<nav class="tabs">
+  <div class="tab on" data-pg="home"><i>📊</i>Home</div>
+  <div class="tab" data-pg="kanban"><i>🔄</i>Board</div>
+  <div class="tab" data-pg="job"><i>➕</i>Job</div>
+  <div class="tab" data-pg="jobs"><i>📋</i>Jobs</div>
+  <div class="tab" data-pg="report"><i>📈</i>Report</div>
+  <div class="tab" data-pg="customers"><i>👥</i>Customers</div>
+  <div class="tab" data-pg="manage"><i>⚙️</i>Manage</div>
+  <div class="tab" data-pg="stock"><i>📦</i>Stock</div>
+  <div class="tab" data-pg="rates"><i>🔩</i>Rates</div>
+  <div class="tab" data-pg="ai"><i>🤖</i>AI</div>
+</nav>
+
+<main>
+<!-- HOME -->
+<div class="pg on" id="home">
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div>
+  <div class="sg">
+    <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
+    <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
+    <div class="sc"><div class="sv">₹<span id="sR">0</span></div><div class="sl">Revenue</div></div>
+    <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
+  </div>
+  <div class="sg4">
+    <div class="sc" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Labour</div></div>
+    <div class="sc" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body</div></div>
+    <div class="sc" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
+    <div class="sc" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
+  </div>
+  <div class="card">
+    <div class="card-t">🚀 Quick Actions</div>
+    <button class="btn b-rust" onclick="go('job')">➕ New Job Card</button>
+    <button class="btn b-ink" onclick="go('kanban')">🔄 Job Board (Kanban)</button>
+    <button class="btn b-blue" onclick="go('report')">📈 Reports</button>
+    <button class="btn b-gray" onclick="doBackup()">💾 Backup Data</button>
+    <button class="btn b-gray" onclick="doRestore()">📂 Restore Backup</button>
+  </div>
+  <div class="card"><div class="card-t">📋 Recent Jobs</div><div id="recentJobs"></div></div>
+</div>
+
+<!-- KANBAN -->
+<div class="pg" id="kanban">
+  <div class="card" style="background:linear-gradient(135deg,var(--ink),#374151);color:#fff;border:none;padding:10px 12px;margin-bottom:10px">
+    <div style="font-weight:700">🔄 Live Job Board</div>
+    <div style="font-size:11px;opacity:.7;margin-top:2px">Tap card to update status</div>
+  </div>
+  <div class="kanban-wrap"><div class="kanban" id="kanbanBoard"></div></div>
+</div>
+
+<!-- NEW JOB -->
+<div class="pg" id="job">
+  <div class="card">
+    <div class="card-t">👤 Customer</div>
+    <div class="r2">
+      <div class="fg"><label>Name *</label><input id="fN" type="text" placeholder="Customer name"></div>
+      <div class="fg"><label>Phone *</label><input id="fPh" type="tel" maxlength="10" placeholder="9876543210"></div>
+    </div>
+    <div class="fg"><label>Address / Place</label><input id="fAddr" type="text" placeholder="e.g. Kalady, Trivandrum"></div>
+    <div class="r2">
+      <div class="fg"><label>Vehicle No *</label><input id="fV" type="text" placeholder="KL07AB1234" style="text-transform:uppercase"></div>
+      <div class="fg"><label>KM Reading</label><input id="fKm" type="number" placeholder="45000"></div>
+    </div>
+    <div class="fg"><label>Assign Mechanic</label>
+      <select id="fMech"><option value="">-- Select Mechanic --</option></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">🚗 Car & Category</div>
+    <div id="carPickWrap">
+      <div class="fg"><label>Car Model (search)</label>
+        <input id="carSrch" type="text" placeholder="🔍 Type to search (Swift, i20, Indica...)" oninput="onCarSrchInput()" onfocus="renderCarPicker()" autocomplete="off">
+      </div>
+      <div id="carPicker" style="display:none;max-height:230px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;background:#fff;margin-top:-6px"></div>
+    </div>
+    <div id="carCatBadge" style="margin-top:6px"></div>
+    <div id="selCarLabel" style="font-size:12px;color:var(--green);font-weight:700;margin-top:4px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">🔧 Job Details</div>
+    <textarea id="fC" placeholder="Complaint / problem description..."></textarea>
+    <div class="r2" style="margin-top:8px">
+      <div class="fg"><label>Job Date</label><input id="fDate" type="date"></div>
+      <div class="fg"><label>Fuel Level</label>
+        <select id="fFuel">
+          <option value="">--</option>
+          <option>Empty</option><option>1/4</option><option>1/2</option><option>3/4</option><option>Full</option>
+        </select>
+      </div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Job Type</label>
+        <select id="fJobType">
+          <option value="mechanical">🔧 Mechanical</option>
+          <option value="body">🚗 Body Work</option>
+          <option value="painting">🎨 Painting</option>
+          <option value="mixed">🔀 Mixed</option>
+        </select>
+      </div>
+      <div class="fg"><label>Next Service Date</label><input id="fNextSvc" type="date"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">📸 Vehicle Photos</div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:6px">Before / After / Damage photos</div>
+    <div class="photo-grid" id="photoGrid">
+      <div class="photo-add" onclick="addPhoto('Before')"><span>📷</span>Before</div>
+      <div class="photo-add" onclick="addPhoto('After')"><span>📷</span>After</div>
+      <div class="photo-add" onclick="addPhoto('Damage')"><span>📷</span>Damage</div>
+      <div class="photo-add" onclick="addPhoto('Other')"><span>📷</span>Other</div>
+    </div>
+    <input type="file" id="photoIn" accept="image/*" capture="environment" style="display:none" onchange="onPhoto(event)">
+  </div>
+
+  <div class="card">
+    <div class="card-t">👷 Labour Charges
+      <span id="catInfo" style="font-size:11px;color:var(--blue);font-weight:400;margin-left:8px"></span>
+    </div>
+    <button class="btn b-out" onclick="openLabourPicker()">➕ Add Labour from Rate List</button>
+    <div id="labourItems" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-t">🔩 Spare Parts</div>
+    <button class="btn b-out" style="color:var(--blue);border-color:var(--blue)" onclick="openSpareEntry()">➕ Add Spare Part</button>
+    <div id="spareItems" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <div class="est" id="estBox" style="display:none">
+      <div style="font-weight:700;margin-bottom:6px;font-size:13px">💰 Estimate</div>
+      <div id="estDet"></div>
+    </div>
+    <div class="fg" id="paySection">
+      <label>Payment Mode</label>
+      <select id="fPayMode" onchange="onPayMode()">
+        <option value="pending">⏳ Pending</option>
+        <option value="cash">💵 Cash (Full)</option>
+        <option value="upi">📱 UPI (Full)</option>
+        <option value="card">💳 Card (Full)</option>
+        <option value="partial">⚡ Partial</option>
+      </select>
+    </div>
+    <div class="fg" id="partialDiv" style="display:none">
+      <label>Amount Received ₹</label><input id="fPartial" type="number" placeholder="0">
+    </div>
+    <button class="btn b-green" id="saveBtn" onclick="saveJob()">✅ Save Job Card</button>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div class="pg" id="jobs">
+  <div class="chips" id="jfChips">
+    <div class="chip on" data-jf="all">All</div>
+    <div class="chip" data-jf="pending">Pending</div>
+    <div class="chip" data-jf="in-progress">Working</div>
+    <div class="chip" data-jf="ready">Ready</div>
+    <div class="chip" data-jf="completed">Done</div>
+  </div>
+  <div class="srch"><input id="jSrch" placeholder="Search name, vehicle, ID..."></div>
+  <div id="jobList"></div>
+</div>
+
+<!-- REPORTS -->
+<div class="pg" id="report">
+  <div class="ptabs">
+    <div class="ptab on" data-p="today">Today</div>
+    <div class="ptab" data-p="week">Week</div>
+    <div class="ptab" data-p="month">Month</div>
+    <div class="ptab" data-p="all">All Time</div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+      <div class="card-t" style="margin:0">💰 Income Breakdown</div>
+      <div id="rPLbl" style="font-size:11px;color:var(--gray)">Today</div>
+    </div>
+    <div class="inc-row">
+      <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--rust)"></div>🔧 Mechanical Labour</div>
+      <div class="bar-w"><div class="bar-f" id="mechBar" style="background:var(--rust);width:0%"></div></div></div>
+      <div style="text-align:right"><div class="inc-amt" id="rMech">₹0</div><div style="font-size:10px;color:var(--gray)" id="rMechP">0%</div></div>
+    </div>
+    <div class="inc-row">
+      <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--blue)"></div>🚗 Body Work</div>
+      <div class="bar-w"><div class="bar-f" id="bodyBar" style="background:var(--blue);width:0%"></div></div></div>
+      <div style="text-align:right"><div class="inc-amt" id="rBody">₹0</div><div style="font-size:10px;color:var(--gray)" id="rBodyP">0%</div></div>
+    </div>
+    <div class="inc-row">
+      <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--purple)"></div>🎨 Painting</div>
+      <div class="bar-w"><div class="bar-f" id="paintBar" style="background:var(--purple);width:0%"></div></div></div>
+      <div style="text-align:right"><div class="inc-amt" id="rPaint">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPaintP">0%</div></div>
+    </div>
+    <div class="inc-row">
+      <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--green)"></div>🔩 Parts Sale</div>
+      <div class="bar-w"><div class="bar-f" id="partsBar" style="background:var(--green);width:0%"></div></div></div>
+      <div style="text-align:right"><div class="inc-amt" id="rParts">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPartsP">0%</div></div>
+    </div>
+    <div style="background:linear-gradient(135deg,var(--rust),var(--rust2));color:#fff;border-radius:10px;padding:12px;margin-top:10px;display:flex;justify-content:space-between">
+      <div><div style="font-size:11px;opacity:.8">Total Revenue</div><div style="font-size:22px;font-weight:800" id="rTotal">₹0</div></div>
+      <div style="text-align:right"><div style="font-size:11px;opacity:.8">Jobs</div><div style="font-size:22px;font-weight:800" id="rJobs">0</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t" style="margin-bottom:4px">📊 Last 7 Days Revenue</div>
+    <div class="chart-w" id="chart7"></div>
+    <div style="display:flex;gap:3px;margin-top:2px" id="chartLbls"></div>
+  </div>
+  <div class="card"><div class="card-t">💳 Payment Status</div><div id="payRpt"></div></div>
+  <div class="card"><div class="card-t">👷 Mechanic Performance</div><div id="mechRpt"></div></div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="pg" id="customers">
+  <div class="srch"><input id="cSrch" placeholder="Search customer..."></div>
+  <div id="custList"></div>
+</div>
+
+<!-- MECHANICS -->
+<div class="pg" id="manage">
+  <div class="card" style="background:linear-gradient(135deg,var(--ink),#374151);color:#fff;border:none;padding:10px 12px;margin-bottom:10px">
+    <div style="font-weight:700;font-size:14px">⚙️ Manage / Settings</div>
+    <div style="font-size:11px;opacity:.7;margin-top:2px">Add, edit, activate/deactivate master data</div>
+  </div>
+  <div class="chips" id="mgChips">
+    <div class="chip on" data-mg="staff" onclick="setMgTab('staff')">👷 Staff</div>
+    <div class="chip" data-mg="parts" onclick="setMgTab('parts')">🔩 Parts</div>
+    <div class="chip" data-mg="labour" onclick="setMgTab('labour')">🧰 Labour</div>
+    <div class="chip" data-mg="cars" onclick="setMgTab('cars')">🚗 Car Models</div>
+  </div>
+  <button class="btn b-rust" id="mgAddBtn" style="margin-bottom:10px" onclick="mgAdd()">➕ Add New</button>
+  <div style="font-size:11px;color:var(--gray);margin-bottom:8px">✏️ Edit ചെയ്യാൻ item tap ചെയ്യൂ • 🚫 Inactive items പുതിയ job card-ൽ കാണില്ല (പഴയ job cards മാറില്ല)</div>
+  <div id="manageBody"></div>
+  <button class="btn b-red" style="margin-top:16px" onclick="clearAllData()">🗑️ Clear ALL Data — Owner Only (PIN)</button>
+</div>
+
+<!-- STOCK -->
+<div class="pg" id="stock">
+  <button class="btn b-blue" style="margin-bottom:8px" onclick="openAddStock()">➕ Add Stock Item</button>
+  <div id="lowAlerts" style="margin-bottom:8px"></div>
+  <div class="srch"><input id="stSrch" placeholder="Search stock..."></div>
+  <div id="stockList"></div>
+</div>
+
+<!-- RATES -->
+<div class="pg" id="rates">
+  <div class="card" style="background:linear-gradient(135deg,var(--rust),var(--rust2));color:#fff;border:none;padding:10px 12px">
+    <div style="font-weight:700;font-size:14px">🔩 Labour Rates — Kerala 2026</div>
+    <div style="font-size:11px;opacity:.8;margin-top:2px">Category-wise • Tap to view/edit rate</div>
+  </div>
+  <div class="srch"><input id="rSrch" placeholder="Search service..."></div>
+  <div class="chips" id="rCatChips">
+    <div class="chip on" data-rc="all">All</div>
+    <div class="chip" data-rc="Engine">Engine</div>
+    <div class="chip" data-rc="Fuel System">Fuel</div>
+    <div class="chip" data-rc="Clutch & Transmission">Clutch</div>
+    <div class="chip" data-rc="Suspension">Suspension</div>
+    <div class="chip" data-rc="Brake">Brake</div>
+    <div class="chip" data-rc="Electrical">Electrical</div>
+    <div class="chip" data-rc="AC & Heating">AC</div>
+    <div class="chip" data-rc="Denting & Painting">Paint</div>
+    <div class="chip" data-rc="Body Parts">Body</div>
+    <div class="chip" data-rc="Periodic Service">Service</div>
+    <div class="chip" data-rc="Diagnostic">Diagnostic</div>
+    <div class="chip" data-rc="Wheel & Tyre">Tyres</div>
+    <div class="chip" data-rc="Exhaust">Exhaust</div>
+    <div class="chip" data-rc="Interior">Interior</div>
+    <div class="chip" data-rc="Glass">Glass</div>
+  </div>
+  <div id="ratesList"></div>
+</div>
+
+<!-- AI -->
+<div class="pg" id="ai">
+  <div class="ai-box">
+    <div class="ai-lbl">🤖 Claude AI Assistant</div>
+    <div class="ai-out" id="aiOut">നമസ്കാരം! Estimate, repairs, WhatsApp messages — ഏതും ചോദിക്കൂ!</div>
+    <div class="ai-row">
+      <input class="ai-in" id="aiIn" placeholder="Type question..." type="text">
+      <button class="ai-go" onclick="askAI()">➤</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t">⚡ Quick Prompts</div>
+    <button class="qp" onclick="qAI('Maruti Swift petrol general service estimate Kerala 2026')">🚗 Swift Service Estimate</button>
+    <button class="qp" onclick="qAI('Hyundai Creta brake pad replacement cost Kerala — labour and parts')">🛑 Creta Brake Cost</button>
+    <button class="qp" onclick="qAI('AC not cooling — diagnosis steps and repair estimate Kerala')">❄️ AC Diagnosis</button>
+    <button class="qp" onclick="qAI('Write WhatsApp message: car ready for pickup, total bill ₹4500')">📱 WhatsApp Message</button>
+    <button class="qp" onclick="qAI('Tips to increase workshop revenue — Kerala small garage')">💡 Business Tips</button>
+  </div>
+</div>
+</main>
+
+<button class="fab" onclick="go('job')">+</button>
+
+<!-- LABOUR PICKER MODAL -->
+<div class="modal" id="lpM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">Labour Rate List</div><button class="mc" onclick="closeM('lpM')">×</button></div>
+    <div class="mbody">
+      <div id="lpCatInfo" style="background:var(--blue2);color:var(--blue);padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:8px;display:none"></div>
+      <div class="srch"><input id="lpSrch" placeholder="Search service..." oninput="renderLpList()"></div>
+      <div class="chips" id="lpCatChips">
+        <div class="chip on" data-lpc="all">All</div>
+        <div class="chip" data-lpc="Engine">Engine</div>
+        <div class="chip" data-lpc="Fuel System">Fuel</div>
+        <div class="chip" data-lpc="Clutch & Transmission">Clutch</div>
+        <div class="chip" data-lpc="Suspension">Suspension</div>
+        <div class="chip" data-lpc="Brake">Brake</div>
+        <div class="chip" data-lpc="Electrical">Electrical</div>
+        <div class="chip" data-lpc="AC & Heating">AC</div>
+        <div class="chip" data-lpc="Denting & Painting">Paint</div>
+        <div class="chip" data-lpc="Body Parts">Body</div>
+        <div class="chip" data-lpc="Periodic Service">Service</div>
+        <div class="chip" data-lpc="Diagnostic">Diagnostic</div>
+        <div class="chip" data-lpc="Wheel & Tyre">Tyres</div>
+        <div class="chip" data-lpc="Exhaust">Exhaust</div>
+        <div class="chip" data-lpc="Interior">Interior</div>
+        <div class="chip" data-lpc="Glass">Glass</div>
+      </div>
+      <div id="lpList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPARE MODAL -->
+<div class="modal" id="spareM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">Add Spare Part</div><button class="mc" onclick="closeM('spareM')">×</button></div>
+    <div class="mbody">
+      <div class="fg">
+        <label>Part Name * (type to search previous)</label>
+        <div class="sug-wrap">
+          <input id="spName" type="text" placeholder="e.g. Oil Filter, Brake Pad..." oninput="onSpareSearch()" autocomplete="off">
+          <div class="sug-list" id="sugList"></div>
+        </div>
+      </div>
+      <div class="fg"><label>Brand / Source</label>
+        <input id="spBrand" placeholder="e.g. Bosch, OEM, Local...">
+      </div>
+      <div class="fg"><label>Customer Supplied?</label>
+        <select id="spCustSup" onchange="onCustSup()">
+          <option value="no">No — Workshop supply</option>
+          <option value="yes">Yes — Customer brought part (Labour only)</option>
+        </select>
+      </div>
+      <div id="spPriceDiv">
+        <div class="r2">
+          <div class="fg"><label>Cost Price ₹ (you paid)</label>
+            <input id="spCost" type="number" placeholder="0" oninput="calcSell()">
+          </div>
+          <div class="fg"><label>Markup %</label>
+            <input id="spMarkup" type="number" placeholder="30" value="30" oninput="calcSell()">
+          </div>
+        </div>
+        <div class="fg">
+          <label>Selling Price ₹ (customer billed)</label>
+          <input id="spSell" type="number" placeholder="0" style="border-color:var(--green);font-weight:700;font-size:16px">
+        </div>
+      </div>
+      <div class="fg"><label>Quantity</label>
+        <input id="spQty" type="number" value="1" min="1">
+      </div>
+      <button class="btn b-blue" onclick="addSpare()">➕ Add to Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB DETAIL MODAL -->
+<div class="modal" id="jobM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="jobMT">Job</div><button class="mc" onclick="closeM('jobM')">×</button></div>
+    <div class="mbody" id="jobMB"></div>
+  </div>
+</div>
+
+<!-- MECHANIC MODAL -->
+<div class="modal" id="mechM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="mechMT">Add Mechanic</div><button class="mc" onclick="closeM('mechM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Name *</label><input id="mName" placeholder="Mechanic name"></div>
+      <div class="fg"><label>Phone</label><input id="mPhone" type="tel" placeholder="9876543210"></div>
+      <div class="fg"><label>Speciality</label>
+        <select id="mSpec">
+          <option value="mechanical">🔧 Mechanical</option>
+          <option value="body">🚗 Body Work</option>
+          <option value="painting">🎨 Painting</option>
+          <option value="electrical">⚡ Electrical</option>
+          <option value="all">🔀 All Round</option>
+        </select>
+      </div>
+      <button class="btn b-rust" onclick="saveMech()">✅ Save</button>
+      <button class="btn b-red" id="delMechBtn" style="display:none" onclick="delMechCurrent()">🗑️ Remove Mechanic</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK MODAL -->
+<div class="modal" id="stockM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="stockMT">Stock Item</div><button class="mc" onclick="closeM('stockM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Part Name *</label><input id="stName" placeholder="Part name"></div>
+      <div class="fg"><label>Part Number</label><input id="stPN" placeholder="OEM number" style="font-family:monospace"></div>
+      <div class="r3">
+        <div class="fg"><label>Qty *</label><input id="stQty" type="number" placeholder="10" min="0"></div>
+        <div class="fg"><label>Min Alert</label><input id="stMin" type="number" placeholder="2" min="0"></div>
+        <div class="fg"><label>Cost ₹</label><input id="stCost" type="number" placeholder="0"></div>
+      </div>
+      <div class="fg"><label>Supplier</label><input id="stSupp" placeholder="Supplier name"></div>
+      <button class="btn b-blue" onclick="saveStock()">✅ Save</button>
+      <button class="btn b-green" id="addQtyBtn" style="display:none" onclick="addMoreQty()">➕ Add Quantity</button>
+      <button class="btn b-red" id="delStBtn" style="display:none" onclick="delStock()">🗑️ Delete Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="modal" id="photoM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="photoMT">Photo</div><button class="mc" onclick="closeM('photoM')">×</button></div>
+    <div class="mbody" style="text-align:center">
+      <img id="photoMImg" style="max-width:100%;border-radius:8px;max-height:55vh;object-fit:contain">
+      <button class="btn b-red" style="margin-top:10px" id="delPhotoBtn">🗑️ Delete Photo</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATE EDIT MODAL -->
+<div class="modal" id="rateEditM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="rateEditTitle">Edit Rate</div><button class="mc" onclick="closeM('rateEditM')">×</button></div>
+    <div class="mbody">
+      <div style="font-size:12px;color:var(--gray);margin-bottom:10px">Override default rates for your workshop</div>
+      <div class="r2">
+        <div class="fg"><label>Hatchback ₹</label><input id="re_hb" type="number"></div>
+        <div class="fg"><label>Premium HB ₹</label><input id="re_phb" type="number"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>Sedan ₹</label><input id="re_sed" type="number"></div>
+        <div class="fg"><label>Premium Sedan ₹</label><input id="re_psed" type="number"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>SUV ₹</label><input id="re_suv" type="number"></div>
+        <div class="fg"><label>Premium SUV ₹</label><input id="re_psuv" type="number"></div>
+      </div>
+      <button class="btn b-rust" onclick="saveRateEdit()">✅ Save Custom Rate</button>
+      <button class="btn b-gray" onclick="resetRateEdit()">↩ Reset to Default</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAR MODEL MODAL -->
+<div class="modal" id="carM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="carMT">Add Car Model</div><button class="mc" onclick="closeM('carM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Brand *</label><input id="cmBrand" list="brandList" placeholder="e.g. Maruti, Hyundai, Tata"><datalist id="brandList"></datalist></div>
+      <div class="fg"><label>Model *</label><input id="cmModel" placeholder="e.g. Swift (K-series), Ritz Diesel"></div>
+      <div class="fg"><label>Category * (labour rate auto-apply)</label>
+        <select id="cmCat">
+          <option value="hb">Hatchback</option>
+          <option value="phb">Premium Hatchback</option>
+          <option value="sed">Sedan</option>
+          <option value="psed">Premium Sedan</option>
+          <option value="suv">SUV</option>
+          <option value="psuv">Premium SUV</option>
+        </select>
+      </div>
+      <button class="btn b-rust" onclick="saveCarModel()">✅ Save Car Model</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM LABOUR MODAL -->
+<div class="modal" id="labAddM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="labAddMT">Add Labour Charge</div><button class="mc" onclick="closeM('labAddM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Service Name *</label><input id="clName" placeholder="e.g. Turbo Replacement"></div>
+      <div class="fg"><label>Category *</label>
+        <select id="clCat">
+          <option>Engine</option><option>Fuel System</option><option>Clutch & Transmission</option>
+          <option>Suspension</option><option>Brake</option><option>Electrical</option>
+          <option>AC & Heating</option><option>Denting & Painting</option><option>Body Parts</option>
+          <option>Periodic Service</option><option>Diagnostic</option><option>Wheel & Tyre</option>
+          <option>Exhaust</option><option>Interior</option><option>Glass</option>
+        </select>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>Hatchback ₹ *</label><input id="cl_hb" type="number" placeholder="0"></div>
+        <div class="fg"><label>Premium HB ₹</label><input id="cl_phb" type="number" placeholder="0"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>Sedan ₹</label><input id="cl_sed" type="number" placeholder="0"></div>
+        <div class="fg"><label>Premium Sedan ₹</label><input id="cl_psed" type="number" placeholder="0"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>SUV ₹</label><input id="cl_suv" type="number" placeholder="0"></div>
+        <div class="fg"><label>Premium SUV ₹</label><input id="cl_psuv" type="number" placeholder="0"></div>
+      </div>
+      <button class="btn b-rust" onclick="saveCustomLabour()">✅ Save Labour</button>
+    </div>
+  </div>
+</div>
+
+<!-- PART (HISTORY) MODAL -->
+<div class="modal" id="partHM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="partHMT">Add Part</div><button class="mc" onclick="closeM('partHM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Part Name *</label><input id="phName" placeholder="e.g. Oil Filter — Swift"></div>
+      <div class="fg"><label>Brand / Source</label><input id="phBrand" placeholder="e.g. Bosch, OEM"></div>
+      <div class="r2">
+        <div class="fg"><label>Cost Price ₹</label><input id="phCost" type="number" placeholder="0"></div>
+        <div class="fg"><label>Selling Price ₹ *</label><input id="phSell" type="number" placeholder="0"></div>
+      </div>
+      <button class="btn b-blue" onclick="savePartHist()">✅ Save Part</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="onRestore(event)">
+
+<script>
+// ====================== LABOUR RATES (102 services) ======================
+const LR = [
+  {n:"Engine Oil Change + Filter",c:"Engine",hb:350,phb:400,sed:400,psed:450,suv:450,psuv:500,note:"Incl. drain & fill"},
+  {n:"Engine Tuning / Decarbonizing",c:"Engine",hb:1200,phb:1400,sed:1400,psed:1600,suv:1600,psuv:1800,note:""},
+  {n:"Water Pump Replacement",c:"Engine",hb:2200,phb:2500,sed:2600,psed:2900,suv:3000,psuv:3400,note:""},
+  {n:"Radiator Hoses Replacement",c:"Engine",hb:1400,phb:1600,sed:1600,psed:1800,suv:1800,psuv:2100,note:"Upper + Lower"},
+  {n:"Coolant Elbow + Packings Replacement",c:"Engine",hb:1100,phb:1300,sed:1300,psed:1500,suv:1500,psuv:1700,note:""},
+  {n:"EGR Valve Cleaning",c:"Engine",hb:900,phb:1100,sed:1100,psed:1300,suv:1300,psuv:1500,note:""},
+  {n:"Thermostat Replacement",c:"Engine",hb:1300,phb:1500,sed:1500,psed:1700,suv:1700,psuv:2000,note:""},
+  {n:"Radiator Replacement",c:"Engine",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:""},
+  {n:"Radiator Fan Motor Replacement",c:"Engine",hb:2400,phb:2800,sed:2800,psed:3200,suv:3300,psuv:3900,note:""},
+  {n:"Engine Mounting Replacement",c:"Engine",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"Timing Belt Replacement",c:"Engine",hb:3800,phb:4400,sed:4400,psed:5000,suv:5200,psuv:6000,note:""},
+  {n:"Timing Chain Replacement",c:"Engine",hb:5500,phb:6300,sed:6300,psed:7200,suv:7500,psuv:8700,note:""},
+  {n:"Cylinder Head Gasket Replacement",c:"Engine",hb:8500,phb:9800,sed:9800,psed:11200,suv:11500,psuv:13500,note:"Major job"},
+  {n:"Piston Ring Replacement",c:"Engine",hb:14500,phb:16800,sed:16800,psed:19200,suv:19800,psuv:23000,note:"Major overhaul"},
+  {n:"Camshaft Sensor Replacement",c:"Engine",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Crankshaft Sensor Replacement",c:"Engine",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Spark Plug Replacement (Set)",c:"Engine",hb:900,phb:1050,sed:1050,psed:1200,suv:1250,psuv:1450,note:""},
+  {n:"Ignition Coil Replacement",c:"Engine",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Fuel Pump Replacement",c:"Fuel System",hb:2800,phb:3200,sed:3200,psed:3600,suv:3700,psuv:4300,note:""},
+  {n:"Fuel Injector Cleaning (Set of 4)",c:"Fuel System",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"Fuel Injector Replacement (Single)",c:"Fuel System",hb:2200,phb:2550,sed:2550,psed:2900,suv:3000,psuv:3500,note:""},
+  {n:"High Pressure Fuel Pump (Diesel)",c:"Fuel System",hb:6500,phb:7500,sed:7500,psed:8600,suv:8900,psuv:10400,note:""},
+  {n:"Clutch Set Replacement (Complete Kit)",c:"Clutch & Transmission",hb:2299,phb:2499,sed:2699,psed:2899,suv:3299,psuv:3999,note:"Plate + Pressure + Bearing"},
+  {n:"Flywheel Turning",c:"Clutch & Transmission",hb:700,phb:800,sed:800,psed:900,suv:900,psuv:1100,note:""},
+  {n:"Flywheel Replacement",c:"Clutch & Transmission",hb:4200,phb:4800,sed:4800,psed:5500,suv:5700,psuv:6600,note:""},
+  {n:"Gearbox Refitting (Labour Only)",c:"Clutch & Transmission",hb:1800,phb:2100,sed:2100,psed:2400,suv:2600,psuv:3100,note:""},
+  {n:"Manual Gearbox Overhauling",c:"Clutch & Transmission",hb:9500,phb:11000,sed:11000,psed:12600,suv:13000,psuv:15200,note:"Major job"},
+  {n:"CV Joint Replacement (Single)",c:"Clutch & Transmission",hb:2400,phb:2750,sed:2750,psed:3150,suv:3250,psuv:3800,note:"Boot + Assembly"},
+  {n:"Drive Shaft Replacement",c:"Clutch & Transmission",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:""},
+  {n:"Front Shock Absorber Replacement (Pair)",c:"Suspension",hb:2400,phb:2700,sed:2800,psed:3100,suv:3200,psuv:3800,note:"Both sides"},
+  {n:"Rear Shock Absorber Replacement (Pair)",c:"Suspension",hb:2000,phb:2300,sed:2300,psed:2600,suv:2700,psuv:3200,note:"Both sides"},
+  {n:"Front Strut Assembly Replacement (Pair)",c:"Suspension",hb:3800,phb:4400,sed:4400,psed:5000,suv:5200,psuv:6000,note:""},
+  {n:"Lower Arm Replacement (Single)",c:"Suspension",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Upper Arm Replacement (Single)",c:"Suspension",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"Link Rod Replacement (Pair)",c:"Suspension",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Tie Rod End Replacement (Pair)",c:"Suspension",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:"Inner + Outer"},
+  {n:"Steering Rack Repair",c:"Suspension",hb:4500,phb:5200,sed:5200,psed:5900,suv:6200,psuv:7200,note:""},
+  {n:"EPS Module Repair",c:"Suspension",hb:5200,phb:6000,sed:6000,psed:6800,suv:7100,psuv:8300,note:""},
+  {n:"Power Steering Pump Replacement",c:"Suspension",hb:3800,phb:4400,sed:4400,psed:5000,suv:5200,psuv:6000,note:""},
+  {n:"Wheel Alignment + Balancing",c:"Suspension",hb:600,phb:700,sed:700,psed:800,suv:800,psuv:950,note:"4 wheels"},
+  {n:"Front Brake Pads Replacement (Both Wheels)",c:"Brake",hb:600,phb:700,sed:700,psed:800,suv:800,psuv:1000,note:""},
+  {n:"Rear Brake Pads / Shoes Replacement",c:"Brake",hb:550,phb:650,sed:650,psed:750,suv:750,psuv:900,note:""},
+  {n:"Brake Disc Replacement (Front Pair)",c:"Brake",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"Brake Drum Replacement (Rear Pair)",c:"Brake",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Brake Caliper Overhauling (Single)",c:"Brake",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Brake Master Cylinder Replacement",c:"Brake",hb:2800,phb:3200,sed:3200,psed:3700,suv:3800,psuv:4400,note:""},
+  {n:"Brake Booster Replacement",c:"Brake",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:""},
+  {n:"Handbrake Cable Replacement",c:"Brake",hb:1100,phb:1300,sed:1300,psed:1500,suv:1550,psuv:1800,note:""},
+  {n:"ABS Sensor Replacement (Single)",c:"Brake",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Battery Replacement (Labour Only)",c:"Electrical",hb:400,phb:500,sed:500,psed:600,suv:600,psuv:700,note:""},
+  {n:"Alternator Replacement",c:"Electrical",hb:2800,phb:3200,sed:3200,psed:3700,suv:3800,psuv:4400,note:""},
+  {n:"Starter Motor Replacement",c:"Electrical",hb:2200,phb:2600,sed:2600,psed:3000,suv:3100,psuv:3600,note:""},
+  {n:"ECM / ECU Repair",c:"Electrical",hb:6500,phb:7500,sed:7500,psed:8600,suv:8900,psuv:10400,note:""},
+  {n:"Oxygen Sensor Replacement",c:"Electrical",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"MAF Sensor Cleaning",c:"Electrical",hb:900,phb:1050,sed:1050,psed:1200,suv:1250,psuv:1450,note:""},
+  {n:"Throttle Position Sensor Replacement",c:"Electrical",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Power Window Motor Replacement (Single)",c:"Electrical",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Wiper Motor Replacement (Front)",c:"Electrical",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Headlight Assembly Replacement (Single)",c:"Electrical",hb:1800,phb:2100,sed:2100,psed:2400,suv:2500,psuv:2900,note:""},
+  {n:"AC Gas Top-up + Leak Test",c:"AC & Heating",hb:900,phb:1100,sed:1100,psed:1300,suv:1300,psuv:1500,note:""},
+  {n:"AC Condenser Cleaning",c:"AC & Heating",hb:800,phb:950,sed:950,psed:1100,suv:1100,psuv:1300,note:""},
+  {n:"AC Evaporator Cleaning",c:"AC & Heating",hb:1200,phb:1400,sed:1400,psed:1600,suv:1650,psuv:1900,note:""},
+  {n:"Compressor Replacement",c:"AC & Heating",hb:6500,phb:7500,sed:7500,psed:8600,suv:8900,psuv:10400,note:""},
+  {n:"AC Blower Motor Replacement",c:"AC & Heating",hb:2400,phb:2800,sed:2800,psed:3200,suv:3300,psuv:3900,note:""},
+  {n:"Heater Core Replacement",c:"AC & Heating",hb:4800,phb:5500,sed:5500,psed:6300,suv:6500,psuv:7600,note:""},
+  {n:"Full Body Dent Paint (Solid)",c:"Denting & Painting",hb:14500,phb:16500,sed:17500,psed:19500,suv:20500,psuv:24500,note:"2 Years Warranty"},
+  {n:"Full Body Dent Paint (Metallic / Pearl)",c:"Denting & Painting",hb:19500,phb:22500,sed:23500,psed:26500,suv:27500,psuv:32500,note:"2 Years Warranty"},
+  {n:"Bonnet Paint",c:"Denting & Painting",hb:3800,phb:4300,sed:4300,psed:4800,suv:5000,psuv:5800,note:""},
+  {n:"Front Bumper Paint",c:"Denting & Painting",hb:2600,phb:3000,sed:3000,psed:3400,suv:3500,psuv:4100,note:""},
+  {n:"Rear Bumper Paint",c:"Denting & Painting",hb:2400,phb:2800,sed:2800,psed:3200,suv:3300,psuv:3900,note:""},
+  {n:"Left Front Door Paint",c:"Denting & Painting",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:""},
+  {n:"Right Front Door Paint",c:"Denting & Painting",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:""},
+  {n:"Left Rear Door Paint",c:"Denting & Painting",hb:3000,phb:3500,sed:3500,psed:4000,suv:4100,psuv:4800,note:""},
+  {n:"Right Rear Door Paint",c:"Denting & Painting",hb:3000,phb:3500,sed:3500,psed:4000,suv:4100,psuv:4800,note:""},
+  {n:"Fender Paint (Single Side)",c:"Denting & Painting",hb:2800,phb:3200,sed:3200,psed:3600,suv:3700,psuv:4300,note:""},
+  {n:"Quarter Panel Paint (Single)",c:"Denting & Painting",hb:3100,phb:3600,sed:3600,psed:4100,suv:4200,psuv:4900,note:""},
+  {n:"Front Bumper Replacement",c:"Body Parts",hb:2100,phb:2400,sed:2400,psed:2700,suv:2800,psuv:3300,note:"Genuine Part"},
+  {n:"Rear Bumper Replacement",c:"Body Parts",hb:1900,phb:2200,sed:2200,psed:2500,suv:2600,psuv:3100,note:"Genuine Part"},
+  {n:"Bonnet Replacement",c:"Body Parts",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:"Genuine Part"},
+  {n:"Boot / Trunk Lid Replacement",c:"Body Parts",hb:3400,phb:3900,sed:3900,psed:4500,suv:4600,psuv:5400,note:"Genuine Part"},
+  {n:"Left Front Door Replacement",c:"Body Parts",hb:4800,phb:5500,sed:5500,psed:6300,suv:6500,psuv:7600,note:"Genuine Part + Paint"},
+  {n:"Right Front Door Replacement",c:"Body Parts",hb:4800,phb:5500,sed:5500,psed:6300,suv:6500,psuv:7600,note:"Genuine Part + Paint"},
+  {n:"Left Rear Door Replacement",c:"Body Parts",hb:4600,phb:5300,sed:5300,psed:6100,suv:6300,psuv:7400,note:"Genuine Part + Paint"},
+  {n:"Right Rear Door Replacement",c:"Body Parts",hb:4600,phb:5300,sed:5300,psed:6100,suv:6300,psuv:7400,note:"Genuine Part + Paint"},
+  {n:"Fender Replacement (Single)",c:"Body Parts",hb:2800,phb:3200,sed:3200,psed:3700,suv:3800,psuv:4400,note:"Genuine Part"},
+  {n:"Door Latch Replacement (Single)",c:"Body Parts",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Basic Service",c:"Periodic Service",hb:2200,phb:2500,sed:2500,psed:2900,suv:3000,psuv:3500,note:"Every 5000 km"},
+  {n:"Standard Service",c:"Periodic Service",hb:3200,phb:3700,sed:3700,psed:4200,suv:4300,psuv:5000,note:"Every 10000 km"},
+  {n:"Comprehensive Service",c:"Periodic Service",hb:5500,phb:6300,sed:6300,psed:7200,suv:7500,psuv:8700,note:"Every 20000 km"},
+  {n:"Complete Suspension Inspection (25 Points)",c:"Diagnostic",hb:600,phb:700,sed:700,psed:800,suv:800,psuv:950,note:""},
+  {n:"Car Scanning (OBD Diagnostic)",c:"Diagnostic",hb:500,phb:600,sed:600,psed:700,suv:700,psuv:850,note:""},
+  {n:"Full Car Health Check-up",c:"Diagnostic",hb:1100,phb:1300,sed:1300,psed:1500,suv:1550,psuv:1800,note:"50 Point Check"},
+  {n:"Wheel Balancing (4 Wheels)",c:"Wheel & Tyre",hb:400,phb:500,sed:500,psed:600,suv:600,psuv:700,note:""},
+  {n:"Tyre Rotation",c:"Wheel & Tyre",hb:300,phb:350,sed:350,psed:400,suv:400,psuv:500,note:""},
+  {n:"Catalytic Converter Cleaning",c:"Exhaust",hb:2200,phb:2550,sed:2550,psed:2900,suv:3000,psuv:3500,note:""},
+  {n:"Silencer / Muffler Replacement",c:"Exhaust",hb:2800,phb:3200,sed:3200,psed:3700,suv:3800,psuv:4400,note:""},
+  {n:"Sunroof Service",c:"Interior",hb:1600,phb:1850,sed:1850,psed:2100,suv:2200,psuv:2550,note:""},
+  {n:"Interior Vacuuming + Cleaning",c:"Interior",hb:600,phb:700,sed:700,psed:800,suv:800,psuv:950,note:""},
+  {n:"Seat Channel Lubrication",c:"Interior",hb:400,phb:500,sed:500,psed:600,suv:600,psuv:700,note:""},
+  {n:"Windshield Replacement (Labour Only)",c:"Glass",hb:1400,phb:1600,sed:1600,psed:1850,suv:1900,psuv:2200,note:""},
+  {n:"Rear Glass Replacement (Labour Only)",c:"Glass",hb:1200,phb:1400,sed:1400,psed:1600,suv:1650,psuv:1900,note:""},
+];
+
+// Car categories
+const CAR_CATS={
+  'Maruti Alto K10':'hb','Maruti Swift':'hb','Maruti Celerio':'hb','Maruti S-Presso':'hb',
+  'Maruti Wagon R':'hb','Maruti Eeco':'hb','Hyundai Grand i10 Nios':'hb',
+  'Tata Tiago':'hb','Tata Punch':'hb','Renault Kwid':'hb','Nissan Magnite':'hb','Renault Kiger':'hb',
+  'Maruti Baleno':'phb','Maruti Fronx':'phb','Toyota Glanza':'phb','Toyota Taisor':'phb',
+  'Hyundai i20':'phb','Tata Altroz':'phb','Volkswagen Polo':'phb','Skoda Kushaq':'phb',
+  'Maruti Dzire':'sed','Maruti Ciaz':'sed','Hyundai Aura':'sed','Tata Tigor':'sed','Honda Amaze':'sed','Renault Triber':'sed',
+  'Hyundai Verna':'psed','Honda City':'psed','Honda Elevate':'psed','Volkswagen Virtus':'psed','Skoda Slavia':'psed',
+  'Maruti Brezza':'suv','Maruti Ertiga':'suv','Maruti XL6':'suv','Maruti Grand Vitara':'suv',
+  'Hyundai Venue':'suv','Hyundai Creta':'suv','Hyundai Alcazar':'suv','Hyundai Exter':'suv',
+  'Tata Nexon':'suv','Tata Punch':'suv','Kia Sonet':'suv','Kia Seltos':'suv','Kia Carens':'suv',
+  'Mahindra XUV300':'suv','Mahindra Scorpio N':'suv','Mahindra Thar':'suv',
+  'MG Astor':'suv','MG Hector':'suv','Toyota Hyryder':'suv',
+  'Tata Harrier':'psuv','Tata Safari':'psuv','Mahindra XUV700':'psuv','Mahindra Scorpio Classic':'psuv',
+  'Toyota Fortuner':'psuv','Toyota Innova Crysta':'psuv','Toyota Innova Hycross':'psuv',
+  'Hyundai Tucson':'psuv','Kia Carnival':'psuv','MG Gloster':'psuv',
+  'Jeep Compass':'psuv','Jeep Meridian':'psuv','Volkswagen Taigun':'suv','Skoda Slavia':'psed',
+};
+
+const CAT_NAMES={hb:'Hatchback',phb:'Premium Hatchback',sed:'Sedan',psed:'Premium Sedan',suv:'SUV',psuv:'Premium SUV'};
+const CAT_KEYS=['hb','phb','sed','psed','suv','psuv'];
+const CAT_BADGE_CLS={hb:'cat-hb',phb:'cat-phb',sed:'cat-sed',psed:'cat-psed',suv:'cat-suv',psuv:'cat-psuv'};
+
+const CARS={
+  Maruti:{'Alto K10':['Std','LXi','VXi','VXi AGS'],'Swift':['LXi','VXi','ZXi','ZXi+','VXi AMT','ZXi AMT'],'Dzire':['LXi','VXi','ZXi','ZXi+','VXi AMT','ZXi AMT'],'Wagon R':['LXi 1.0','VXi 1.0','ZXi 1.0','LXi+ 1.2','VXi+ 1.2','ZXi+ 1.2'],'Baleno':['Sigma','Delta','Zeta','Alpha'],'Brezza':['LXi','VXi','ZXi','ZXi+','VXi AMT','ZXi AMT'],'Ertiga':['VXi','ZXi','ZXi+','VXi CNG','VXi AT'],'Celerio':['LXi','VXi','ZXi','VXi AMT'],'S-Presso':['Std','LXi','VXi','VXi AGS'],'XL6':['Zeta MT','Alpha MT','Zeta AT','Alpha AT'],'Grand Vitara':['E','S','S AT','Delta','Zeta','Alpha','Sigma'],'Fronx':['Sigma','Delta','Zeta','Alpha'],'Jimny':['Zeta MT','Alpha MT'],'Ciaz':['Sigma','Delta','Zeta','Alpha'],'Eeco':['Std','5-Seater','7-Seater','CNG']},
+  Hyundai:{'Grand i10 Nios':['Era','Magna','Sportz','Asta','Turbo iMT'],'i20':['Magna','Sportz','Asta','Asta(O)','Sportz iMT','Sportz DCT'],'Aura':['E','S','SX','SX+','S CNG','S AMT'],'Verna':['EX','S','SX','SX IVT','SX(O) IVT'],'Creta':['E','EX','S','SX','SX(O)','S Diesel','SX Diesel','S AT','SX AT'],'Venue':['E','S','SX','SX(O)','SX+ iMT','SX+ DCT'],'Alcazar':['Prestige','Platinum','Signature 6','Signature 7'],'Exter':['EX','S','SX','SX(O)','SX+ AMT'],'Tucson':['Platinum','Signature 2WD','Signature AWD']},
+  Tata:{'Tiago':['XE','XM','XT','XZ','XZ+','XZ+ AMT','CNG XZ+'],'Tigor':['XE','XM','XT','XZ+'],'Punch':['Pure','Adventure','Accomplished','Creative','Pure AMT','Adventure AMT'],'Altroz':['XE','XM','XT','XZ','XZ+','Dark','Racer'],'Nexon':['Smart','Smart+','Pure','Creative','Creative+','Fearless','EV Smart+','EV Creative+'],'Harrier':['Smart','Smart+','Pure','Adventure','Accomplished'],'Safari':['Smart','Smart+','Pure','Adventure','Accomplished'],'Curvv':['Creative','Creative+','Accomplished','Fearless']},
+  Toyota:{'Glanza':['E','S','G','V','S AMT'],'Innova Crysta':['GX 7 MT','VX 7 MT','ZX AT','GX Diesel','VX Diesel'],'Innova Hycross':['G MT','GX MT','VX MT','GX CVT','VX CVT','G HEV','VX HEV'],'Fortuner':['2WD MT','2WD AT','4WD AT','Legender'],'Hyryder':['E MT','S MT','G MT','V MT','G HEV','V HEV'],'Taisor':['E MT','S MT','G MT','V MT','S AMT']},
+  Honda:{'Amaze':['S MT','SX MT','VX MT','S CVT','VX CVT'],'City':['V MT','VX MT','ZX MT','V CVT','VX CVT','e:HEV V'],'Elevate':['S MT','SV MT','V MT','VX MT','ZX MT','SV CVT','V CVT']},
+  Kia:{'Sonet':['HTE','HTK','HTK+','HTX','HTX+','GTX+','HTX IVT'],'Seltos':['HTE','HTK','HTK+','HTX','HTX+','GTX+','HTX IVT'],'Carens':['Premium','Prestige','Prestige Plus','Luxury','Luxury Plus'],'Carnival':['Limousine','Limousine Plus']},
+  Mahindra:{'Bolero':['Classic DI','B6(O)','B8'],'Scorpio Classic':['S','S3+','S5','S7','S9','S11'],'Scorpio N':['Z2','Z4','Z6','Z8','Z8L','Z4 AT','Z8 AT'],'XUV300':['W4','W6','W8','W8(O)'],'XUV700':['MX 5','AX 3','AX 5','AX 7','AX 7L','AX 7 AT'],'Thar':['LX Hard Top Petrol','LX Soft Top Petrol','LX Hard Top Diesel'],'XUV400':['EC Pro','EL','EL Pro']},
+  Renault:{'Kwid':['STD','RXE','RXL','RXT','RXT AMT'],'Triber':['RXE','RXL','RXT','RXZ','RXZ AMT'],'Kiger':['RXE','RXL','RXT','RXT+','RXZ Turbo CVT']},
+  Nissan:{'Magnite':['XE','XL','XV','XV Premium','XV Premium CVT']},
+  MG:{'Astor':['Style','Super','Sharp','Savvy'],'Hector':['Style','Super','Smart','Sharp'],'ZS EV':['Excite','Exclusive'],'Gloster':['Super','Sharp','Savvy']},
+  Volkswagen:{'Polo':['Trendline','Comfortline','Highline'],'Virtus':['Dynamic','Refined','Highline','GT'],'Taigun':['Dynamic','Refined','GT']},
+  Skoda:{'Kushaq':['Active','Ambition','Style'],'Slavia':['Active','Ambition','Style']},
+  Jeep:{'Compass':['Sport','Longitude','Limited','Model S'],'Meridian':['Longitude','Limited','Overland']},
+  Ford:{'Figo':['Ambiente','Trend','Titanium'],'EcoSport':['Ambiente','Trend','Titanium','S']},
+};
+
+// ====================== STATE ======================
+let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{}};
+let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
+let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
+let editStockId=null,rateEditName=null,photoType='';
+
+// ====================== FIREBASE CONFIG ======================
+const FB_URL = "https://garagepro-48415-default-rtdb.asia-southeast1.firebasedatabase.app";
+let fbSyncing = false;
+let fbListener = null;
+let lastSyncTime = null;
+
+// Sync status indicator
+function setSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (status === 'live') {
+    el.innerHTML = '<span style="color:#22c55e">🟢 Live Sync</span>';
+  } else if (status === 'syncing') {
+    el.innerHTML = '<span style="color:#f59e0b">🔄 Syncing...</span>';
+  } else {
+    el.innerHTML = '<span style="color:#ef4444">🔴 Offline</span>';
+  }
+}
+
+// ====================== STORAGE ======================
+function save() {
+  // Always save to localStorage first (backup)
+  localStorage.setItem('gp_lastupdate', Date.now().toString());
+  try { localStorage.setItem('gp_kl_v5', JSON.stringify(DB)); } catch(e) {}
+  // Then sync to Firebase
+  saveToFirebase();
+}
+
+function saveToFirebase() {
+  setSyncStatus('syncing');
+  const data = {
+    jobs: DB.jobs,
+    customers: DB.customers,
+    mechanics: DB.mechanics,
+    stock: DB.stock,
+    spareHistory: DB.spareHistory.slice(0, 200),
+    customRates: DB.customRates,
+    carModels: DB.carModels,
+    customLabour: DB.customLabour,
+    lrDisabled: DB.lrDisabled,
+    lastUpdated: Date.now(),
+    updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
+  };
+  fetch(FB_URL + '/garagepro.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(() => { setSyncStatus('live'); lastSyncTime = Date.now(); })
+  .catch(() => { setSyncStatus('off'); });
+}
+
+function load() {
+  // Load from localStorage first (instant)
+  try {
+    const d = localStorage.getItem('gp_kl_v5');
+    if (d) { const p = JSON.parse(d); DB = {...DB, ...p}; }
+    if (!DB.mechanics) DB.mechanics = [];
+    if (!DB.stock) DB.stock = [];
+    if (!DB.spareHistory) DB.spareHistory = [];
+    if (!DB.customRates) DB.customRates = {};
+    if (!DB.carModels) DB.carModels = [];
+    if (!DB.customLabour) DB.customLabour = [];
+    if (!DB.lrDisabled) DB.lrDisabled = {};
+    DB.spareHistory.forEach((s,i)=>{ if(!s.id) s.id='SP'+Date.now()+'_'+i; });
+  } catch(e) {}
+  // Then load from Firebase (latest data)
+  loadFromFirebase();
+  // Start live listener
+  startLiveListener();
+}
+
+function loadFromFirebase() {
+  setSyncStatus('syncing');
+  fetch(FB_URL + '/garagepro.json')
+  .then(r => r.json())
+  .then(data => {
+    if (data && data.lastUpdated) {
+      // Check if Firebase has newer data
+      const fbTime = data.lastUpdated || 0;
+      const localTime = parseInt(localStorage.getItem('gp_lastupdate') || '0');
+      if (fbTime > localTime) {
+        DB.jobs = data.jobs || [];
+        DB.customers = data.customers || [];
+        DB.mechanics = data.mechanics || [];
+        DB.stock = data.stock || [];
+        DB.spareHistory = data.spareHistory || [];
+        DB.customRates = data.customRates || {};
+        DB.carModels = data.carModels || [];
+        DB.customLabour = data.customLabour || [];
+        DB.lrDisabled = data.lrDisabled || {};
+        localStorage.setItem('gp_kl_v5', JSON.stringify(DB));
+        localStorage.setItem('gp_lastupdate', fbTime.toString());
+        renderAll();
+      }
+      setSyncStatus('live');
+    } else {
+      setSyncStatus('live');
+    }
+    ensureCarSeed();
+  })
+  .catch(() => { setSyncStatus('off'); ensureCarSeed(); });
+}
+
+// Live listener — polls every 5 seconds for changes
+function startLiveListener() {
+  if (fbListener) clearInterval(fbListener);
+  fbListener = setInterval(() => {
+    fetch(FB_URL + '/garagepro/lastUpdated.json')
+    .then(r => r.json())
+    .then(fbTime => {
+      if (!fbTime) return;
+      const localTime = parseInt(localStorage.getItem('gp_lastupdate') || '0');
+      if (fbTime > localTime + 2000) {
+        // Other device updated — reload data
+        loadFromFirebase();
+        showSyncNotification();
+      }
+      setSyncStatus('live');
+    })
+    .catch(() => setSyncStatus('off'));
+  }, 5000); // check every 5 seconds
+}
+
+function showSyncNotification() {
+  const el = document.getElementById('syncNotif');
+  if (!el) return;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function forcSync() {
+  loadFromFirebase();
+  alert('🔄 Syncing latest data from cloud...');
+}
+function doBackup(){
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(b);
+  const a=document.createElement('a');
+  a.href=u;a.download=`GaragePro_v5_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();URL.revokeObjectURL(u);
+  localStorage.setItem('gp_lastbk',Date.now().toString());
+  alert('✅ Backup downloaded!\nWhatsApp Saved Messages-ൽ send ചെയ്ത് safe ആക്കൂ 🙏');
+}
+function doRestore(){document.getElementById('restoreFile').click();}
+function onRestore(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      DB={...DB,...p};
+      if(!DB.mechanics)DB.mechanics=[];
+      if(!DB.stock)DB.stock=[];
+      if(!DB.spareHistory)DB.spareHistory=[];
+      if(!DB.customRates)DB.customRates={};
+      if(!DB.carModels)DB.carModels=[];
+      if(!DB.customLabour)DB.customLabour=[];
+      if(!DB.lrDisabled)DB.lrDisabled={};
+      save();renderAll();
+      alert(`✅ Restored!\n${DB.jobs.length} jobs loaded.`);
+    }catch(err){alert('❌ Invalid backup file');}
+  };
+  r.readAsText(f);e.target.value='';
+}
+
+// ====================== INSTALL ======================
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;renderInstall();});
+function renderInstall(){
+  const el=document.getElementById('instBar');
+  if(deferredPrompt){
+    el.innerHTML=`<div class="inst-bar"><span style="font-size:22px">📱</span><div style="flex:1"><b>Install App!</b><br><span style="opacity:.8;font-size:11px">Home screen-ൽ icon കിട്ടും</span></div><button onclick="doInstall()" style="background:#fff;color:var(--rust);border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">Install ➜</button></div>`;
+  }else el.innerHTML='';
+}
+async function doInstall(){if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;renderInstall();}
+
+// ====================== TABS ======================
+function go(name){
+  if(name==='job'){editingJobId=null;setTimeout(()=>{const fd=document.getElementById('fDate');if(fd&&!fd.value)fd.value=new Date().toISOString().slice(0,10);},50);}
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pg===name));
+  document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===name));
+  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,ai:()=>{}};
+  if(fn[name])fn[name]();
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.pg)));
+
+// ====================== HELPERS ======================
+function getLabourPrice(rate){
+  const cat=JOB.cat||'hb';
+  const cr=DB.customRates[rate.n];
+  const r=cr?{...rate,...cr}:rate;
+  return r[cat]||r.hb;
+}
+function catBadgeHtml(cat){
+  if(!cat)return '';
+  const cls=CAT_BADGE_CLS[cat]||'cat-hb';
+  return `<span class="cat-badge ${cls}">${CAT_NAMES[cat]||cat}</span>`;
+}
+
+// ====================== HOME ======================
+function renderHome(){
+  renderInstall();
+  const last=localStorage.getItem('gp_lastbk');
+  const days=last?Math.floor((Date.now()-parseInt(last))/864e5):999;
+  const bkEl=document.getElementById('bkWarn');
+  if(DB.jobs.length&&days>3)bkEl.innerHTML=`<div class="bk-warn">⚠️ ${days===999?'Backup ചെയ്തിട്ടില്ല!':'Last backup '+days+' days ago'} → <b onclick="doBackup()" style="cursor:pointer;text-decoration:underline">Backup Now</b></div>`;
+  else bkEl.innerHTML='';
+  const low=DB.stock.filter(s=>s.qty<=s.min);
+  const lb=document.getElementById('lowBanner');
+  if(low.length)lb.innerHTML=`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:12px;color:#991b1b;cursor:pointer" onclick="go('stock')">⚠️ <b>${low.length} parts</b> low stock! → View Stock</div>`;
+  else lb.innerHTML='';
+  const today=new Date().toDateString();
+  const todayJ=DB.jobs.filter(j=>new Date(j.at).toDateString()===today);
+  document.getElementById('hJ').textContent=todayJ.length;
+  document.getElementById('hR').textContent=todayJ.reduce((s,j)=>s+j.total,0).toLocaleString('en-IN');
+  document.getElementById('hP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
+  document.getElementById('hLow').textContent=low.length;
+  document.getElementById('sJ').textContent=DB.jobs.length;
+  document.getElementById('sP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
+  document.getElementById('sR').textContent=DB.jobs.reduce((s,j)=>s+j.total,0).toLocaleString('en-IN');
+  document.getElementById('sCu').textContent=DB.customers.length;
+  let mech=0,body=0,paint=0,parts=0;
+  DB.jobs.forEach(j=>{
+    if(j.jobType==='mechanical')mech+=j.total;
+    else if(j.jobType==='body')body+=j.total;
+    else if(j.jobType==='painting')paint+=j.total;
+    else if(j.jobType==='mixed'){
+      j.labourItems?.forEach(it=>mech+=it.price*(it.qty||1));
+      j.spareItems?.forEach(it=>{parts+=it.sell*(it.qty||1);});
+    }
+    j.spareItems?.forEach(it=>parts+=it.sell*(it.qty||1));
+  });
+  document.getElementById('sMech').textContent=mech.toLocaleString('en-IN');
+  document.getElementById('sBody').textContent=body.toLocaleString('en-IN');
+  document.getElementById('sPaint').textContent=paint.toLocaleString('en-IN');
+  document.getElementById('sParts').textContent=parts.toLocaleString('en-IN');
+  const rc=document.getElementById('recentJobs');
+  if(!DB.jobs.length){rc.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs yet</div>';return;}
+  rc.innerHTML=DB.jobs.slice(0,5).map(j=>`
+    <div style="padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')">
+      <div style="font-weight:700;font-size:13px">${j.name} — ${j.car}</div>
+      <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${j.total.toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
+    </div>`).join('');
+}
+
+// ====================== KANBAN ======================
+function renderKanban(){
+  const cols={pending:[],  'in-progress':[], ready:[], completed:[]};
+  DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
+  const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
+  document.getElementById('kanbanBoard').innerHTML=Object.entries(cols).map(([st,jobs])=>`
+    <div class="kb-col kb-${st}">
+      <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
+      ${jobs.length?jobs.map(j=>`
+        <div class="kb-card" onclick="openJob('${j.id}')">
+          <div class="kb-name">${j.name}</div>
+          <div class="kb-sub">${j.car}</div>
+          <div class="kb-sub">${j.vnum}</div>
+          <div class="kb-amt">₹${j.total.toLocaleString('en-IN')}</div>
+        </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
+    </div>`).join('');
+}
+
+// ====================== CAR MODELS (Cloud) ======================
+// Seed list: [brand, model, category]
+const CAR_SEED=[
+["Maruti","800","hb"],["Maruti","Omni","hb"],["Maruti","Zen","hb"],["Maruti","Alto (old)","hb"],
+["Maruti","WagonR (old)","hb"],["Maruti","Zen Estilo (old)","hb"],["Maruti","Alto K10","hb"],
+["Maruti","Zen Estilo (K-series)","hb"],["Maruti","WagonR (K-series)","hb"],["Maruti","WagonR (New)","hb"],
+["Maruti","Eeco","hb"],["Maruti","Swift (old petrol)","hb"],["Maruti","Swift (old diesel)","hb"],
+["Maruti","Ritz Petrol","hb"],["Maruti","Ritz Diesel","hb"],["Maruti","Swift (K-series)","hb"],
+["Maruti","Swift Dzire (New)","sed"],["Maruti","Baleno","phb"],["Maruti","Ertiga Petrol","suv"],
+["Maruti","Ertiga Diesel","suv"],["Maruti","S-Presso","hb"],["Maruti","SX4","sed"],
+["Maruti","S-Cross","suv"],["Maruti","Ciaz Petrol","sed"],["Maruti","Ciaz Diesel","sed"],
+["Hyundai","Santro Zip","hb"],["Hyundai","Santro Xing","hb"],["Hyundai","Santro (New)","hb"],
+["Hyundai","i10 Magna","hb"],["Hyundai","i10 Kappa","hb"],["Hyundai","Grand i10","hb"],
+["Hyundai","i10 Nios","hb"],["Hyundai","i20 (old petrol)","phb"],["Hyundai","i20 Diesel","phb"],
+["Hyundai","i20 Era","phb"],["Hyundai","i20 Magna","phb"],
+["Tata","Indica (old petrol)","hb"],["Tata","Indica Diesel","hb"],["Tata","Indica Vista Quadrajet","hb"],
+["Tata","Tiago","hb"],["Tata","Tigor","sed"],["Tata","Punch","suv"],["Tata","Nexon","suv"],
+["Honda","Jazz","phb"],["Honda","Mobilio","suv"],["Honda","Amaze Petrol","sed"],
+["Honda","Amaze Diesel","sed"],["Honda","City Petrol","psed"],["Honda","City Diesel","psed"],
+["Ford","Fiesta Petrol","sed"],["Ford","Fiesta Diesel","sed"],["Ford","Fiesta Titanium","sed"],
+["Ford","Figo Petrol","hb"],["Ford","Figo Diesel","hb"],["Ford","Figo Aspire","sed"],
+["Ford","EcoSport Diesel","suv"],["Ford","EcoSport Petrol","suv"],
+["Chevrolet","Spark","hb"],["Chevrolet","Beat Petrol","hb"],["Chevrolet","Beat Diesel","hb"],
+["Renault","Duster","suv"],["Renault","Kwid","hb"],
+["Toyota","Qualis","suv"],["Toyota","Innova","psuv"],["Toyota","Etios","sed"],["Toyota","Etios Liva","hb"],
+["Mahindra","Marazzo","suv"],["Mahindra","Xylo","suv"],["Mahindra","XUV","suv"],
+["Mahindra","Verito","sed"],["Mahindra","Logan","sed"]
+];
+
+let carSeeded=false;
+function ensureCarSeed(){
+  if(carSeeded) return;
+  if(DB.carModels && DB.carModels.length){ carSeeded=true; return; }
+  const t=Date.now();
+  DB.carModels=CAR_SEED.map((c,i)=>({id:'CM'+t+'_'+i,brand:c[0],model:c[1],cat:c[2],active:true}));
+  carSeeded=true;
+  save();
+}
+
+function onCarSrchInput(){
+  JOB.car='';JOB.cat='';
+  document.getElementById('selCarLabel').textContent='';
+  updateCatBadge();
+  renderCarPicker();
+}
+
+function renderCarPicker(){
+  const inp=document.getElementById('carSrch');
+  const box=document.getElementById('carPicker');
+  if(!inp||!box)return;
+  const q=inp.value.toLowerCase().trim();
+  if(JOB.car && inp.value===JOB.car){ box.style.display='none'; return; }
+  const models=(DB.carModels||[]).filter(m=>m.active!==false&&(!q||(m.brand+' '+m.model).toLowerCase().includes(q)));
+  box.style.display='block';
+  if(!models.length){
+    box.innerHTML='<div style="padding:12px;font-size:12px;color:var(--gray)">Model കണ്ടില്ല — ⚙️ Manage → Car Models-ൽ add ചെയ്യൂ</div>';
+    return;
+  }
+  const byBrand={};
+  models.forEach(m=>{(byBrand[m.brand]=byBrand[m.brand]||[]).push(m);});
+  box.innerHTML=Object.keys(byBrand).sort().map(b=>`
+    <div style="background:#f3f4f6;padding:5px 11px;font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;z-index:1">${b}</div>
+    ${byBrand[b].map(m=>`<div style="padding:11px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="selectCarModel('${m.id}')">
+      <span style="font-size:13px;font-weight:600">${m.model}</span>
+      <span class="cat-badge ${CAT_BADGE_CLS[m.cat]||'cat-hb'}" style="font-size:9px;padding:2px 6px">${CAT_NAMES[m.cat]||''}</span>
+    </div>`).join('')}`).join('');
+}
+
+function selectCarModel(id){
+  const m=(DB.carModels||[]).find(x=>x.id===id);if(!m)return;
+  JOB.car=m.brand+' '+m.model;
+  JOB.cat=m.cat||'hb';
+  document.getElementById('carSrch').value=JOB.car;
+  document.getElementById('carPicker').style.display='none';
+  document.getElementById('selCarLabel').textContent='✓ '+JOB.car;
+  updateCatBadge();
+}
+
+document.addEventListener('click',e=>{
+  const w=document.getElementById('carPickWrap');
+  if(w&&!w.contains(e.target)){const p=document.getElementById('carPicker');if(p)p.style.display='none';}
+});
+function updateCatBadge(){
+  const el=document.getElementById('carCatBadge');
+  const ci=document.getElementById('catInfo');
+  if(JOB.cat){
+    el.innerHTML=catBadgeHtml(JOB.cat);
+    ci.textContent=`Category: ${CAT_NAMES[JOB.cat]} — rates auto-applied`;
+  } else {
+    el.innerHTML='';ci.textContent='';
+  }
+}
+
+// ====================== PHOTOS ======================
+function addPhoto(type){photoType=type;document.getElementById('photoIn').click();}
+function onPhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const scale=Math.min(1,800/img.width);
+      canvas.width=img.width*scale;canvas.height=img.height*scale;
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      JOB.photos.push({type:photoType,data:canvas.toDataURL('image/jpeg',.7)});
+      renderPhotoGrid();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(f);e.target.value='';
+}
+function renderPhotoGrid(){
+  const g=document.getElementById('photoGrid');
+  g.innerHTML=`
+    <div class="photo-add" onclick="addPhoto('Before')"><span>📷</span>Before</div>
+    <div class="photo-add" onclick="addPhoto('After')"><span>📷</span>After</div>
+    <div class="photo-add" onclick="addPhoto('Damage')"><span>📷</span>Damage</div>
+    <div class="photo-add" onclick="addPhoto('Other')"><span>📷</span>Other</div>
+    ${JOB.photos.map((p,i)=>`<div class="photo-item" onclick="viewPhoto(${i})"><img src="${p.data}"><div class="photo-lbl">${p.type}</div></div>`).join('')}`;
+}
+function viewPhoto(i){
+  document.getElementById('photoMImg').src=JOB.photos[i].data;
+  document.getElementById('photoMT').textContent=JOB.photos[i].type+' Photo';
+  document.getElementById('delPhotoBtn').onclick=()=>{JOB.photos.splice(i,1);renderPhotoGrid();closeM('photoM');};
+  openM('photoM');
+}
+
+// ====================== LABOUR PICKER ======================
+function openLabourPicker(){
+  const ci=document.getElementById('lpCatInfo');
+  if(JOB.cat){ci.textContent=`✓ ${CAT_NAMES[JOB.cat]} rates showing — change car to see different rates`;ci.style.display='block';}
+  else{ci.style.display='none';}
+  openM('lpM');renderLpList();
+}
+function renderLpList(){
+  const search=document.getElementById('lpSrch').value.toLowerCase();
+  const items=activeLabour().filter(r=>{
+    if(lpCat!=='all'&&r.c!==lpCat)return false;
+    if(search&&!r.n.toLowerCase().includes(search))return false;
+    return true;
+  });
+  const cat=JOB.cat||'hb';
+  document.getElementById('lpList').innerHTML=items.map(r=>{
+    const cr=DB.customRates[r.n];
+    const rate=cr?{...r,...cr}:r;
+    const price=rate[cat];
+    return `<div class="irow" onclick="addLabour('${r.n.replace(/'/g,"\\'")}')">
+      <div style="flex:1">
+        <div class="i-name">${r.n}<span class="tag t-l">labour</span></div>
+        <div class="i-meta">${r.c}${r.note?' • '+r.note:''}</div>
+        <div style="font-size:10px;color:var(--blue);margin-top:2px">All: HB ₹${rate.hb} | PHB ₹${rate.phb} | Sed ₹${rate.sed} | SUV ₹${rate.suv}</div>
+      </div>
+      <div class="i-price">₹${price}</div>
+    </div>`;
+  }).join('')||'<div class="empty"><div class="empty-i">🔍</div>Not found</div>';
+}
+document.getElementById('lpSrch').addEventListener('input',renderLpList);
+document.querySelectorAll('#lpCatChips .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#lpCatChips .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');lpCat=c.dataset.lpc;renderLpList();
+}));
+function addLabour(name){
+  const r=activeLabour().find(x=>x.n===name)||LR.find(x=>x.n===name);if(!r)return;
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){
+      if(!j.labourItems)j.labourItems=[];
+      j.labourItems.push({name,price:jobLabourPrice(r,j.cat),cat:j.cat,qty:1,type:'labour'});
+      recalcJob(j);save();
+    }
+    const jid=editingJobId;editingJobId=null;
+    closeM('lpM');openJob(jid);return;
+  }
+  const price=getLabourPrice(r);
+  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
+  renderJobItems();closeM('lpM');
+}
+
+// ====================== SPARES ======================
+function openSpareEntry(){
+  document.getElementById('spName').value='';
+  document.getElementById('spBrand').value='';
+  document.getElementById('spCost').value='';
+  document.getElementById('spMarkup').value='30';
+  document.getElementById('spSell').value='';
+  document.getElementById('spQty').value='1';
+  document.getElementById('spCustSup').value='no';
+  document.getElementById('spPriceDiv').style.display='block';
+  document.getElementById('sugList').style.display='none';
+  openM('spareM');
+}
+function onSpareSearch(){
+  const q=document.getElementById('spName').value.toLowerCase().trim();
+  const sl=document.getElementById('sugList');
+  if(q.length<2){sl.style.display='none';return;}
+  const matches=[...new Map(DB.spareHistory.filter(s=>s.active!==false&&s.name.toLowerCase().includes(q)).map(s=>[s.name,s])).values()].slice(0,6);
+  if(!matches.length){sl.style.display='none';return;}
+  sl.style.display='block';
+  sl.innerHTML=matches.map(s=>`
+    <div class="sug-item" onclick="selectSpare('${s.name.replace(/'/g,"\\'")}',${s.cost},${s.sell},'${(s.brand||'').replace(/'/g,"\\'")}')">
+      <div><div class="sug-name">${s.name}</div><div class="sug-meta">${s.brand||''}</div></div>
+      <div class="sug-price">₹${s.sell}</div>
+    </div>`).join('');
+}
+function selectSpare(name,cost,sell,brand){
+  document.getElementById('spName').value=name;
+  document.getElementById('spBrand').value=brand;
+  document.getElementById('spCost').value=cost;
+  document.getElementById('spSell').value=sell;
+  if(cost>0){
+    const markup=Math.round(((sell-cost)/cost)*100);
+    document.getElementById('spMarkup').value=markup;
+  }
+  document.getElementById('sugList').style.display='none';
+}
+function calcSell(){
+  const cost=parseFloat(document.getElementById('spCost').value||0);
+  const markup=parseFloat(document.getElementById('spMarkup').value||30);
+  if(cost>0)document.getElementById('spSell').value=Math.round(cost*(1+markup/100));
+}
+function onCustSup(){
+  const v=document.getElementById('spCustSup').value;
+  document.getElementById('spPriceDiv').style.display=v==='yes'?'none':'block';
+}
+function addSpare(){
+  const name=document.getElementById('spName').value.trim();
+  if(!name){alert('Part name required');return;}
+  const custSup=document.getElementById('spCustSup').value==='yes';
+  const cost=custSup?0:parseFloat(document.getElementById('spCost').value||0);
+  const sell=custSup?0:parseFloat(document.getElementById('spSell').value||0);
+  const brand=document.getElementById('spBrand').value.trim();
+  const qty=parseInt(document.getElementById('spQty').value||1);
+  // Save to history for auto-suggest
+  if(!custSup&&sell>0){
+    DB.spareHistory=DB.spareHistory.filter(s=>s.name!==name);
+    DB.spareHistory.unshift({id:'SP'+Date.now(),name,brand,cost,sell,active:true});
+    if(DB.spareHistory.length>200)DB.spareHistory=DB.spareHistory.slice(0,200);
+  }
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){
+      if(!j.spareItems)j.spareItems=[];
+      j.spareItems.push({name,brand,cost,sell,qty,custSup,type:'spare'});
+      recalcJob(j);
+    }
+    save();
+    const jid=editingJobId;editingJobId=null;
+    closeM('spareM');openJob(jid);return;
+  }
+  JOB.spareItems.push({name,brand,cost,sell,qty,custSup,type:'spare'});
+  save();
+  renderJobItems();closeM('spareM');
+}
+
+// ====================== JOB ITEMS RENDER ======================
+function removeLabour(i){JOB.labourItems.splice(i,1);renderJobItems();}
+function removeSpare(i){JOB.spareItems.splice(i,1);renderJobItems();}
+function changeLabourQty(i,d){JOB.labourItems[i].qty=Math.max(1,(JOB.labourItems[i].qty||1)+d);renderJobItems();}
+function changeSpareQty(i,d){JOB.spareItems[i].qty=Math.max(1,(JOB.spareItems[i].qty||1)+d);renderJobItems();}
+
+function renderJobItems(){
+  const lc=document.getElementById('labourItems');
+  lc.innerHTML=JOB.labourItems.length?JOB.labourItems.map((it,i)=>`
+    <div class="si">
+      <div class="si-info">
+        <div class="si-name">👷 ${it.name}</div>
+        <div class="si-pr">₹${it.price} × ${it.qty} = ₹${it.price*(it.qty||1)} ${it.cat?'('+CAT_NAMES[it.cat]+')':''}</div>
+      </div>
+      <div class="qc">
+        <button class="qb" style="background:#fee2e2;color:#991b1b" onclick="changeLabourQty(${i},-1)">−</button>
+        <div style="font-weight:700;min-width:18px;text-align:center">${it.qty}</div>
+        <button class="qb" style="background:#d1fae5;color:#065f46" onclick="changeLabourQty(${i},1)">+</button>
+        <button class="qb" style="background:#f3f4f6;color:#6b7280;margin-left:2px" onclick="removeLabour(${i})">×</button>
+      </div>
+    </div>`).join(''):'';
+
+  const sc=document.getElementById('spareItems');
+  sc.innerHTML=JOB.spareItems.length?JOB.spareItems.map((it,i)=>`
+    <div class="si">
+      <div class="si-info">
+        <div class="si-name">🔩 ${it.name}${it.brand?' ('+it.brand+')':''}${it.custSup?' 👤 Customer part':''}</div>
+        <div class="si-pr">${it.custSup?'Labour only (₹0)':'Cost ₹'+it.cost+' → Sell ₹'+it.sell+' × '+it.qty+' = ₹'+(it.sell*(it.qty||1))}</div>
+      </div>
+      <div class="qc">
+        ${!it.custSup?`<button class="qb" style="background:#fee2e2;color:#991b1b" onclick="changeSpareQty(${i},-1)">−</button>
+        <div style="font-weight:700;min-width:18px;text-align:center">${it.qty}</div>
+        <button class="qb" style="background:#d1fae5;color:#065f46" onclick="changeSpareQty(${i},1)">+</button>`:''}
+        <button class="qb" style="background:#f3f4f6;color:#6b7280;margin-left:2px" onclick="removeSpare(${i})">×</button>
+      </div>
+    </div>`).join(''):'';
+
+  renderEstimate();
+}
+
+function renderEstimate(){
+  const hasItems=JOB.labourItems.length||JOB.spareItems.length;
+  const eb=document.getElementById('estBox');
+  const ps=document.getElementById('paySection');
+  const sb=document.getElementById('saveBtn');
+  ps.style.display='block';sb.style.display='block';
+  if(!hasItems){eb.style.display='none';return;}
+  const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
+  const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
+  const partsProfit=JOB.spareItems.reduce((s,it)=>s+(it.sell-it.cost)*(it.qty||1),0);
+  const sub=labour+partsTotal;
+  const gst=Math.round(sub*0.18);
+  const total=sub+gst;
+  document.getElementById('estDet').innerHTML=`
+    ${labour?`<div class="er"><span>👷 Labour</span><span>₹${labour.toLocaleString('en-IN')}</span></div>`:''}
+    ${partsTotal?`<div class="er"><span>🔩 Parts (markup profit: ₹${partsProfit.toLocaleString('en-IN')})</span><span>₹${partsTotal.toLocaleString('en-IN')}</span></div>`:''}
+    <div class="er"><span>Subtotal</span><span>₹${sub.toLocaleString('en-IN')}</span></div>
+    <div class="er"><span>GST 18%</span><span>₹${gst.toLocaleString('en-IN')}</span></div>
+    <div class="er tot"><span>TOTAL</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
+  eb.style.display='block';ps.style.display='block';sb.style.display='block';
+}
+function onPayMode(){
+  document.getElementById('partialDiv').style.display=document.getElementById('fPayMode').value==='partial'?'block':'none';
+}
+
+// ====================== SAVE JOB ======================
+function saveJob(){
+  const name=document.getElementById('fN').value.trim();
+  const phone=document.getElementById('fPh').value.trim();
+  const vnum=document.getElementById('fV').value.trim().toUpperCase();
+  const km=document.getElementById('fKm').value.trim();
+  const complaint=document.getElementById('fC').value.trim();
+  const mechId=document.getElementById('fMech').value;
+  const jobType=document.getElementById('fJobType').value;
+  const nextSvc=document.getElementById('fNextSvc').value;
+  const payMode=document.getElementById('fPayMode').value;
+  const partial=parseFloat(document.getElementById('fPartial').value||0);
+  const addr=document.getElementById('fAddr').value.trim();
+  const fuel=document.getElementById('fFuel').value;
+  const jd=document.getElementById('fDate').value;
+  if(!name||!phone||!vnum||!JOB.car){
+    alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car model');return;
+  }
+  const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
+  const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
+  const sub=labour+partsTotal;
+  const gst=Math.round(sub*0.18);
+  const total=sub+gst;
+  const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
+  const job={
+    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,
+    labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
+    photos:[...JOB.photos],status:'pending',
+    mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
+    nextSvc,payMode,amtPaid,labour,partsTotal,sub,gst,total,
+    at: jd ? new Date(jd+'T'+new Date().toTimeString().slice(0,8)).toISOString() : new Date().toISOString()
+  };
+  DB.jobs.unshift(job);
+  const cx=DB.customers.find(c=>c.phone===phone);
+  if(cx){cx.spent+=total;cx.jobs++;cx.lastVisit=job.at;if(addr)cx.addr=addr;cx.cars=[...new Set([...(cx.cars||[]),JOB.car])];}
+  else DB.customers.push({name,phone,vnum,addr,car:JOB.car,cars:[JOB.car],spent:total,jobs:1,lastVisit:job.at});
+  if(mechId){const m=DB.mechanics.find(x=>x.id===mechId);if(m){m.jobs=(m.jobs||0)+1;m.revenue=(m.revenue||0)+total;}}
+  save();
+  JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
+  ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('carSrch').value='';
+  document.getElementById('carPicker').style.display='none';
+  document.getElementById('selCarLabel').textContent='';
+  document.getElementById('carCatBadge').innerHTML='';
+  document.getElementById('catInfo').textContent='';
+  document.getElementById('labourItems').innerHTML='';
+  document.getElementById('spareItems').innerHTML='';
+  document.getElementById('estBox').style.display='none';
+  document.getElementById('saveBtn').style.display='none';
+  document.getElementById('paySection').style.display='none';
+  renderPhotoGrid();
+  alert(`✅ Job Saved!\n${job.id}\nTotal: ₹${total.toLocaleString('en-IN')}`);
+  if(confirm('WhatsApp estimate customer-ന് അയക്കണോ?'))sendWA(job);
+  go('jobs');
+}
+
+// ====================== WHATSAPP ======================
+function sendWA(job){
+  const labour=job.labourItems?.map(i=>`• ${i.name} — ₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
+  const spares=job.spareItems?.map(i=>`• ${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' [Customer part]':''} — ₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
+  const payS=job.payMode==='pending'?'⏳ Pending':job.payMode==='partial'?`⚡ Partial (₹${job.amtPaid} paid, ₹${job.total-job.amtPaid} balance)`:'✅ Paid';
+  const msg=`🔧 *Garage Pro Kerala — Estimate*\n\nNamaskaaram ${job.name}!\n\n🚗 *${job.car}* (${job.vnum})${job.km?'\n🔢 KM: '+job.km:''}\n📋 Job ID: ${job.id}\n\n${labour?'*Labour:*\n'+labour+'\n\n':''}${spares?'*Spare Parts:*\n'+spares+'\n\n':''}💰 *Bill:*\nSubtotal: ₹${job.sub?.toLocaleString('en-IN')}\nGST (18%): ₹${job.gst?.toLocaleString('en-IN')}\n*TOTAL: ₹${job.total?.toLocaleString('en-IN')}*\n\n💳 Payment: ${payS}${job.nextSvc?'\n\n📅 Next Service: '+new Date(job.nextSvc).toLocaleDateString('en-IN'):''}\n\nThank you! 🙏`;
+  const ph=job.phone.replace(/\D/g,'');
+  window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// ====================== JOBS LIST ======================
+function renderJobs(){
+  const search=document.getElementById('jSrch').value.toLowerCase();
+  const jobs=DB.jobs.filter(j=>{
+    if(jFilter!=='all'&&j.status!==jFilter)return false;
+    if(search&&!`${j.name}${j.phone}${j.vnum}${j.car}${j.id}`.toLowerCase().includes(search))return false;
+    return true;
+  });
+  const el=document.getElementById('jobList');
+  if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs</div>';return;}
+  el.innerHTML=jobs.map(j=>{
+    const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
+    const pc=j.payMode==='cash'||j.payMode==='upi'||j.payMode==='card'?'pp':j.payMode==='partial'?'ppa':'ppn';
+    const pl=j.payMode==='cash'||j.payMode==='upi'||j.payMode==='card'?'Paid':j.payMode==='partial'?'Partial':'Unpaid';
+    return `<div class="jcard ${j.status}" onclick="openJob('${j.id}')">
+      <div class="jh">
+        <div><div class="jname">${j.name}</div><div class="jid">${j.id} • ${new Date(j.at).toLocaleDateString('en-IN')}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <span class="badge ${bc}">${j.status}</span>
+          <span class="pay-badge ${pc}">${pl}</span>
+        </div>
+      </div>
+      <div class="jd">🚗 ${j.car} • ${j.vnum}${j.mechName?' • 👷 '+j.mechName:''}</div>
+      <div class="jd">₹${j.total?.toLocaleString('en-IN')}${j.photos?.length?' • 📸'+j.photos.length:''}${j.cat?' • '+catBadgeHtml(j.cat):''}</div>
+    </div>`;
+  }).join('');
+}
+document.querySelectorAll('#jfChips .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#jfChips .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');jFilter=c.dataset.jf;renderJobs();
+}));
+document.getElementById('jSrch').addEventListener('input',renderJobs);
+
+// ====================== JOB DETAIL ======================
+function openJob(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
+  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map(i=>`<div class="irow"><span>${i.name}${i.qty>1?' ×'+i.qty:''}</span><span style="font-weight:700;color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
+  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map(i=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty>1?'×'+i.qty:''}</span><span style="font-weight:700;color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
+  const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
+  document.getElementById('jobMT').textContent=j.id;
+  document.getElementById('jobMB').innerHTML=`
+    <div class="card">
+      <div style="font-size:13px;line-height:2">
+        <div>👤 <b>${j.name}</b> | 📞 <a href="tel:${j.phone}" style="color:var(--blue)">${j.phone}</a></div>
+        <div>🚗 ${j.car} (${j.vnum})${j.km?' | 🔢 '+j.km+' km':''}</div>
+        ${j.addr?`<div>📍 ${j.addr}</div>`:''}
+        ${j.fuel?`<div>⛽ Fuel: ${j.fuel}</div>`:''}
+        ${j.cat?`<div>${catBadgeHtml(j.cat)}</div>`:''}
+        <div>📅 ${new Date(j.at).toLocaleString('en-IN')}</div>
+        <div>Status: <span class="badge ${bc}">${j.status}</span></div>
+        ${j.mechName?`<div>👷 ${j.mechName}</div>`:''}
+        ${j.complaint?`<div>🔧 ${j.complaint}</div>`:''}
+        ${j.nextSvc?`<div>📅 Next: ${new Date(j.nextSvc).toLocaleDateString('en-IN')}</div>`:''}
+      </div>
+      ${photosHtml}
+    </div>
+    <div class="card">
+      ${labourHtml}${sparesHtml}
+      <div class="irow"><span>Subtotal</span><span>₹${j.sub?.toLocaleString('en-IN')}</span></div>
+      <div class="irow"><span>GST 18%</span><span>₹${j.gst?.toLocaleString('en-IN')}</span></div>
+      <div class="irow" style="font-size:16px;font-weight:800;color:var(--rust)"><span>TOTAL</span><span>₹${j.total?.toLocaleString('en-IN')}</span></div>
+      <div style="margin-top:8px;padding:8px;background:#f8f9fa;border-radius:7px;font-size:12px">
+        💳 ${j.payMode||'pending'} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-t">✏️ Edit Job</div>
+      <div class="fg"><label>Assign / Change Mechanic</label>
+        <select id="jdMech"></select>
+      </div>
+      <button class="btn b-rust" onclick="assignMechToJob('${j.id}')">👷 Save Mechanic</button>
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <button class="btn b-out" style="flex:1;margin-top:0" onclick="addLabourToJob('${j.id}')">➕ Add Labour</button>
+        <button class="btn b-out" style="flex:1;margin-top:0;color:var(--blue);border-color:var(--blue)" onclick="addSpareToJob('${j.id}')">➕ Add Spare</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${j.status==='pending'?`<button class="btn b-rust b-sm" onclick="updSt('${j.id}','in-progress')">🔧 Start Work</button>`:''}
+      ${j.status==='in-progress'?`<button class="btn b-blue b-sm" onclick="updSt('${j.id}','ready')">✅ Mark Ready</button>`:''}
+      ${j.status==='ready'?`<button class="btn b-green b-sm" onclick="updSt('${j.id}','completed')">🚗 Delivered</button>`:''}
+      ${j.status!=='pending'?`<button class="btn b-gray b-sm" onclick="updSt('${j.id}','pending')">↩ Reopen</button>`:''}
+    </div>
+    ${(j.amtPaid||0)<j.total?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Collect Payment</button>`:''}
+    <button class="btn b-wa" onclick='sendWA(${JSON.stringify(j).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})'>📱 WhatsApp</button>
+    <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Invoice</button>
+    <button class="btn b-red" style="margin-top:7px" onclick="delJob('${j.id}')">🗑️ Delete Job</button>`;
+  openM('jobM');
+  const jm=document.getElementById('jdMech');
+  if(jm){
+    jm.innerHTML='<option value="">-- Select Mechanic --</option>';
+    DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';jm.appendChild(o);});
+    jm.value=j.mechId||'';
+  }
+}
+
+let editingJobId=null;
+function recalcJob(j){
+  const oldTotal=j.total||0;
+  j.labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
+  j.partsTotal=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+  j.sub=j.labour+j.partsTotal;
+  j.gst=Math.round(j.sub*0.18);
+  j.total=j.sub+j.gst;
+  const delta=j.total-oldTotal;
+  const cx=DB.customers.find(c=>c.phone===j.phone);
+  if(cx)cx.spent=Math.max(0,(cx.spent||0)+delta);
+  if(j.mechId){const m=DB.mechanics.find(x=>x.id===j.mechId);if(m)m.revenue=Math.max(0,(m.revenue||0)+delta);}
+}
+function jobLabourPrice(r,cat){const cr=DB.customRates[r.n];const x=cr?{...r,...cr}:r;return x[cat||'hb']||x.hb;}
+function assignMechToJob(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const mid=document.getElementById('jdMech').value;
+  if((j.mechId||'')===mid){alert('Same mechanic already');return;}
+  if(j.mechId){const om=DB.mechanics.find(x=>x.id===j.mechId);if(om){om.jobs=Math.max(0,(om.jobs||0)-1);om.revenue=Math.max(0,(om.revenue||0)-(j.total||0));}}
+  j.mechId=mid;
+  const nm=DB.mechanics.find(x=>x.id===mid);
+  j.mechName=nm?nm.name:'';
+  if(nm){nm.jobs=(nm.jobs||0)+1;nm.revenue=(nm.revenue||0)+(j.total||0);}
+  save();
+  alert('✅ Mechanic assigned: '+(j.mechName||'None'));
+  openJob(id);
+}
+function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
+function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
+function updSt(id,st){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  j.status=st;save();closeM('jobM');renderJobs();renderKanban();
+  if(st==='completed'&&confirm('Customer-ന് WhatsApp notification അയക്കണോ?'))sendWA(j);
+}
+function collectPay(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const due=j.total-(j.amtPaid||0);
+  const mode=prompt(`₹${due.toLocaleString('en-IN')} due\nMode? (cash/upi/card)`,'cash');
+  if(!mode)return;
+  j.amtPaid=j.total;j.payMode=mode;save();
+  alert('✅ Payment collected!');closeM('jobM');renderJobs();
+}
+function delJob(id){
+  if(!confirm('Delete job?'))return;
+  DB.jobs=DB.jobs.filter(x=>x.id!==id);save();closeM('jobM');renderJobs();
+}
+function printInv(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const w=window.open('','_blank');
+  const labourRows=j.labourItems?.map(i=>`<tr><td>${i.name}</td><td>Labour</td><td>${i.qty}</td><td>₹${i.price.toLocaleString('en-IN')}</td><td>₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
+  const spareRows=j.spareItems?.map(i=>`<tr><td>${i.name}${i.brand?' ('+i.brand+')':''}</td><td>Part${i.custSup?' (Cust)':''}</td><td>${i.qty}</td><td>₹${i.sell?.toLocaleString('en-IN')}</td><td>₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
+  const photos=j.photos?.length?`<div><h3>Photos</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${j.photos.map(p=>`<div><img src="${p.data}" style="height:100px;border-radius:5px"><br><small>${p.type}</small></div>`).join('')}</div></div>`:'';
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice</title>
+  <style>body{font-family:Arial;max-width:600px;margin:20px auto;padding:20px}
+  h2{color:#c2410c;border-bottom:3px solid #c2410c;padding-bottom:8px}
+  table{width:100%;border-collapse:collapse;margin:12px 0}
+  th,td{border:1px solid #ddd;padding:7px;text-align:left;font-size:13px}
+  th{background:#f5f0e8}.tot{font-weight:bold;color:#c2410c;font-size:15px}
+  @media print{button{display:none}}</style></head><body>
+  <h2>🔧 GARAGE PRO KERALA</h2>
+  <p><b>Job:</b> ${j.id} | <b>Date:</b> ${new Date(j.at).toLocaleDateString('en-IN')}</p>
+  <p><b>Customer:</b> ${j.name} | <b>Phone:</b> ${j.phone}</p>
+  <p><b>Vehicle:</b> ${j.car} — ${j.vnum}${j.km?' | KM: '+j.km:''}${j.cat?' | Category: '+CAT_NAMES[j.cat]:''}</p>
+  ${j.addr?`<p><b>Address:</b> ${j.addr}</p>`:''}${j.fuel?`<p><b>Fuel Level:</b> ${j.fuel}</p>`:''}
+  ${j.mechName?`<p><b>Mechanic:</b> ${j.mechName}</p>`:''}
+  ${j.complaint?`<p><b>Complaint:</b> ${j.complaint}</p>`:''}
+  <table><tr><th>Item</th><th>Type</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+  ${labourRows}${spareRows}
+  <tr><td colspan="4" align="right">Subtotal</td><td>₹${j.sub?.toLocaleString('en-IN')}</td></tr>
+  <tr><td colspan="4" align="right">GST 18%</td><td>₹${j.gst?.toLocaleString('en-IN')}</td></tr>
+  <tr class="tot"><td colspan="4" align="right">TOTAL</td><td>₹${j.total?.toLocaleString('en-IN')}</td></tr></table>
+  <p><b>Payment:</b> ${j.payMode||'pending'} | <b>Paid:</b> ₹${(j.amtPaid||0).toLocaleString('en-IN')} | <b>Balance:</b> ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}</p>
+  ${j.nextSvc?`<p><b>Next Service:</b> ${new Date(j.nextSvc).toLocaleDateString('en-IN')}</p>`:''}
+  ${photos}
+  <p style="margin-top:20px;text-align:center">Thank you! 🙏</p>
+  <button onclick="window.print()" style="margin-top:12px;padding:10px 20px;background:#c2410c;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Print</button>
+  </body></html>`);w.document.close();
+}
+
+// ====================== REPORTS ======================
+function getFiltJobs(){
+  const now=new Date();
+  return DB.jobs.filter(j=>{
+    const d=new Date(j.at);
+    if(rPeriod==='today')return d.toDateString()===now.toDateString();
+    if(rPeriod==='week'){const w=new Date(now);w.setDate(w.getDate()-7);return d>=w;}
+    if(rPeriod==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+function renderReport(){
+  const jobs=getFiltJobs();
+  const lbl={today:'Today',week:'This Week',month:'This Month',all:'All Time'};
+  document.getElementById('rPLbl').textContent=lbl[rPeriod];
+  let mech=0,body=0,paint=0,parts=0,total=0;
+  jobs.forEach(j=>{
+    total+=j.total||0;
+    if(j.jobType==='mechanical')mech+=j.total||0;
+    else if(j.jobType==='body')body+=j.total||0;
+    else if(j.jobType==='painting')paint+=j.total||0;
+    else{mech+=j.labour||0;}
+    parts+=j.spareItems?.reduce((s,it)=>s+it.sell*(it.qty||1),0)||0;
+  });
+  const max=Math.max(mech,body,paint,parts)||1;
+  const pct=v=>total?Math.round(v/total*100):0;
+  document.getElementById('rMech').textContent='₹'+mech.toLocaleString('en-IN');
+  document.getElementById('rMechP').textContent=pct(mech)+'%';
+  document.getElementById('mechBar').style.width=Math.round(mech/max*100)+'%';
+  document.getElementById('rBody').textContent='₹'+body.toLocaleString('en-IN');
+  document.getElementById('rBodyP').textContent=pct(body)+'%';
+  document.getElementById('bodyBar').style.width=Math.round(body/max*100)+'%';
+  document.getElementById('rPaint').textContent='₹'+paint.toLocaleString('en-IN');
+  document.getElementById('rPaintP').textContent=pct(paint)+'%';
+  document.getElementById('paintBar').style.width=Math.round(paint/max*100)+'%';
+  document.getElementById('rParts').textContent='₹'+parts.toLocaleString('en-IN');
+  document.getElementById('rPartsP').textContent=pct(parts)+'%';
+  document.getElementById('partsBar').style.width=Math.round(parts/max*100)+'%';
+  document.getElementById('rTotal').textContent='₹'+total.toLocaleString('en-IN');
+  document.getElementById('rJobs').textContent=jobs.length;
+  // 7-day chart
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+  const dayRevs=days.map(d=>DB.jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
+  const maxR=Math.max(...dayRevs)||1;
+  const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c'];
+  document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>`
+    <div class="cb-w">
+      <div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">
+        ${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}
+      </div>
+    </div>`).join('');
+  document.getElementById('chartLbls').innerHTML=days.map(d=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${d.toLocaleDateString('en-IN',{weekday:'short'})}</div>`).join('');
+  // payment report
+  const paid=jobs.filter(j=>['cash','upi','card'].includes(j.payMode));
+  const partial=jobs.filter(j=>j.payMode==='partial');
+  const pending=jobs.filter(j=>!j.payMode||j.payMode==='pending');
+  document.getElementById('payRpt').innerHTML=`
+    <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${paid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${paid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
+    <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
+    <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>`;
+  // mechanic report
+  const mr=document.getElementById('mechRpt');
+  if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No mechanics added</div>';return;}
+  mr.innerHTML=DB.mechanics.map(m=>{
+    const mj=jobs.filter(j=>j.mechId===m.id);
+    return `<div class="irow">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${m.name[0]}</div>
+        <div><div style="font-weight:600">${m.name}</div><div style="font-size:10px;color:var(--gray)">${mj.length} jobs</div></div>
+      </div>
+      <div style="font-weight:700;color:var(--rust)">₹${mj.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div>
+    </div>`;
+  }).join('');
+}
+document.querySelectorAll('.ptab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');rPeriod=t.dataset.p;renderReport();
+}));
+
+// ====================== CUSTOMERS ======================
+function renderCustomers(){
+  const search=document.getElementById('cSrch').value.toLowerCase();
+  const custs=DB.customers.filter(c=>!search||`${c.name}${c.phone}`.toLowerCase().includes(search));
+  const el=document.getElementById('custList');
+  if(!custs.length){el.innerHTML='<div class="empty"><div class="empty-i">👥</div>No customers</div>';return;}
+  el.innerHTML=custs.sort((a,b)=>b.spent-a.spent).map(c=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-weight:700;font-size:14px">${c.name}</div>
+          <div style="font-size:11px;color:var(--gray)">📞 <a href="tel:${c.phone}" style="color:var(--blue)">${c.phone}</a></div>
+          <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}</div>
+          ${c.lastVisit?`<div style="font-size:11px;color:var(--gray)">📅 Last: ${new Date(c.lastVisit).toLocaleDateString('en-IN')}</div>`:''}
+        </div>
+        <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button><button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">🗑️</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${c.jobs||1}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">₹${(c.spent||0).toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">SPENT</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">${c.lastVisit?Math.floor((Date.now()-new Date(c.lastVisit))/864e5)+'d':'New'}</div><div style="font-size:9px;color:#9ca3af">DAYS AGO</div></div>
+      </div>
+    </div>`).join('');
+}
+function sendRemWA(phone,name,car,cars){
+  const msg=`നമസ്കാരം ${name}! 🙏\n\nനിങ്ങളുടെ ${cars} periodic service due ആയിരിക്കുന്നു.\n\nAppointment book ചെയ്യാൻ reply ചെയ്യൂ.\n\nThank you! 🔧 Garage Pro Kerala`;
+  const ph=phone.replace(/\D/g,'');
+  window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+function delCustomer(phone){
+  if(!confirm('ഈ customer-നെ delete ചെയ്യണോ?\n(പഴയ job cards മാറില്ല)'))return;
+  DB.customers=DB.customers.filter(c=>c.phone!==phone);
+  save();renderCustomers();
+}
+document.getElementById('cSrch').addEventListener('input',renderCustomers);
+
+// ====================== LABOUR HELPERS ======================
+function customAsLR(c){return {n:c.n,c:c.c,hb:c.hb,phb:c.phb,sed:c.sed,psed:c.psed,suv:c.suv,psuv:c.psuv,note:c.note||'',custom:true,id:c.id,active:c.active};}
+function allLabour(){return LR.map(r=>({...r})).concat((DB.customLabour||[]).map(customAsLR));}
+function activeLabour(){return LR.filter(r=>!(DB.lrDisabled||{})[r.n]).map(r=>({...r})).concat((DB.customLabour||[]).filter(c=>c.active!==false).map(customAsLR));}
+function openLabourEdit(name){
+  const c=(DB.customLabour||[]).find(x=>x.n===name);
+  if(c)editCustomLabour(c.id);else openRateEdit(name);
+}
+
+// ====================== MANAGE SECTION ======================
+let mgTab='staff';
+function setMgTab(t){
+  mgTab=t;
+  document.querySelectorAll('#mgChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.mg===t));
+  renderManage();
+}
+function renderManage(){
+  const labels={staff:'➕ Add Mechanic',parts:'➕ Add Part',labour:'➕ Add Labour Charge',cars:'➕ Add Car Model'};
+  const btn=document.getElementById('mgAddBtn');
+  if(btn)btn.textContent=labels[mgTab];
+  const fns={staff:renderMgStaff,parts:renderMgParts,labour:renderMgLabour,cars:renderMgCars};
+  if(fns[mgTab])fns[mgTab]();
+}
+function mgAdd(){
+  if(mgTab==='staff')openAddMech();
+  else if(mgTab==='parts')openAddPartHist();
+  else if(mgTab==='labour')openAddLabour();
+  else if(mgTab==='cars')openAddCarModel();
+}
+function mgToggle(active,fn){
+  return `<button onclick="event.stopPropagation();${fn}" style="border:none;padding:4px 9px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;${active?'background:#d1fae5;color:#065f46':'background:#fee2e2;color:#991b1b'}">${active?'✅ Active':'🚫 Inactive'}</button>`;
+}
+
+// --- Staff ---
+function renderMgStaff(){
+  const el=document.getElementById('manageBody');
+  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
+  el.innerHTML=DB.mechanics.map(m=>{
+    const act=m.active!==false;
+    return `<div class="card" style="cursor:pointer;${act?'':'opacity:.55'}" onclick="editMech('${m.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${m.name[0]}</div>
+          <div style="min-width:0"><div style="font-weight:700">${m.name} <span style="color:var(--blue);font-size:11px">✏️</span></div>
+          <div style="font-size:11px;color:var(--gray)">${m.spec}${m.phone?' • 📞 '+m.phone:''}</div></div>
+        </div>
+        ${mgToggle(act,`toggleMech('${m.id}')`)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px">
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${m.jobs||0}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">₹${(m.revenue||0).toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">REVENUE</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed').length}</div><div style="font-size:9px;color:#9ca3af">PENDING</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleMech(id){
+  const m=DB.mechanics.find(x=>x.id===id);if(!m)return;
+  m.active=m.active===false?true:false;
+  save();renderManage();updateMechDD();
+}
+
+// --- Parts ---
+function renderMgParts(){
+  const el=document.getElementById('manageBody');
+  const parts=DB.spareHistory||[];
+  if(!parts.length){el.innerHTML='<div class="empty"><div class="empty-i">🔩</div>No parts yet — job card-ൽ spare add ചെയ്യുമ്പോൾ automatic വരും, അല്ലെങ്കിൽ Add New tap ചെയ്യൂ</div>';return;}
+  el.innerHTML=parts.map(p=>{
+    const act=p.active!==false;
+    return `<div class="card" style="cursor:pointer;padding:10px 12px;${act?'':'opacity:.55'}" onclick="editPartHist('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px">${p.name} <span style="color:var(--blue);font-size:11px">✏️</span></div>
+          <div style="font-size:11px;color:var(--gray)">${p.brand||''}${p.cost?' • Cost ₹'+p.cost:''} • Sell <b style="color:var(--rust)">₹${p.sell||0}</b></div>
+        </div>
+        ${mgToggle(act,`togglePartHist('${p.id}')`)}
+      </div>
+    </div>`;
+  }).join('');
+}
+let editPartHistId=null;
+function openAddPartHist(){
+  editPartHistId=null;
+  document.getElementById('partHMT').textContent='Add Part';
+  ['phName','phBrand','phCost','phSell'].forEach(id=>document.getElementById(id).value='');
+  openM('partHM');
+}
+function editPartHist(id){
+  const p=(DB.spareHistory||[]).find(x=>x.id===id);if(!p)return;
+  editPartHistId=id;
+  document.getElementById('partHMT').textContent='Edit: '+p.name;
+  document.getElementById('phName').value=p.name||'';
+  document.getElementById('phBrand').value=p.brand||'';
+  document.getElementById('phCost').value=p.cost||'';
+  document.getElementById('phSell').value=p.sell||'';
+  openM('partHM');
+}
+function savePartHist(){
+  const name=document.getElementById('phName').value.trim();
+  const sell=parseFloat(document.getElementById('phSell').value||0);
+  if(!name||!sell){alert('Name & selling price required');return;}
+  const data={name,brand:document.getElementById('phBrand').value.trim(),cost:parseFloat(document.getElementById('phCost').value||0),sell};
+  if(editPartHistId){Object.assign(DB.spareHistory.find(p=>p.id===editPartHistId),data);}
+  else DB.spareHistory.unshift({id:'SP'+Date.now(),...data,active:true});
+  save();closeM('partHM');renderManage();
+}
+function togglePartHist(id){
+  const p=DB.spareHistory.find(x=>x.id===id);if(!p)return;
+  p.active=p.active===false?true:false;
+  save();renderManage();
+}
+
+// --- Labour ---
+function renderMgLabour(){
+  const el=document.getElementById('manageBody');
+  const items=allLabour();
+  el.innerHTML=items.map(r=>{
+    const act=r.custom?(r.active!==false):!(DB.lrDisabled||{})[r.n];
+    const cr=DB.customRates[r.n];
+    const rate=cr?{...r,...cr}:r;
+    const click=r.custom?`editCustomLabour('${r.id}')`:`openRateEdit('${r.n.replace(/'/g,"\\'")}')`;
+    const toggle=r.custom?`toggleCustomLabour('${r.id}')`:`toggleBaseLabour('${r.n.replace(/'/g,"\\'")}')`;
+    return `<div class="card" style="cursor:pointer;padding:10px 12px;${act?'':'opacity:.55'}" onclick="${click}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:12px">${r.n} <span style="color:var(--blue);font-size:11px">✏️</span>${r.custom?'<span class="tag t-c">custom</span>':''}${cr?'<span class="tag t-l">edited</span>':''}</div>
+          <div style="font-size:10px;color:var(--gray)">${r.c} • HB ₹${rate.hb} → PSUV ₹${rate.psuv}</div>
+        </div>
+        ${mgToggle(act,toggle)}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleBaseLabour(name){
+  if(!DB.lrDisabled)DB.lrDisabled={};
+  if(DB.lrDisabled[name])delete DB.lrDisabled[name];
+  else DB.lrDisabled[name]=true;
+  save();renderManage();
+}
+let editCustomLabourId=null;
+function openAddLabour(){
+  editCustomLabourId=null;
+  document.getElementById('labAddMT').textContent='Add Labour Charge';
+  document.getElementById('clName').value='';
+  document.getElementById('clCat').value='Engine';
+  ['cl_hb','cl_phb','cl_sed','cl_psed','cl_suv','cl_psuv'].forEach(id=>document.getElementById(id).value='');
+  openM('labAddM');
+}
+function editCustomLabour(id){
+  const c=(DB.customLabour||[]).find(x=>x.id===id);if(!c)return;
+  editCustomLabourId=id;
+  document.getElementById('labAddMT').textContent='Edit: '+c.n;
+  document.getElementById('clName').value=c.n;
+  document.getElementById('clCat').value=c.c;
+  document.getElementById('cl_hb').value=c.hb;document.getElementById('cl_phb').value=c.phb;
+  document.getElementById('cl_sed').value=c.sed;document.getElementById('cl_psed').value=c.psed;
+  document.getElementById('cl_suv').value=c.suv;document.getElementById('cl_psuv').value=c.psuv;
+  openM('labAddM');
+}
+function saveCustomLabour(){
+  const n=document.getElementById('clName').value.trim();
+  const hb=parseInt(document.getElementById('cl_hb').value||0);
+  if(!n||!hb){alert('Name & Hatchback price required');return;}
+  const v=k=>parseInt(document.getElementById('cl_'+k).value||0)||hb;
+  const data={n,c:document.getElementById('clCat').value,hb,phb:v('phb'),sed:v('sed'),psed:v('psed'),suv:v('suv'),psuv:v('psuv')};
+  if(editCustomLabourId){Object.assign(DB.customLabour.find(c=>c.id===editCustomLabourId),data);}
+  else DB.customLabour.push({id:'CL'+Date.now(),...data,active:true});
+  save();closeM('labAddM');renderManage();
+}
+function toggleCustomLabour(id){
+  const c=DB.customLabour.find(x=>x.id===id);if(!c)return;
+  c.active=c.active===false?true:false;
+  save();renderManage();
+}
+
+// --- Car Models ---
+function renderMgCars(){
+  const el=document.getElementById('manageBody');
+  const models=DB.carModels||[];
+  if(!models.length){el.innerHTML='<div class="empty"><div class="empty-i">🚗</div>Loading car models...</div>';return;}
+  const byBrand={};
+  models.forEach(m=>{(byBrand[m.brand]=byBrand[m.brand]||[]).push(m);});
+  el.innerHTML=Object.keys(byBrand).sort().map(b=>`
+    <div style="font-weight:800;font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 5px">${b} (${byBrand[b].length})</div>
+    ${byBrand[b].map(m=>{
+      const act=m.active!==false;
+      return `<div class="card" style="cursor:pointer;padding:9px 12px;margin-bottom:5px;${act?'':'opacity:.55'}" onclick="editCarModel('${m.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="flex:1;min-width:0">
+            <span style="font-weight:600;font-size:13px">${m.model}</span>
+            <span style="color:var(--blue);font-size:11px"> ✏️</span>
+            <span class="cat-badge ${CAT_BADGE_CLS[m.cat]||'cat-hb'}" style="font-size:9px;padding:2px 6px;margin-left:4px">${CAT_NAMES[m.cat]||''}</span>
+          </div>
+          ${mgToggle(act,`toggleCarModel('${m.id}')`)}
+        </div>
+      </div>`;
+    }).join('')}`).join('');
+}
+let editCarModelId=null;
+function fillBrandList(){
+  const dl=document.getElementById('brandList');
+  if(!dl)return;
+  const brands=[...new Set((DB.carModels||[]).map(m=>m.brand))].sort();
+  dl.innerHTML=brands.map(b=>`<option value="${b}">`).join('');
+}
+function openAddCarModel(){
+  editCarModelId=null;
+  document.getElementById('carMT').textContent='Add Car Model';
+  document.getElementById('cmBrand').value='';
+  document.getElementById('cmModel').value='';
+  document.getElementById('cmCat').value='hb';
+  fillBrandList();
+  openM('carM');
+}
+function editCarModel(id){
+  const m=(DB.carModels||[]).find(x=>x.id===id);if(!m)return;
+  editCarModelId=id;
+  document.getElementById('carMT').textContent='Edit: '+m.model;
+  document.getElementById('cmBrand').value=m.brand;
+  document.getElementById('cmModel').value=m.model;
+  document.getElementById('cmCat').value=m.cat||'hb';
+  fillBrandList();
+  openM('carM');
+}
+function saveCarModel(){
+  const brand=document.getElementById('cmBrand').value.trim();
+  const model=document.getElementById('cmModel').value.trim();
+  if(!brand||!model){alert('Brand & model required');return;}
+  const cat=document.getElementById('cmCat').value;
+  if(editCarModelId){Object.assign(DB.carModels.find(m=>m.id===editCarModelId),{brand,model,cat});}
+  else{
+    if(DB.carModels.some(m=>m.brand.toLowerCase()===brand.toLowerCase()&&m.model.toLowerCase()===model.toLowerCase())){alert('ഈ model already ഉണ്ട്!');return;}
+    DB.carModels.push({id:'CM'+Date.now(),brand,model,cat,active:true});
+  }
+  save();closeM('carM');renderManage();
+}
+function toggleCarModel(id){
+  const m=DB.carModels.find(x=>x.id===id);if(!m)return;
+  m.active=m.active===false?true:false;
+  save();renderManage();
+}
+
+function clearAllData(){
+  const pin=prompt('Owner PIN enter ചെയ്യൂ:');
+  if(pin===null)return;
+  if(pin!==localStorage.getItem('gp_pin')){alert('❌ Wrong PIN');return;}
+  if(!confirm('⚠️ എല്ലാ data-യും delete ആകും — jobs, customers, mechanics, stock, parts!\nCloud-ൽ നിന്നും പോകും. തുടരണോ?'))return;
+  if(!confirm('100% ഉറപ്പാണോ? ഇത് UNDO ചെയ്യാൻ പറ്റില്ല!'))return;
+  DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{}};
+  carSeeded=false;ensureCarSeed();
+  save();renderAll();renderManage();
+  alert('✅ All data cleared — fresh start!');
+}
+
+// ====================== MECHANICS ======================
+function renderMechanics(){
+  const el=document.getElementById('mechList');
+  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
+  el.innerHTML=DB.mechanics.map(m=>`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${m.name[0]}</div>
+          <div><div style="font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--gray)">${m.spec} ${m.phone?'• '+m.phone:''}</div></div>
+        </div>
+        <span onclick="editMech('${m.id}')" style="color:var(--blue);font-size:12px;font-weight:700;cursor:pointer">✏️ Edit</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px">
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${m.jobs||0}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">₹${(m.revenue||0).toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">REVENUE</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed').length}</div><div style="font-size:9px;color:#9ca3af">PENDING</div></div>
+      </div>
+    </div>`).join('');
+  updateMechDD();
+}
+let editMechId=null;
+function openAddMech(){
+  editMechId=null;
+  document.getElementById('mechMT').textContent='Add Mechanic';
+  document.getElementById('mName').value='';
+  document.getElementById('mPhone').value='';
+  document.getElementById('mSpec').value='mechanical';
+  document.getElementById('delMechBtn').style.display='none';
+  openM('mechM');
+}
+function editMech(id){
+  const m=DB.mechanics.find(x=>x.id===id);if(!m)return;
+  editMechId=id;
+  document.getElementById('mechMT').textContent='Edit: '+m.name;
+  document.getElementById('mName').value=m.name||'';
+  document.getElementById('mPhone').value=m.phone||'';
+  document.getElementById('mSpec').value=m.spec||'mechanical';
+  document.getElementById('delMechBtn').style.display='block';
+  openM('mechM');
+}
+function saveMech(){
+  const name=document.getElementById('mName').value.trim();
+  if(!name){alert('Name required');return;}
+  const data={name,phone:document.getElementById('mPhone').value.trim(),spec:document.getElementById('mSpec').value};
+  if(editMechId){Object.assign(DB.mechanics.find(m=>m.id===editMechId),data);}
+  else DB.mechanics.push({id:'M'+Date.now(),...data,jobs:0,revenue:0});
+  localStorage.setItem('gp_lastupdate', Date.now().toString());
+  const wasEdit=!!editMechId;
+  save();closeM('mechM');renderManage();updateMechDD();
+  alert(wasEdit?'✅ Updated!':'✅ Mechanic added!');
+}
+function delMechCurrent(){
+  if(!editMechId||!confirm('Remove mechanic?'))return;
+  DB.mechanics=DB.mechanics.filter(m=>m.id!==editMechId);
+  save();closeM('mechM');renderManage();updateMechDD();
+}
+function delMech(id){if(!confirm('Remove?'))return;DB.mechanics=DB.mechanics.filter(m=>m.id!==id);save();renderMechanics();}
+function updateMechDD(){
+  const s=document.getElementById('fMech');
+  s.innerHTML='<option value="">-- Select Mechanic --</option>';
+  DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.name} (${m.spec})`;s.appendChild(o);});
+}
+
+// ====================== STOCK ======================
+function renderStock(){
+  const search=document.getElementById('stSrch').value.toLowerCase();
+  const items=DB.stock.filter(s=>!search||`${s.name}${s.pn||''}`.toLowerCase().includes(search));
+  const low=items.filter(s=>s.qty<=s.min);
+  const la=document.getElementById('lowAlerts');
+  la.innerHTML=low.length?`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:10px;margin-bottom:6px">
+    <div style="font-weight:700;font-size:13px;color:#991b1b;margin-bottom:5px">⚠️ Low Stock — ${low.length} items</div>
+    ${low.map(s=>`<div style="font-size:12px;padding:2px 0;color:#991b1b">• ${s.name} — <b>${s.qty}</b> left (min: ${s.min})</div>`).join('')}
+  </div>`:'';
+  const el=document.getElementById('stockList');
+  if(!items.length){el.innerHTML='<div class="empty"><div class="empty-i">📦</div>No stock items</div>';return;}
+  el.innerHTML=items.map(s=>{
+    const pct=Math.min(100,Math.round(s.qty/Math.max(s.min*3,5)*100));
+    const isLow=s.qty<=s.min;
+    const cls=isLow?'low':s.qty<=s.min*1.5?'warn':'';
+    return `<div class="st-item ${cls}" onclick="editStock('${s.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px">${s.name}</div>
+          ${s.pn?`<div style="font-size:10px;color:var(--blue);font-family:monospace">${s.pn}</div>`:''}
+          <div style="font-size:11px;color:var(--gray)">Min: ${s.min}${s.cost?' | Cost: ₹'+s.cost:''}${s.supp?' | '+s.supp:''}</div>
+          <div class="st-bar"><div class="st-fill" style="width:${pct}%;background:${isLow?'var(--red)':'var(--green)'}"></div></div>
+        </div>
+        <div style="font-size:22px;font-weight:800;text-align:right;margin-left:10px;color:${isLow?'var(--red)':'var(--green)'}">
+          ${s.qty}<div style="font-size:9px;color:var(--gray);font-weight:400">units</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('stSrch').addEventListener('input',renderStock);
+function openAddStock(){
+  editStockId=null;
+  ['stName','stPN','stQty','stMin','stCost','stSupp'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('addQtyBtn').style.display='none';
+  document.getElementById('delStBtn').style.display='none';
+  document.getElementById('stockMT').textContent='Add Stock';
+  openM('stockM');
+}
+function editStock(id){
+  const s=DB.stock.find(x=>x.id===id);if(!s)return;
+  editStockId=id;
+  document.getElementById('stName').value=s.name||'';
+  document.getElementById('stPN').value=s.pn||'';
+  document.getElementById('stQty').value=s.qty||0;
+  document.getElementById('stMin').value=s.min||2;
+  document.getElementById('stCost').value=s.cost||0;
+  document.getElementById('stSupp').value=s.supp||'';
+  document.getElementById('addQtyBtn').style.display='block';
+  document.getElementById('delStBtn').style.display='block';
+  document.getElementById('stockMT').textContent='Edit Stock';
+  openM('stockM');
+}
+function saveStock(){
+  const name=document.getElementById('stName').value.trim();
+  if(!name){alert('Name required');return;}
+  const data={name,pn:document.getElementById('stPN').value.trim(),qty:parseInt(document.getElementById('stQty').value||0),min:parseInt(document.getElementById('stMin').value||2),cost:parseFloat(document.getElementById('stCost').value||0),supp:document.getElementById('stSupp').value.trim()};
+  if(editStockId)Object.assign(DB.stock.find(s=>s.id===editStockId),data);
+  else DB.stock.push({id:'STK'+Date.now(),...data});
+  save();closeM('stockM');renderStock();
+}
+function addMoreQty(){
+  const add=parseInt(prompt('Add quantity:','10')||0);
+  if(add>0){DB.stock.find(s=>s.id===editStockId).qty+=add;save();closeM('stockM');renderStock();}
+}
+function delStock(){
+  if(!confirm('Delete?'))return;
+  DB.stock=DB.stock.filter(s=>s.id!==editStockId);save();closeM('stockM');renderStock();
+}
+
+// ====================== RATES PAGE ======================
+function renderRates(){
+  const search=document.getElementById('rSrch').value.toLowerCase();
+  const activeCat=document.querySelector('#rCatChips .chip.on')?.dataset.rc||'all';
+  const items=allLabour().filter(r=>{
+    if(activeCat!=='all'&&r.c!==activeCat)return false;
+    if(search&&!r.n.toLowerCase().includes(search))return false;
+    return true;
+  });
+  document.getElementById('ratesList').innerHTML=items.map(r=>{
+    const cr=DB.customRates[r.n];
+    const rate=cr?{...r,...cr}:r;
+    const isCustom=!!cr;
+    return `<div class="lr-card" onclick="openLabourEdit('${r.n.replace(/'/g,"\\'")}')">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div><div class="lr-name">${r.n}${isCustom?'<span class="tag t-c" style="margin-left:4px">custom</span>':''}</div>
+        <div class="lr-cat">${r.c}${r.note?' • '+r.note:''}</div></div>
+        <span style="font-size:11px;color:var(--gray)">✏️</span>
+      </div>
+      <div class="lr-prices">
+        <div class="lr-p"><div class="lr-pl">Hatchback</div><div class="lr-pv">₹${rate.hb}</div></div>
+        <div class="lr-p"><div class="lr-pl">Premium HB</div><div class="lr-pv">₹${rate.phb}</div></div>
+        <div class="lr-p"><div class="lr-pl">Sedan</div><div class="lr-pv">₹${rate.sed}</div></div>
+        <div class="lr-p"><div class="lr-pl">Prem Sedan</div><div class="lr-pv">₹${rate.psed}</div></div>
+        <div class="lr-p"><div class="lr-pl">SUV</div><div class="lr-pv">₹${rate.suv}</div></div>
+        <div class="lr-p"><div class="lr-pl">Premium SUV</div><div class="lr-pv">₹${rate.psuv}</div></div>
+      </div>
+    </div>`;
+  }).join('')||'<div class="empty"><div class="empty-i">🔍</div>Not found</div>';
+}
+document.getElementById('rSrch').addEventListener('input',renderRates);
+document.querySelectorAll('#rCatChips .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#rCatChips .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');renderRates();
+}));
+
+// Rate edit
+function openRateEdit(name){
+  rateEditName=name;
+  const r=LR.find(x=>x.n===name);if(!r)return;
+  const cr=DB.customRates[name];
+  const rate=cr?{...r,...cr}:r;
+  document.getElementById('rateEditTitle').textContent='Edit: '+name.substring(0,30);
+  ['hb','phb','sed','psed','suv','psuv'].forEach(k=>document.getElementById('re_'+k).value=rate[k]);
+  openM('rateEditM');
+}
+function saveRateEdit(){
+  if(!rateEditName)return;
+  DB.customRates[rateEditName]={
+    hb:parseInt(document.getElementById('re_hb').value),
+    phb:parseInt(document.getElementById('re_phb').value),
+    sed:parseInt(document.getElementById('re_sed').value),
+    psed:parseInt(document.getElementById('re_psed').value),
+    suv:parseInt(document.getElementById('re_suv').value),
+    psuv:parseInt(document.getElementById('re_psuv').value),
+  };
+  save();closeM('rateEditM');renderRates();
+  alert('✅ Custom rate saved!');
+}
+function resetRateEdit(){
+  if(!rateEditName)return;
+  delete DB.customRates[rateEditName];
+  save();closeM('rateEditM');renderRates();
+  alert('✅ Reset to default rate!');
+}
+
+// ====================== AI ======================
+async function askAI(){
+  const input=document.getElementById('aiIn');
+  const msg=input.value.trim();if(!msg)return;
+  input.value='';
+  const out=document.getElementById('aiOut');
+  out.textContent='⏳ Thinking...';
+  try{
+    const ctx=`Kerala workshop. Mechanics: ${DB.mechanics.map(m=>m.name).join(', ')||'none'}. Jobs today: ${DB.jobs.filter(j=>new Date(j.at).toDateString()===new Date().toDateString()).length}. Total revenue: ₹${DB.jobs.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}. Pending: ${DB.jobs.filter(j=>j.status!=='completed').length}.`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:`You are a Kerala garage workshop AI assistant. Reply in Malayalam/English mix. Be practical and concise. Kerala context 2026. Workshop data: ${ctx}`,
+        messages:[{role:'user',content:msg}]})
+    });
+    const data=await res.json();
+    out.textContent=data.content?.[0]?.text||'Try again.';
+  }catch(e){out.textContent='Network error. Check internet.';}
+}
+function qAI(msg){document.getElementById('aiIn').value=msg;go('ai');askAI();}
+document.getElementById('aiIn').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
+
+// ====================== MODAL ======================
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+
+// Rate edit modal extra close
+document.getElementById('rateEditM').addEventListener('click',function(e){if(e.target===this)closeM('rateEditM');});
+
+// ====================== INIT ======================
+function renderAll(){
+  renderHome();updateMechDD();renderPhotoGrid();
+}
+load();renderAll();setTimeout(ensureCarSeed,4000);
+</script>
+</body>
+</html>
