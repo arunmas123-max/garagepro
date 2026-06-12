@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v6</title>
+<title>Garage Pro Kerala v7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -297,6 +297,7 @@ textarea{resize:vertical;min-height:65px}
       <div class="fg"><label>Name *</label><input id="fN" type="text" placeholder="Customer name"></div>
       <div class="fg"><label>Phone *</label><input id="fPh" type="tel" maxlength="10" placeholder="9876543210"></div>
     </div>
+    <div class="fg"><label>Address / Place</label><input id="fAddr" type="text" placeholder="e.g. Kalady, Trivandrum"></div>
     <div class="r2">
       <div class="fg"><label>Vehicle No *</label><input id="fV" type="text" placeholder="KL07AB1234" style="text-transform:uppercase"></div>
       <div class="fg"><label>KM Reading</label><input id="fKm" type="number" placeholder="45000"></div>
@@ -322,6 +323,15 @@ textarea{resize:vertical;min-height:65px}
     <div class="card-t">🔧 Job Details</div>
     <textarea id="fC" placeholder="Complaint / problem description..."></textarea>
     <div class="r2" style="margin-top:8px">
+      <div class="fg"><label>Job Date</label><input id="fDate" type="date"></div>
+      <div class="fg"><label>Fuel Level</label>
+        <select id="fFuel">
+          <option value="">--</option>
+          <option>Empty</option><option>1/4</option><option>1/2</option><option>3/4</option><option>Full</option>
+        </select>
+      </div>
+    </div>
+    <div class="r2">
       <div class="fg"><label>Job Type</label>
         <select id="fJobType">
           <option value="mechanical">🔧 Mechanical</option>
@@ -365,7 +375,7 @@ textarea{resize:vertical;min-height:65px}
       <div style="font-weight:700;margin-bottom:6px;font-size:13px">💰 Estimate</div>
       <div id="estDet"></div>
     </div>
-    <div class="fg" id="paySection" style="display:none">
+    <div class="fg" id="paySection">
       <label>Payment Mode</label>
       <select id="fPayMode" onchange="onPayMode()">
         <option value="pending">⏳ Pending</option>
@@ -378,7 +388,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="fg" id="partialDiv" style="display:none">
       <label>Amount Received ₹</label><input id="fPartial" type="number" placeholder="0">
     </div>
-    <button class="btn b-green" id="saveBtn" style="display:none" onclick="saveJob()">✅ Save Job Card</button>
+    <button class="btn b-green" id="saveBtn" onclick="saveJob()">✅ Save Job Card</button>
   </div>
 </div>
 
@@ -463,6 +473,7 @@ textarea{resize:vertical;min-height:65px}
   <button class="btn b-rust" id="mgAddBtn" style="margin-bottom:10px" onclick="mgAdd()">➕ Add New</button>
   <div style="font-size:11px;color:var(--gray);margin-bottom:8px">✏️ Edit ചെയ്യാൻ item tap ചെയ്യൂ • 🚫 Inactive items പുതിയ job card-ൽ കാണില്ല (പഴയ job cards മാറില്ല)</div>
   <div id="manageBody"></div>
+  <button class="btn b-red" style="margin-top:16px" onclick="clearAllData()">🗑️ Clear ALL Data — Owner Only (PIN)</button>
 </div>
 
 <!-- STOCK -->
@@ -1087,6 +1098,7 @@ async function doInstall(){if(!deferredPrompt)return;deferredPrompt.prompt();awa
 
 // ====================== TABS ======================
 function go(name){
+  if(name==='job'){editingJobId=null;setTimeout(()=>{const fd=document.getElementById('fDate');if(fd&&!fd.value)fd.value=new Date().toISOString().slice(0,10);},50);}
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pg===name));
   document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===name));
   const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,ai:()=>{}};
@@ -1335,6 +1347,16 @@ document.querySelectorAll('#lpCatChips .chip').forEach(c=>c.addEventListener('cl
 }));
 function addLabour(name){
   const r=activeLabour().find(x=>x.n===name)||LR.find(x=>x.n===name);if(!r)return;
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){
+      if(!j.labourItems)j.labourItems=[];
+      j.labourItems.push({name,price:jobLabourPrice(r,j.cat),cat:j.cat,qty:1,type:'labour'});
+      recalcJob(j);save();
+    }
+    const jid=editingJobId;editingJobId=null;
+    closeM('lpM');openJob(jid);return;
+  }
   const price=getLabourPrice(r);
   JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
   renderJobItems();closeM('lpM');
@@ -1394,14 +1416,25 @@ function addSpare(){
   const sell=custSup?0:parseFloat(document.getElementById('spSell').value||0);
   const brand=document.getElementById('spBrand').value.trim();
   const qty=parseInt(document.getElementById('spQty').value||1);
-  JOB.spareItems.push({name,brand,cost,sell,qty,custSup,type:'spare'});
   // Save to history for auto-suggest
   if(!custSup&&sell>0){
     DB.spareHistory=DB.spareHistory.filter(s=>s.name!==name);
     DB.spareHistory.unshift({id:'SP'+Date.now(),name,brand,cost,sell,active:true});
     if(DB.spareHistory.length>200)DB.spareHistory=DB.spareHistory.slice(0,200);
-    save();
   }
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){
+      if(!j.spareItems)j.spareItems=[];
+      j.spareItems.push({name,brand,cost,sell,qty,custSup,type:'spare'});
+      recalcJob(j);
+    }
+    save();
+    const jid=editingJobId;editingJobId=null;
+    closeM('spareM');openJob(jid);return;
+  }
+  JOB.spareItems.push({name,brand,cost,sell,qty,custSup,type:'spare'});
+  save();
   renderJobItems();closeM('spareM');
 }
 
@@ -1450,7 +1483,8 @@ function renderEstimate(){
   const eb=document.getElementById('estBox');
   const ps=document.getElementById('paySection');
   const sb=document.getElementById('saveBtn');
-  if(!hasItems){eb.style.display='none';ps.style.display='none';sb.style.display='none';return;}
+  ps.style.display='block';sb.style.display='block';
+  if(!hasItems){eb.style.display='none';return;}
   const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
   const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
   const partsProfit=JOB.spareItems.reduce((s,it)=>s+(it.sell-it.cost)*(it.qty||1),0);
@@ -1481,8 +1515,11 @@ function saveJob(){
   const nextSvc=document.getElementById('fNextSvc').value;
   const payMode=document.getElementById('fPayMode').value;
   const partial=parseFloat(document.getElementById('fPartial').value||0);
-  if(!name||!phone||!vnum||!JOB.car||(!JOB.labourItems.length&&!JOB.spareItems.length)){
-    alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car\n• At least 1 labour or spare');return;
+  const addr=document.getElementById('fAddr').value.trim();
+  const fuel=document.getElementById('fFuel').value;
+  const jd=document.getElementById('fDate').value;
+  if(!name||!phone||!vnum||!JOB.car){
+    alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car model');return;
   }
   const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
   const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
@@ -1491,21 +1528,21 @@ function saveJob(){
   const total=sub+gst;
   const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
   const job={
-    id:'JOB'+Date.now(),name,phone,vnum,car:JOB.car,cat:JOB.cat,km,complaint,jobType,
+    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,
     labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
     photos:[...JOB.photos],status:'pending',
     mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
     nextSvc,payMode,amtPaid,labour,partsTotal,sub,gst,total,
-    at:new Date().toISOString()
+    at: jd ? new Date(jd+'T'+new Date().toTimeString().slice(0,8)).toISOString() : new Date().toISOString()
   };
   DB.jobs.unshift(job);
   const cx=DB.customers.find(c=>c.phone===phone);
-  if(cx){cx.spent+=total;cx.jobs++;cx.lastVisit=job.at;cx.cars=[...new Set([...(cx.cars||[]),JOB.car])];}
-  else DB.customers.push({name,phone,vnum,car:JOB.car,cars:[JOB.car],spent:total,jobs:1,lastVisit:job.at});
+  if(cx){cx.spent+=total;cx.jobs++;cx.lastVisit=job.at;if(addr)cx.addr=addr;cx.cars=[...new Set([...(cx.cars||[]),JOB.car])];}
+  else DB.customers.push({name,phone,vnum,addr,car:JOB.car,cars:[JOB.car],spent:total,jobs:1,lastVisit:job.at});
   if(mechId){const m=DB.mechanics.find(x=>x.id===mechId);if(m){m.jobs=(m.jobs||0)+1;m.revenue=(m.revenue||0)+total;}}
   save();
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
-  ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial'].forEach(id=>document.getElementById(id).value='');
+  ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('carSrch').value='';
   document.getElementById('carPicker').style.display='none';
   document.getElementById('selCarLabel').textContent='';
@@ -1578,6 +1615,8 @@ function openJob(id){
       <div style="font-size:13px;line-height:2">
         <div>👤 <b>${j.name}</b> | 📞 <a href="tel:${j.phone}" style="color:var(--blue)">${j.phone}</a></div>
         <div>🚗 ${j.car} (${j.vnum})${j.km?' | 🔢 '+j.km+' km':''}</div>
+        ${j.addr?`<div>📍 ${j.addr}</div>`:''}
+        ${j.fuel?`<div>⛽ Fuel: ${j.fuel}</div>`:''}
         ${j.cat?`<div>${catBadgeHtml(j.cat)}</div>`:''}
         <div>📅 ${new Date(j.at).toLocaleString('en-IN')}</div>
         <div>Status: <span class="badge ${bc}">${j.status}</span></div>
@@ -1596,6 +1635,17 @@ function openJob(id){
         💳 ${j.payMode||'pending'} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}
       </div>
     </div>
+    <div class="card">
+      <div class="card-t">✏️ Edit Job</div>
+      <div class="fg"><label>Assign / Change Mechanic</label>
+        <select id="jdMech"></select>
+      </div>
+      <button class="btn b-rust" onclick="assignMechToJob('${j.id}')">👷 Save Mechanic</button>
+      <div style="display:flex;gap:6px;margin-top:7px">
+        <button class="btn b-out" style="flex:1;margin-top:0" onclick="addLabourToJob('${j.id}')">➕ Add Labour</button>
+        <button class="btn b-out" style="flex:1;margin-top:0;color:var(--blue);border-color:var(--blue)" onclick="addSpareToJob('${j.id}')">➕ Add Spare</button>
+      </div>
+    </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       ${j.status==='pending'?`<button class="btn b-rust b-sm" onclick="updSt('${j.id}','in-progress')">🔧 Start Work</button>`:''}
       ${j.status==='in-progress'?`<button class="btn b-blue b-sm" onclick="updSt('${j.id}','ready')">✅ Mark Ready</button>`:''}
@@ -1607,7 +1657,43 @@ function openJob(id){
     <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Invoice</button>
     <button class="btn b-red" style="margin-top:7px" onclick="delJob('${j.id}')">🗑️ Delete Job</button>`;
   openM('jobM');
+  const jm=document.getElementById('jdMech');
+  if(jm){
+    jm.innerHTML='<option value="">-- Select Mechanic --</option>';
+    DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';jm.appendChild(o);});
+    jm.value=j.mechId||'';
+  }
 }
+
+let editingJobId=null;
+function recalcJob(j){
+  const oldTotal=j.total||0;
+  j.labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
+  j.partsTotal=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+  j.sub=j.labour+j.partsTotal;
+  j.gst=Math.round(j.sub*0.18);
+  j.total=j.sub+j.gst;
+  const delta=j.total-oldTotal;
+  const cx=DB.customers.find(c=>c.phone===j.phone);
+  if(cx)cx.spent=Math.max(0,(cx.spent||0)+delta);
+  if(j.mechId){const m=DB.mechanics.find(x=>x.id===j.mechId);if(m)m.revenue=Math.max(0,(m.revenue||0)+delta);}
+}
+function jobLabourPrice(r,cat){const cr=DB.customRates[r.n];const x=cr?{...r,...cr}:r;return x[cat||'hb']||x.hb;}
+function assignMechToJob(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const mid=document.getElementById('jdMech').value;
+  if((j.mechId||'')===mid){alert('Same mechanic already');return;}
+  if(j.mechId){const om=DB.mechanics.find(x=>x.id===j.mechId);if(om){om.jobs=Math.max(0,(om.jobs||0)-1);om.revenue=Math.max(0,(om.revenue||0)-(j.total||0));}}
+  j.mechId=mid;
+  const nm=DB.mechanics.find(x=>x.id===mid);
+  j.mechName=nm?nm.name:'';
+  if(nm){nm.jobs=(nm.jobs||0)+1;nm.revenue=(nm.revenue||0)+(j.total||0);}
+  save();
+  alert('✅ Mechanic assigned: '+(j.mechName||'None'));
+  openJob(id);
+}
+function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
+function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   j.status=st;save();closeM('jobM');renderJobs();renderKanban();
@@ -1642,6 +1728,7 @@ function printInv(id){
   <p><b>Job:</b> ${j.id} | <b>Date:</b> ${new Date(j.at).toLocaleDateString('en-IN')}</p>
   <p><b>Customer:</b> ${j.name} | <b>Phone:</b> ${j.phone}</p>
   <p><b>Vehicle:</b> ${j.car} — ${j.vnum}${j.km?' | KM: '+j.km:''}${j.cat?' | Category: '+CAT_NAMES[j.cat]:''}</p>
+  ${j.addr?`<p><b>Address:</b> ${j.addr}</p>`:''}${j.fuel?`<p><b>Fuel Level:</b> ${j.fuel}</p>`:''}
   ${j.mechName?`<p><b>Mechanic:</b> ${j.mechName}</p>`:''}
   ${j.complaint?`<p><b>Complaint:</b> ${j.complaint}</p>`:''}
   <table><tr><th>Item</th><th>Type</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
@@ -1752,7 +1839,7 @@ function renderCustomers(){
           <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}</div>
           ${c.lastVisit?`<div style="font-size:11px;color:var(--gray)">📅 Last: ${new Date(c.lastVisit).toLocaleDateString('en-IN')}</div>`:''}
         </div>
-        <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button>
+        <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button><button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">🗑️</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
         <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${c.jobs||1}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
@@ -1765,6 +1852,11 @@ function sendRemWA(phone,name,car,cars){
   const msg=`നമസ്കാരം ${name}! 🙏\n\nനിങ്ങളുടെ ${cars} periodic service due ആയിരിക്കുന്നു.\n\nAppointment book ചെയ്യാൻ reply ചെയ്യൂ.\n\nThank you! 🔧 Garage Pro Kerala`;
   const ph=phone.replace(/\D/g,'');
   window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+function delCustomer(phone){
+  if(!confirm('ഈ customer-നെ delete ചെയ്യണോ?\n(പഴയ job cards മാറില്ല)'))return;
+  DB.customers=DB.customers.filter(c=>c.phone!==phone);
+  save();renderCustomers();
 }
 document.getElementById('cSrch').addEventListener('input',renderCustomers);
 
@@ -2008,6 +2100,18 @@ function toggleCarModel(id){
   const m=DB.carModels.find(x=>x.id===id);if(!m)return;
   m.active=m.active===false?true:false;
   save();renderManage();
+}
+
+function clearAllData(){
+  const pin=prompt('Owner PIN enter ചെയ്യൂ:');
+  if(pin===null)return;
+  if(pin!==localStorage.getItem('gp_pin')){alert('❌ Wrong PIN');return;}
+  if(!confirm('⚠️ എല്ലാ data-യും delete ആകും — jobs, customers, mechanics, stock, parts!\nCloud-ൽ നിന്നും പോകും. തുടരണോ?'))return;
+  if(!confirm('100% ഉറപ്പാണോ? ഇത് UNDO ചെയ്യാൻ പറ്റില്ല!'))return;
+  DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{}};
+  carSeeded=false;ensureCarSeed();
+  save();renderAll();renderManage();
+  alert('✅ All data cleared — fresh start!');
 }
 
 // ====================== MECHANICS ======================
