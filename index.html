@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7</title>
+<title>Garage Pro Kerala v7.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.2</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1288,8 +1288,16 @@ function onPhoto(e){
       const scale=Math.min(1,800/img.width);
       canvas.width=img.width*scale;canvas.height=img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      JOB.photos.push({type:photoType,data:canvas.toDataURL('image/jpeg',.7)});
-      renderPhotoGrid();
+      const dataUrl=canvas.toDataURL('image/jpeg',.7);
+      if(jobPhotoTargetId){
+        const j=DB.jobs.find(x=>x.id===jobPhotoTargetId);
+        if(j){(j.photos=j.photos||[]).push({type:photoType,data:dataUrl});save();}
+        const tid=jobPhotoTargetId;jobPhotoTargetId=null;
+        openJob(tid);
+      }else{
+        JOB.photos.push({type:photoType,data:dataUrl});
+        renderPhotoGrid();
+      }
     };
     img.src=ev.target.result;
   };
@@ -1489,13 +1497,12 @@ function renderEstimate(){
   const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
   const partsProfit=JOB.spareItems.reduce((s,it)=>s+(it.sell-it.cost)*(it.qty||1),0);
   const sub=labour+partsTotal;
-  const gst=Math.round(sub*0.18);
+  const gst=0;
   const total=sub+gst;
   document.getElementById('estDet').innerHTML=`
     ${labour?`<div class="er"><span>👷 Labour</span><span>₹${labour.toLocaleString('en-IN')}</span></div>`:''}
     ${partsTotal?`<div class="er"><span>🔩 Parts (markup profit: ₹${partsProfit.toLocaleString('en-IN')})</span><span>₹${partsTotal.toLocaleString('en-IN')}</span></div>`:''}
     <div class="er"><span>Subtotal</span><span>₹${sub.toLocaleString('en-IN')}</span></div>
-    <div class="er"><span>GST 18%</span><span>₹${gst.toLocaleString('en-IN')}</span></div>
     <div class="er tot"><span>TOTAL</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
   eb.style.display='block';ps.style.display='block';sb.style.display='block';
 }
@@ -1524,7 +1531,7 @@ function saveJob(){
   const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
   const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
   const sub=labour+partsTotal;
-  const gst=Math.round(sub*0.18);
+  const gst=0;
   const total=sub+gst;
   const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
   const job={
@@ -1564,7 +1571,7 @@ function sendWA(job){
   const labour=job.labourItems?.map(i=>`• ${i.name} — ₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
   const spares=job.spareItems?.map(i=>`• ${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' [Customer part]':''} — ₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
   const payS=job.payMode==='pending'?'⏳ Pending':job.payMode==='partial'?`⚡ Partial (₹${job.amtPaid} paid, ₹${job.total-job.amtPaid} balance)`:'✅ Paid';
-  const msg=`🔧 *Garage Pro Kerala — Estimate*\n\nNamaskaaram ${job.name}!\n\n🚗 *${job.car}* (${job.vnum})${job.km?'\n🔢 KM: '+job.km:''}\n📋 Job ID: ${job.id}\n\n${labour?'*Labour:*\n'+labour+'\n\n':''}${spares?'*Spare Parts:*\n'+spares+'\n\n':''}💰 *Bill:*\nSubtotal: ₹${job.sub?.toLocaleString('en-IN')}\nGST (18%): ₹${job.gst?.toLocaleString('en-IN')}\n*TOTAL: ₹${job.total?.toLocaleString('en-IN')}*\n\n💳 Payment: ${payS}${job.nextSvc?'\n\n📅 Next Service: '+new Date(job.nextSvc).toLocaleDateString('en-IN'):''}\n\nThank you! 🙏`;
+  const msg=`🔧 *Garage Pro Kerala — Estimate*\n\nNamaskaaram ${job.name}!\n\n🚗 *${job.car}* (${job.vnum})${job.km?'\n🔢 KM: '+job.km:''}\n📋 Job ID: ${job.id}\n\n${labour?'*Labour:*\n'+labour+'\n\n':''}${spares?'*Spare Parts:*\n'+spares+'\n\n':''}💰 *Bill:*\n*TOTAL: ₹${job.total?.toLocaleString('en-IN')}*\n\n💳 Payment: ${payS}${job.nextSvc?'\n\n📅 Next Service: '+new Date(job.nextSvc).toLocaleDateString('en-IN'):''}\n\nThank you! 🙏`;
   const ph=job.phone.replace(/\D/g,'');
   window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
 }
@@ -1629,7 +1636,7 @@ function openJob(id){
     <div class="card">
       ${labourHtml}${sparesHtml}
       <div class="irow"><span>Subtotal</span><span>₹${j.sub?.toLocaleString('en-IN')}</span></div>
-      <div class="irow"><span>GST 18%</span><span>₹${j.gst?.toLocaleString('en-IN')}</span></div>
+      
       <div class="irow" style="font-size:16px;font-weight:800;color:var(--rust)"><span>TOTAL</span><span>₹${j.total?.toLocaleString('en-IN')}</span></div>
       <div style="margin-top:8px;padding:8px;background:#f8f9fa;border-radius:7px;font-size:12px">
         💳 ${j.payMode||'pending'} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}
@@ -1645,6 +1652,12 @@ function openJob(id){
         <button class="btn b-out" style="flex:1;margin-top:0" onclick="addLabourToJob('${j.id}')">➕ Add Labour</button>
         <button class="btn b-out" style="flex:1;margin-top:0;color:var(--blue);border-color:var(--blue)" onclick="addSpareToJob('${j.id}')">➕ Add Spare</button>
       </div>
+      <div style="display:flex;gap:4px;margin-top:7px">
+        <button class="btn b-out" style="flex:1;margin-top:0;padding:8px 2px;font-size:11px" onclick="addPhotoToJob('${j.id}','Before')">📷 Before</button>
+        <button class="btn b-out" style="flex:1;margin-top:0;padding:8px 2px;font-size:11px" onclick="addPhotoToJob('${j.id}','After')">📷 After</button>
+        <button class="btn b-out" style="flex:1;margin-top:0;padding:8px 2px;font-size:11px" onclick="addPhotoToJob('${j.id}','Damage')">📷 Damage</button>
+        <button class="btn b-out" style="flex:1;margin-top:0;padding:8px 2px;font-size:11px" onclick="addPhotoToJob('${j.id}','Other')">📷 Other</button>
+      </div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       ${j.status==='pending'?`<button class="btn b-rust b-sm" onclick="updSt('${j.id}','in-progress')">🔧 Start Work</button>`:''}
@@ -1654,7 +1667,7 @@ function openJob(id){
     </div>
     ${(j.amtPaid||0)<j.total?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Collect Payment</button>`:''}
     <button class="btn b-wa" onclick='sendWA(${JSON.stringify(j).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})'>📱 WhatsApp</button>
-    <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Invoice</button>
+    <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Bill</button>
     <button class="btn b-red" style="margin-top:7px" onclick="delJob('${j.id}')">🗑️ Delete Job</button>`;
   openM('jobM');
   const jm=document.getElementById('jdMech');
@@ -1666,12 +1679,13 @@ function openJob(id){
 }
 
 let editingJobId=null;
+let jobPhotoTargetId=null;
 function recalcJob(j){
   const oldTotal=j.total||0;
   j.labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
   j.partsTotal=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
   j.sub=j.labour+j.partsTotal;
-  j.gst=Math.round(j.sub*0.18);
+  j.gst=0;
   j.total=j.sub+j.gst;
   const delta=j.total-oldTotal;
   const cx=DB.customers.find(c=>c.phone===j.phone);
@@ -1694,6 +1708,7 @@ function assignMechToJob(id){
 }
 function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
 function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
+function addPhotoToJob(id,type){jobPhotoTargetId=id;photoType=type;document.getElementById('photoIn').click();}
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   j.status=st;save();closeM('jobM');renderJobs();renderKanban();
@@ -1717,7 +1732,7 @@ function printInv(id){
   const labourRows=j.labourItems?.map(i=>`<tr><td>${i.name}</td><td>Labour</td><td>${i.qty}</td><td>₹${i.price.toLocaleString('en-IN')}</td><td>₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
   const spareRows=j.spareItems?.map(i=>`<tr><td>${i.name}${i.brand?' ('+i.brand+')':''}</td><td>Part${i.custSup?' (Cust)':''}</td><td>${i.qty}</td><td>₹${i.sell?.toLocaleString('en-IN')}</td><td>₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
   const photos=j.photos?.length?`<div><h3>Photos</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${j.photos.map(p=>`<div><img src="${p.data}" style="height:100px;border-radius:5px"><br><small>${p.type}</small></div>`).join('')}</div></div>`:'';
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Invoice</title>
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bill of Supply</title>
   <style>body{font-family:Arial;max-width:600px;margin:20px auto;padding:20px}
   h2{color:#c2410c;border-bottom:3px solid #c2410c;padding-bottom:8px}
   table{width:100%;border-collapse:collapse;margin:12px 0}
@@ -1725,6 +1740,8 @@ function printInv(id){
   th{background:#f5f0e8}.tot{font-weight:bold;color:#c2410c;font-size:15px}
   @media print{button{display:none}}</style></head><body>
   <h2>🔧 GARAGE PRO KERALA</h2>
+  <h3 style="text-align:center;margin:4px 0">BILL OF SUPPLY</h3>
+  <p style="text-align:center;font-size:11px;color:#555;margin:2px 0">Composition taxable person, not eligible to collect tax on supplies</p>
   <p><b>Job:</b> ${j.id} | <b>Date:</b> ${new Date(j.at).toLocaleDateString('en-IN')}</p>
   <p><b>Customer:</b> ${j.name} | <b>Phone:</b> ${j.phone}</p>
   <p><b>Vehicle:</b> ${j.car} — ${j.vnum}${j.km?' | KM: '+j.km:''}${j.cat?' | Category: '+CAT_NAMES[j.cat]:''}</p>
@@ -1734,7 +1751,7 @@ function printInv(id){
   <table><tr><th>Item</th><th>Type</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
   ${labourRows}${spareRows}
   <tr><td colspan="4" align="right">Subtotal</td><td>₹${j.sub?.toLocaleString('en-IN')}</td></tr>
-  <tr><td colspan="4" align="right">GST 18%</td><td>₹${j.gst?.toLocaleString('en-IN')}</td></tr>
+  
   <tr class="tot"><td colspan="4" align="right">TOTAL</td><td>₹${j.total?.toLocaleString('en-IN')}</td></tr></table>
   <p><b>Payment:</b> ${j.payMode||'pending'} | <b>Paid:</b> ₹${(j.amtPaid||0).toLocaleString('en-IN')} | <b>Balance:</b> ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}</p>
   ${j.nextSvc?`<p><b>Next Service:</b> ${new Date(j.nextSvc).toLocaleDateString('en-IN')}</p>`:''}
