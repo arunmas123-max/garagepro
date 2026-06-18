@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7.2</title>
+<title>Garage Pro Kerala v7.4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.4</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -601,7 +601,7 @@ textarea{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="fg"><label>Quantity</label>
-        <input id="spQty" type="number" value="1" min="1">
+        <input id="spQty" type="number" value="1" min="0.01" step="0.01">
       </div>
       <button class="btn b-blue" onclick="addSpare()">➕ Add to Job</button>
     </div>
@@ -1143,14 +1143,11 @@ function renderHome(){
   document.getElementById('sCu').textContent=DB.customers.length;
   let mech=0,body=0,paint=0,parts=0;
   DB.jobs.forEach(j=>{
-    if(j.jobType==='mechanical')mech+=j.total;
-    else if(j.jobType==='body')body+=j.total;
-    else if(j.jobType==='painting')paint+=j.total;
-    else if(j.jobType==='mixed'){
-      j.labourItems?.forEach(it=>mech+=it.price*(it.qty||1));
-      j.spareItems?.forEach(it=>{parts+=it.sell*(it.qty||1);});
-    }
-    j.spareItems?.forEach(it=>parts+=it.sell*(it.qty||1));
+    const labourSum=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
+    if(j.jobType==='body')body+=labourSum;
+    else if(j.jobType==='painting')paint+=labourSum;
+    else mech+=labourSum;
+    parts+=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
   });
   document.getElementById('sMech').textContent=mech.toLocaleString('en-IN');
   document.getElementById('sBody').textContent=body.toLocaleString('en-IN');
@@ -1423,7 +1420,7 @@ function addSpare(){
   const cost=custSup?0:parseFloat(document.getElementById('spCost').value||0);
   const sell=custSup?0:parseFloat(document.getElementById('spSell').value||0);
   const brand=document.getElementById('spBrand').value.trim();
-  const qty=parseInt(document.getElementById('spQty').value||1);
+  const qty=parseFloat(document.getElementById('spQty').value||1);
   // Save to history for auto-suggest
   if(!custSup&&sell>0){
     DB.spareHistory=DB.spareHistory.filter(s=>s.name!==name);
@@ -1613,8 +1610,8 @@ document.getElementById('jSrch').addEventListener('input',renderJobs);
 function openJob(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
-  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map(i=>`<div class="irow"><span>${i.name}${i.qty>1?' ×'+i.qty:''}</span><span style="font-weight:700;color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
-  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map(i=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty>1?'×'+i.qty:''}</span><span style="font-weight:700;color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
+  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map(i=>`<div class="irow"><span>${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="font-weight:700;color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
+  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map(i=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="font-weight:700;color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
   const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
   document.getElementById('jobMT').textContent=j.id;
   document.getElementById('jobMB').innerHTML=`
@@ -1644,7 +1641,17 @@ function openJob(id){
     </div>
     <div class="card">
       <div class="card-t">✏️ Edit Job</div>
-      <div class="fg"><label>Assign / Change Mechanic</label>
+      <div class="fg"><label>KM Reading</label><input id="jdKm" type="number" value="${j.km||''}"></div>
+      <div class="fg"><label>Fuel Level</label><select id="jdFuel">
+        <option ${j.fuel==='Empty'?'selected':''}>Empty</option>
+        <option ${j.fuel==='1/4'?'selected':''}>1/4</option>
+        <option ${j.fuel==='1/2'?'selected':''}>1/2</option>
+        <option ${j.fuel==='3/4'?'selected':''}>3/4</option>
+        <option ${j.fuel==='Full'?'selected':''}>Full</option>
+      </select></div>
+      <div class="fg"><label>Address</label><input id="jdAddr" value="${j.addr?j.addr.replace(/"/g,'&quot;'):''}"></div>
+      <button class="btn b-blue" onclick="updateJobDetails('${j.id}')">💾 Update Details</button>
+      <div class="fg" style="margin-top:7px"><label>Assign / Change Mechanic</label>
         <select id="jdMech"></select>
       </div>
       <button class="btn b-rust" onclick="assignMechToJob('${j.id}')">👷 Save Mechanic</button>
@@ -1709,6 +1716,13 @@ function assignMechToJob(id){
 function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
 function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
 function addPhotoToJob(id,type){jobPhotoTargetId=id;photoType=type;document.getElementById('photoIn').click();}
+function updateJobDetails(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  j.km=document.getElementById('jdKm').value.trim();
+  j.fuel=document.getElementById('jdFuel').value;
+  j.addr=document.getElementById('jdAddr').value.trim();
+  save();openJob(id);
+}
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   j.status=st;save();closeM('jobM');renderJobs();renderKanban();
