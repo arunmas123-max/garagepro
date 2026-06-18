@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7.4</title>
+<title>Garage Pro Kerala v7.5</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.4</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.5</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -541,6 +541,14 @@ textarea{resize:vertical;min-height:65px}
     <div class="mhead"><div class="mt">Labour Rate List</div><button class="mc" onclick="closeM('lpM')">×</button></div>
     <div class="mbody">
       <div id="lpCatInfo" style="background:var(--blue2);color:var(--blue);padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:8px;display:none"></div>
+      <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:9px;padding:9px 10px;margin-bottom:10px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:6px;color:var(--rust)">✏️ Custom Charge (one-time, ഈ job-ന് മാത്രം)</div>
+        <div style="display:flex;gap:6px">
+          <input id="lpCustName" placeholder="Charge name" style="flex:2">
+          <input id="lpCustPrice" type="number" placeholder="₹" style="flex:1">
+        </div>
+        <button class="btn b-rust" style="margin-top:6px" onclick="addCustomLabourOnce()">➕ Add Charge</button>
+      </div>
       <div class="srch"><input id="lpSrch" placeholder="Search service..." oninput="renderLpList()"></div>
       <div class="chips" id="lpCatChips">
         <div class="chip on" data-lpc="all">All</div>
@@ -580,10 +588,10 @@ textarea{resize:vertical;min-height:65px}
       <div class="fg"><label>Brand / Source</label>
         <input id="spBrand" placeholder="e.g. Bosch, OEM, Local...">
       </div>
-      <div class="fg"><label>Customer Supplied?</label>
+      <div class="fg"><label>Part Source</label>
         <select id="spCustSup" onchange="onCustSup()">
-          <option value="no">No — Workshop supply</option>
-          <option value="yes">Yes — Customer brought part (Labour only)</option>
+          <option value="no">Workshop / Outside Purchase</option>
+          <option value="yes">Customer brought part (Labour only)</option>
         </select>
       </div>
       <div id="spPriceDiv">
@@ -1366,6 +1374,25 @@ function addLabour(name){
   JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
   renderJobItems();closeM('lpM');
 }
+function addCustomLabourOnce(){
+  const name=document.getElementById('lpCustName').value.trim();
+  const price=parseFloat(document.getElementById('lpCustPrice').value||0);
+  if(!name){alert('Charge name required');return;}
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){
+      if(!j.labourItems)j.labourItems=[];
+      j.labourItems.push({name,price,cat:j.cat,qty:1,type:'labour'});
+      recalcJob(j);save();
+    }
+    const jid=editingJobId;editingJobId=null;
+    document.getElementById('lpCustName').value='';document.getElementById('lpCustPrice').value='';
+    closeM('lpM');openJob(jid);return;
+  }
+  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
+  document.getElementById('lpCustName').value='';document.getElementById('lpCustPrice').value='';
+  renderJobItems();closeM('lpM');
+}
 
 // ====================== SPARES ======================
 function openSpareEntry(){
@@ -1610,8 +1637,8 @@ document.getElementById('jSrch').addEventListener('input',renderJobs);
 function openJob(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
-  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map(i=>`<div class="irow"><span>${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="font-weight:700;color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
-  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map(i=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="font-weight:700;color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</span></div>`).join('')}`:'';
+  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
+  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
   document.getElementById('jobMT').textContent=j.id;
   document.getElementById('jobMB').innerHTML=`
@@ -1722,6 +1749,16 @@ function updateJobDetails(id){
   j.fuel=document.getElementById('jdFuel').value;
   j.addr=document.getElementById('jdAddr').value.trim();
   save();openJob(id);
+}
+function removeLabourItem(id,idx){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  if(!confirm('ഈ labour item delete ചെയ്യണോ?'))return;
+  j.labourItems.splice(idx,1);recalcJob(j);save();openJob(id);
+}
+function removeSpareItem(id,idx){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  if(!confirm('ഈ spare part delete ചെയ്യണോ?'))return;
+  j.spareItems.splice(idx,1);recalcJob(j);save();openJob(id);
 }
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
