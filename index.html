@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7.6</title>
+<title>Garage Pro Kerala v7.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -547,6 +547,11 @@ textarea{resize:vertical;min-height:65px}
         <div style="display:flex;gap:6px">
           <input id="lpCustName" placeholder="Charge name" style="flex:2">
           <input id="lpCustPrice" type="number" placeholder="₹" style="flex:1">
+        </div>
+        <div class="chips" id="lpCustWtype" style="margin-top:6px">
+          <div class="chip on" data-wt="mech">🔧 Mechanical</div>
+          <div class="chip" data-wt="body">🚗 Body</div>
+          <div class="chip" data-wt="paint">🎨 Paint</div>
         </div>
         <button class="btn b-rust" style="margin-top:6px" onclick="addCustomLabourOnce()">➕ Add Charge</button>
       </div>
@@ -901,6 +906,8 @@ const CAR_CATS={
 };
 
 const CAT_NAMES={hb:'Hatchback',phb:'Premium Hatchback',sed:'Sedan',psed:'Premium Sedan',suv:'SUV',psuv:'Premium SUV'};
+const WORK_CAT_MAP={'Denting & Painting':'paint','Body Parts':'body'};
+function catToWtype(c){return WORK_CAT_MAP[c]||'mech';}
 const CAT_KEYS=['hb','phb','sed','psed','suv','psuv'];
 const CAT_BADGE_CLS={hb:'cat-hb',phb:'cat-phb',sed:'cat-sed',psed:'cat-psed',suv:'cat-suv',psuv:'cat-psuv'};
 
@@ -947,7 +954,29 @@ function setSyncStatus(status) {
 }
 
 // ====================== STORAGE ======================
+function recomputeWorkerStats(){
+  DB.mechanics.forEach(m=>{m.jobs=0;m.revenue=0;});
+  DB.jobs.forEach(j=>{
+    let mechSum=0,bodySum=0,paintSum=0;
+    (j.labourItems||[]).forEach(it=>{
+      const amt=it.price*(it.qty||1);
+      const wt=it.wtype||'mech';
+      if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
+    });
+    const partsSum=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+    const tinkerId=j.tinkerId||(bodySum>0?j.mechId:null);
+    const painterId=j.painterId||(paintSum>0?j.mechId:null);
+    const credits={};
+    const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
+    add(j.mechId,mechSum+partsSum);add(tinkerId,bodySum);add(painterId,paintSum);
+    Object.keys(credits).forEach(id=>{
+      const m=DB.mechanics.find(x=>x.id===id);
+      if(m){m.jobs+=1;m.revenue+=credits[id];}
+    });
+  });
+}
 function save() {
+  recomputeWorkerStats();
   // Always save to localStorage first (backup)
   localStorage.setItem('gp_lastupdate', Date.now().toString());
   try { localStorage.setItem('gp_kl_v5', JSON.stringify(DB)); } catch(e) {}
@@ -1330,6 +1359,7 @@ function openLabourPicker(){
   const ci=document.getElementById('lpCatInfo');
   if(JOB.cat){ci.textContent=`✓ ${CAT_NAMES[JOB.cat]} rates showing — change car to see different rates`;ci.style.display='block';}
   else{ci.style.display='none';}
+  document.querySelectorAll('#lpCustWtype .chip').forEach(c=>c.classList.toggle('on',c.dataset.wt==='mech'));
   openM('lpM');renderLpList();
 }
 function renderLpList(){
@@ -1361,39 +1391,45 @@ document.querySelectorAll('#lpCatChips .chip').forEach(c=>c.addEventListener('cl
 }));
 function addLabour(name){
   const r=activeLabour().find(x=>x.n===name)||LR.find(x=>x.n===name);if(!r)return;
+  const wtype=catToWtype(r.c);
   if(editingJobId){
     const j=DB.jobs.find(x=>x.id===editingJobId);
     if(j){
       if(!j.labourItems)j.labourItems=[];
-      j.labourItems.push({name,price:jobLabourPrice(r,j.cat),cat:j.cat,qty:1,type:'labour'});
+      j.labourItems.push({name,price:jobLabourPrice(r,j.cat),cat:j.cat,qty:1,type:'labour',wtype});
       recalcJob(j);save();
     }
     const jid=editingJobId;editingJobId=null;
     closeM('lpM');openJob(jid);return;
   }
   const price=getLabourPrice(r);
-  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
+  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour',wtype});
   renderJobItems();closeM('lpM');
 }
 function addCustomLabourOnce(){
   const name=document.getElementById('lpCustName').value.trim();
   const price=parseFloat(document.getElementById('lpCustPrice').value||0);
+  const wtype=document.querySelector('#lpCustWtype .chip.on')?.dataset.wt||'mech';
   if(!name){alert('Charge name required');return;}
   if(editingJobId){
     const j=DB.jobs.find(x=>x.id===editingJobId);
     if(j){
       if(!j.labourItems)j.labourItems=[];
-      j.labourItems.push({name,price,cat:j.cat,qty:1,type:'labour'});
+      j.labourItems.push({name,price,cat:j.cat,qty:1,type:'labour',wtype});
       recalcJob(j);save();
     }
     const jid=editingJobId;editingJobId=null;
     document.getElementById('lpCustName').value='';document.getElementById('lpCustPrice').value='';
     closeM('lpM');openJob(jid);return;
   }
-  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour'});
+  JOB.labourItems.push({name,price,cat:JOB.cat,qty:1,type:'labour',wtype});
   document.getElementById('lpCustName').value='';document.getElementById('lpCustPrice').value='';
   renderJobItems();closeM('lpM');
 }
+document.querySelectorAll('#lpCustWtype .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#lpCustWtype .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');
+}));
 
 // ====================== SPARES ======================
 function openSpareEntry(){
@@ -1571,7 +1607,6 @@ function saveJob(){
   const cx=DB.customers.find(c=>c.phone===phone);
   if(cx){cx.spent+=total;cx.jobs++;cx.lastVisit=job.at;if(addr)cx.addr=addr;cx.cars=[...new Set([...(cx.cars||[]),JOB.car])];}
   else DB.customers.push({name,phone,vnum,addr,car:JOB.car,cars:[JOB.car],spent:total,jobs:1,lastVisit:job.at});
-  if(mechId){const m=DB.mechanics.find(x=>x.id===mechId);if(m){m.jobs=(m.jobs||0)+1;m.revenue=(m.revenue||0)+total;}}
   save();
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
@@ -1638,7 +1673,8 @@ document.getElementById('jSrch').addEventListener('input',renderJobs);
 function openJob(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
-  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
+  const WT_ICON={mech:'🔧',body:'🚗',paint:'🎨'};
+  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${WT_ICON[i.wtype||'mech']} ${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
   document.getElementById('jobMT').textContent=j.id;
@@ -1679,10 +1715,16 @@ function openJob(id){
       </select></div>
       <div class="fg"><label>Address</label><input id="jdAddr" value="${j.addr?j.addr.replace(/"/g,'&quot;'):''}"></div>
       <button class="btn b-blue" onclick="updateJobDetails('${j.id}')">💾 Update Details</button>
-      <div class="fg" style="margin-top:7px"><label>Assign / Change Mechanic</label>
+      <div class="fg" style="margin-top:7px"><label>🔧 Mechanic (mechanical work)</label>
         <select id="jdMech"></select>
       </div>
-      <button class="btn b-rust" onclick="assignMechToJob('${j.id}')">👷 Save Mechanic</button>
+      <div class="fg"><label>🚗 Tinker (body/denting work)</label>
+        <select id="jdTinker"></select>
+      </div>
+      <div class="fg"><label>🎨 Painter (painting work)</label>
+        <select id="jdPainter"></select>
+      </div>
+      <button class="btn b-rust" onclick="assignWorkers('${j.id}')">👷 Save Workers</button>
       <div style="display:flex;gap:6px;margin-top:7px">
         <button class="btn b-out" style="flex:1;margin-top:0" onclick="addLabourToJob('${j.id}')">➕ Add Labour</button>
         <button class="btn b-out" style="flex:1;margin-top:0;color:var(--blue);border-color:var(--blue)" onclick="addSpareToJob('${j.id}')">➕ Add Spare</button>
@@ -1705,12 +1747,12 @@ function openJob(id){
     <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Bill</button>
     <button class="btn b-red" style="margin-top:7px" onclick="delJob('${j.id}')">🗑️ Delete Job</button>`;
   openM('jobM');
-  const jm=document.getElementById('jdMech');
-  if(jm){
-    jm.innerHTML='<option value="">-- Select Mechanic --</option>';
-    DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';jm.appendChild(o);});
-    jm.value=j.mechId||'';
-  }
+  ['jdMech','jdTinker','jdPainter'].forEach((selId,idx)=>{
+    const sel=document.getElementById(selId);if(!sel)return;
+    sel.innerHTML='<option value="">-- Select --</option>';
+    DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';sel.appendChild(o);});
+    sel.value=(idx===0?j.mechId:idx===1?j.tinkerId:j.painterId)||'';
+  });
 }
 
 let editingJobId=null;
@@ -1725,20 +1767,17 @@ function recalcJob(j){
   const delta=j.total-oldTotal;
   const cx=DB.customers.find(c=>c.phone===j.phone);
   if(cx)cx.spent=Math.max(0,(cx.spent||0)+delta);
-  if(j.mechId){const m=DB.mechanics.find(x=>x.id===j.mechId);if(m)m.revenue=Math.max(0,(m.revenue||0)+delta);}
 }
 function jobLabourPrice(r,cat){const cr=DB.customRates[r.n];const x=cr?{...r,...cr}:r;return x[cat||'hb']||x.hb;}
-function assignMechToJob(id){
+function assignWorkers(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
-  const mid=document.getElementById('jdMech').value;
-  if((j.mechId||'')===mid){alert('Same mechanic already');return;}
-  if(j.mechId){const om=DB.mechanics.find(x=>x.id===j.mechId);if(om){om.jobs=Math.max(0,(om.jobs||0)-1);om.revenue=Math.max(0,(om.revenue||0)-(j.total||0));}}
-  j.mechId=mid;
-  const nm=DB.mechanics.find(x=>x.id===mid);
+  j.mechId=document.getElementById('jdMech').value;
+  j.tinkerId=document.getElementById('jdTinker').value;
+  j.painterId=document.getElementById('jdPainter').value;
+  const nm=DB.mechanics.find(m=>m.id===j.mechId);
   j.mechName=nm?nm.name:'';
-  if(nm){nm.jobs=(nm.jobs||0)+1;nm.revenue=(nm.revenue||0)+(j.total||0);}
   save();
-  alert('✅ Mechanic assigned: '+(j.mechName||'None'));
+  alert('✅ Workers saved');
   openJob(id);
 }
 function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
