@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7.7</title>
+<title>Garage Pro Kerala v7.9</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.9</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -277,6 +277,7 @@ textarea{resize:vertical;min-height:65px}
     <button class="btn b-gray" onclick="doBackup()">💾 Backup Data</button>
     <button class="btn b-gray" onclick="doRestore()">📂 Restore Backup</button>
   </div>
+  <div class="card"><div class="card-t">📋 Today's Briefing</div><div id="briefing"></div></div>
   <div class="card"><div class="card-t">📋 Recent Jobs</div><div id="recentJobs"></div></div>
 </div>
 
@@ -342,6 +343,7 @@ textarea{resize:vertical;min-height:65px}
       </div>
       <div class="fg"><label>Next Service Date</label><input id="fNextSvc" type="date"></div>
     </div>
+    <label style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;font-weight:600;color:#991b1b"><input id="fUrgent" type="checkbox" style="width:auto"> 🚨 Urgent Job</label>
     <button class="btn b-green" style="margin-top:10px" onclick="saveJob()">✅ Quick Save (basic details only — mechanic/items optional)</button>
   </div>
 
@@ -450,7 +452,7 @@ textarea{resize:vertical;min-height:65px}
     <div style="display:flex;gap:3px;margin-top:2px" id="chartLbls"></div>
   </div>
   <div class="card"><div class="card-t">💳 Payment Status</div><div id="payRpt"></div></div>
-  <div class="card"><div class="card-t">👷 Mechanic Performance</div><div id="mechRpt"></div></div>
+  <div class="card"><div class="card-t">👷 Staff Performance</div><div id="mechRpt"></div></div>
 </div>
 
 <!-- CUSTOMERS -->
@@ -954,21 +956,25 @@ function setSyncStatus(status) {
 }
 
 // ====================== STORAGE ======================
+function jobWorkerCredits(j){
+  let mechSum=0,bodySum=0,paintSum=0;
+  (j.labourItems||[]).forEach(it=>{
+    const amt=it.price*(it.qty||1);
+    const wt=it.wtype||'mech';
+    if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
+  });
+  const partsSum=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+  const tinkerId=j.tinkerId||(bodySum>0?j.mechId:null);
+  const painterId=j.painterId||(paintSum>0?j.mechId:null);
+  const credits={};
+  const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
+  add(j.mechId,mechSum+partsSum);add(tinkerId,bodySum);add(painterId,paintSum);
+  return credits;
+}
 function recomputeWorkerStats(){
   DB.mechanics.forEach(m=>{m.jobs=0;m.revenue=0;});
   DB.jobs.forEach(j=>{
-    let mechSum=0,bodySum=0,paintSum=0;
-    (j.labourItems||[]).forEach(it=>{
-      const amt=it.price*(it.qty||1);
-      const wt=it.wtype||'mech';
-      if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
-    });
-    const partsSum=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
-    const tinkerId=j.tinkerId||(bodySum>0?j.mechId:null);
-    const painterId=j.painterId||(paintSum>0?j.mechId:null);
-    const credits={};
-    const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
-    add(j.mechId,mechSum+partsSum);add(tinkerId,bodySum);add(painterId,paintSum);
+    const credits=jobWorkerCredits(j);
     Object.keys(credits).forEach(id=>{
       const m=DB.mechanics.find(x=>x.id===id);
       if(m){m.jobs+=1;m.revenue+=credits[id];}
@@ -1169,6 +1175,7 @@ function renderHome(){
   const lb=document.getElementById('lowBanner');
   if(low.length)lb.innerHTML=`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:12px;color:#991b1b;cursor:pointer" onclick="go('stock')">⚠️ <b>${low.length} parts</b> low stock! → View Stock</div>`;
   else lb.innerHTML='';
+  renderBriefing(low);
   const today=new Date().toDateString();
   const todayJ=DB.jobs.filter(j=>new Date(j.at).toDateString()===today);
   document.getElementById('hJ').textContent=todayJ.length;
@@ -1198,6 +1205,22 @@ function renderHome(){
       <div style="font-weight:700;font-size:13px">${j.name} — ${j.car}</div>
       <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${j.total.toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
     </div>`).join('');
+}
+function renderBriefing(low){
+  const el=document.getElementById('briefing');
+  const urgentJ=DB.jobs.filter(j=>j.urgent&&j.status!=='completed');
+  const pendingJ=DB.jobs.filter(j=>j.status==='pending');
+  let html='';
+  if(urgentJ.length){
+    html+=`<div style="font-weight:700;font-size:12px;margin-bottom:5px;color:#dc2626">🚨 URGENT (${urgentJ.length})</div>`;
+    html+=urgentJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car}<br><span style="font-size:10px;color:var(--gray)">${j.complaint?j.complaint.slice(0,50):''} • <span class="badge ${j.status==='in-progress'?'b-prog':'b-pend'}">${j.status}</span></span></div>`).join('');
+  }
+  html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:var(--gold)">⏳ PENDING (${pendingJ.length})</div>`;
+  html+=pendingJ.length?pendingJ.slice(0,8).map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car}<br><span style="font-size:10px;color:var(--gray)">${j.complaint?j.complaint.slice(0,50):'No description'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Pending jobs ഇല്ല</div>';
+  if(pendingJ.length>8)html+=`<div style="font-size:11px;color:var(--blue);margin-top:4px;cursor:pointer" onclick="go('kanban')">+${pendingJ.length-8} more → Board കാണുക</div>`;
+  html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#991b1b">📦 SPARES NEEDED (${low.length})</div>`;
+  html+=low.length?low.slice(0,8).map(s=>`<div class="irow"><span style="font-size:12px">${s.name}</span><span style="font-size:11px;font-weight:700;color:#991b1b">${s.qty} ${s.qty<=0?'(OUT)':'left'} / min ${s.min}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Stock OK ✅</div>';
+  el.innerHTML=html;
 }
 
 // ====================== KANBAN ======================
@@ -1586,6 +1609,7 @@ function saveJob(){
   const addr=document.getElementById('fAddr').value.trim();
   const fuel=document.getElementById('fFuel').value;
   const jd=document.getElementById('fDate').value;
+  const urgent=document.getElementById('fUrgent').checked;
   if(!name||!phone||!vnum||!JOB.car){
     alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car model');return;
   }
@@ -1596,7 +1620,7 @@ function saveJob(){
   const total=sub+gst;
   const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
   const job={
-    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,
+    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,urgent,
     labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
     photos:[...JOB.photos],status:'pending',
     mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
@@ -1610,6 +1634,7 @@ function saveJob(){
   save();
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fUrgent').checked=false;
   document.getElementById('carSrch').value='';
   document.getElementById('carPicker').style.display='none';
   document.getElementById('selCarLabel').textContent='';
@@ -1677,7 +1702,7 @@ function openJob(id){
   const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${WT_ICON[i.wtype||'mech']} ${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
-  document.getElementById('jobMT').textContent=j.id;
+  document.getElementById('jobMT').innerHTML=j.id+(j.urgent?' <span style="background:#dc2626;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🚨 URGENT</span>':'');
   document.getElementById('jobMB').innerHTML=`
     <div class="card">
       <div style="font-size:13px;line-height:2">
@@ -1705,6 +1730,7 @@ function openJob(id){
     </div>
     <div class="card">
       <div class="card-t">✏️ Edit Job</div>
+      <div class="fg"><label>Job Description / Complaint</label><textarea id="jdDesc" rows="3">${j.complaint?j.complaint.replace(/</g,'&lt;'):''}</textarea></div>
       <div class="fg"><label>KM Reading</label><input id="jdKm" type="number" value="${j.km||''}"></div>
       <div class="fg"><label>Fuel Level</label><select id="jdFuel">
         <option ${j.fuel==='Empty'?'selected':''}>Empty</option>
@@ -1714,6 +1740,7 @@ function openJob(id){
         <option ${j.fuel==='Full'?'selected':''}>Full</option>
       </select></div>
       <div class="fg"><label>Address</label><input id="jdAddr" value="${j.addr?j.addr.replace(/"/g,'&quot;'):''}"></div>
+      <label style="display:flex;align-items:center;gap:7px;margin:6px 0;font-size:13px;font-weight:600;color:#991b1b"><input id="jdUrgent" type="checkbox" style="width:auto" ${j.urgent?'checked':''}> 🚨 Urgent Job</label>
       <button class="btn b-blue" onclick="updateJobDetails('${j.id}')">💾 Update Details</button>
       <div class="fg" style="margin-top:7px"><label>🔧 Mechanic (mechanical work)</label>
         <select id="jdMech"></select>
@@ -1785,9 +1812,11 @@ function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
 function addPhotoToJob(id,type){jobPhotoTargetId=id;photoType=type;document.getElementById('photoIn').click();}
 function updateJobDetails(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  j.complaint=document.getElementById('jdDesc').value.trim();
   j.km=document.getElementById('jdKm').value.trim();
   j.fuel=document.getElementById('jdFuel').value;
   j.addr=document.getElementById('jdAddr').value.trim();
+  j.urgent=document.getElementById('jdUrgent').checked;
   save();openJob(id);
 }
 function removeLabourItem(id,idx){
@@ -1913,17 +1942,25 @@ function renderReport(){
     <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${paid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${paid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>`;
-  // mechanic report
+  // staff performance report (role-split, period-scoped)
   const mr=document.getElementById('mechRpt');
-  if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No mechanics added</div>';return;}
+  if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No staff added</div>';return;}
+  const stats={};
+  jobs.forEach(j=>{
+    const credits=jobWorkerCredits(j);
+    Object.keys(credits).forEach(id=>{
+      if(!stats[id])stats[id]={jobs:0,revenue:0};
+      stats[id].jobs+=1;stats[id].revenue+=credits[id];
+    });
+  });
   mr.innerHTML=DB.mechanics.map(m=>{
-    const mj=jobs.filter(j=>j.mechId===m.id);
+    const s=stats[m.id]||{jobs:0,revenue:0};
     return `<div class="irow">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${m.name[0]}</div>
-        <div><div style="font-weight:600">${m.name}</div><div style="font-size:10px;color:var(--gray)">${mj.length} jobs</div></div>
+        <div><div style="font-weight:600">${m.name} <span style="font-size:9px;color:var(--gray);font-weight:400">(${m.spec})</span></div><div style="font-size:10px;color:var(--gray)">${s.jobs} jobs</div></div>
       </div>
-      <div style="font-weight:700;color:var(--rust)">₹${mj.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div>
+      <div style="font-weight:700;color:var(--rust)">₹${s.revenue.toLocaleString('en-IN')}</div>
     </div>`;
   }).join('');
 }
