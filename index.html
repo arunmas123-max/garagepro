@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v7.9</title>
+<title>Garage Pro Kerala v8.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v7.9</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.2</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -272,6 +272,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="card">
     <div class="card-t">🚀 Quick Actions</div>
     <button class="btn b-rust" onclick="go('job')">➕ New Job Card</button>
+    <button class="btn b-gold" onclick="openQuickCash()">⚡ Quick Cash Job</button>
     <button class="btn b-ink" onclick="go('kanban')">🔄 Job Board (Kanban)</button>
     <button class="btn b-blue" onclick="go('report')">📈 Reports</button>
     <button class="btn b-gray" onclick="doBackup()">💾 Backup Data</button>
@@ -779,7 +780,58 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="onRestore(event)">
+<div class="modal" id="payM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">💰 Collect Payment</div><button class="mc" onclick="closeM('payM')">×</button></div>
+    <div class="mbody">
+      <div id="payDueInfo" style="background:#fff7ed;border-left:3px solid var(--rust);padding:8px 12px;border-radius:0 7px 7px 0;margin-bottom:12px;font-size:15px;font-weight:700;color:#92400e"></div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px">Payment Mode:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <button id="pmBtnCash" onclick="selectPayMode('cash')" style="padding:14px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:13px;cursor:pointer">💵<br>Cash</button>
+        <button id="pmBtnUpi" onclick="selectPayMode('upi')" style="padding:14px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:13px;cursor:pointer">📱<br>UPI</button>
+        <button id="pmBtnCard" onclick="selectPayMode('card')" style="padding:14px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:13px;cursor:pointer">💳<br>Card</button>
+      </div>
+      <div id="pmPartialDiv" style="display:none;margin-bottom:10px">
+        <div class="fg"><label>Partial Amount Received ₹</label><input id="pmPartialAmt" type="number" placeholder="0"></div>
+        <div class="chips" style="margin-top:4px">
+          <div class="chip" onclick="selectPayMode('partial-cash')">💵 Cash</div>
+          <div class="chip" onclick="selectPayMode('partial-upi')">📱 UPI</div>
+          <div class="chip" onclick="selectPayMode('partial-card')">💳 Card</div>
+        </div>
+      </div>
+      <button onclick="selectPayMode('partial')" style="width:100%;padding:10px;border-radius:8px;border:1.5px dashed #d97706;background:#fffbeb;color:#92400e;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:10px">⚡ Partial Payment</button>
+      <div id="pmModeChosen" style="display:none;text-align:center;font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px"></div>
+      <button id="pmSaveBtn" class="btn b-green" style="display:none" onclick="saveCollectPay()">✅ Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="qcM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">⚡ Quick Cash Job</div><button class="mc" onclick="closeM('qcM')">×</button></div>
+    <div class="mbody">
+      <div style="background:#fff7ed;border-left:3px solid var(--rust);padding:7px 10px;font-size:12px;color:#92400e;margin-bottom:10px;border-radius:0 6px 6px 0">Spot repair, breakdown, petty cash jobs-ന് — Vehicle number optional</div>
+      <div class="fg"><label>Job Description *</label><input id="qcDesc" placeholder="e.g. Spot repair — Brake adjustment"></div>
+      <div class="r2">
+        <div class="fg"><label>Customer Name</label><input id="qcName" placeholder="(optional)"></div>
+        <div class="fg"><label>Phone</label><input id="qcPhone" type="tel" placeholder="(optional)"></div>
+      </div>
+      <div class="r2">
+        <div class="fg"><label>Vehicle No.</label><input id="qcVnum" placeholder="(optional)"></div>
+        <div class="fg"><label>Amount ₹ *</label><input id="qcAmt" type="number" placeholder="0"></div>
+      </div>
+      <div class="fg"><label>Mechanic *</label><select id="qcMech"></select></div>
+      <div class="fg"><label>Payment</label>
+        <select id="qcPay">
+          <option value="cash">💵 Cash</option>
+          <option value="upi">📱 UPI</option>
+          <option value="pending">⏳ Pending</option>
+        </select>
+      </div>
+      <button class="btn b-rust" onclick="saveQuickCash()">✅ Save Quick Job</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ====================== LABOUR RATES (102 services) ======================
@@ -1819,6 +1871,47 @@ function updateJobDetails(id){
   j.urgent=document.getElementById('jdUrgent').checked;
   save();openJob(id);
 }
+function openQuickCash(){
+  const sel=document.getElementById('qcMech');
+  sel.innerHTML='<option value="">-- Mechanic select ചെയ്യുക --</option>';
+  DB.mechanics.filter(m=>m.active!==false).forEach(m=>{
+    const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';sel.appendChild(o);
+  });
+  ['qcDesc','qcName','qcPhone','qcVnum'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('qcAmt').value='';
+  document.getElementById('qcPay').value='cash';
+  openM('qcM');
+}
+function saveQuickCash(){
+  const desc=document.getElementById('qcDesc').value.trim();
+  const amt=parseFloat(document.getElementById('qcAmt').value||0);
+  const mechId=document.getElementById('qcMech').value;
+  if(!desc){alert('Job description ആവശ്യമാണ്');return;}
+  if(!mechId){alert('Mechanic select ചെയ്യുക');return;}
+  const name=document.getElementById('qcName').value.trim()||'Quick Job';
+  const phone=document.getElementById('qcPhone').value.trim()||'0000000000';
+  const vnum=document.getElementById('qcVnum').value.trim().toUpperCase()||'—';
+  const payMode=document.getElementById('qcPay').value;
+  const mech=DB.mechanics.find(m=>m.id===mechId);
+  const job={
+    id:'JOB'+Date.now(),name,phone,vnum,addr:'',fuel:'',car:'Quick Job',cat:'hb',km:'',
+    complaint:desc,jobType:'mechanical',urgent:false,
+    labourItems:[{name:desc,price:amt,cat:'hb',qty:1,type:'labour',wtype:'mech'}],
+    spareItems:[],photos:[],status:'completed',
+    mechId,mechName:mech?mech.name:'',
+    nextSvc:'',payMode,amtPaid:payMode==='pending'?0:amt,
+    labour:amt,partsTotal:0,sub:amt,gst:0,total:amt,
+    at:new Date().toISOString(),
+    quickJob:true
+  };
+  DB.jobs.unshift(job);
+  const cx=DB.customers.find(c=>c.phone===phone);
+  if(cx){cx.spent+=amt;cx.jobs++;cx.lastVisit=job.at;}
+  else if(phone!=='0000000000')DB.customers.push({name,phone,vnum,addr:'',car:'Quick Job',cars:['Quick Job'],spent:amt,jobs:1,lastVisit:job.at});
+  save();closeM('qcM');
+  alert(`✅ Quick Job saved!\n${desc}\n₹${amt.toLocaleString('en-IN')} — ${mech?.name||''}`);
+  renderHome();
+}
 function removeLabourItem(id,idx){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   if(!confirm('ഈ labour item delete ചെയ്യണോ?'))return;
@@ -1831,16 +1924,53 @@ function removeSpareItem(id,idx){
 }
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
-  j.status=st;save();closeM('jobM');renderJobs();renderKanban();
+  j.status=st;
+  if(st==='completed')j.completedAt=new Date().toISOString();
+  save();closeM('jobM');renderJobs();renderKanban();
   if(st==='completed'&&confirm('Customer-ന് WhatsApp notification അയക്കണോ?'))sendWA(j);
 }
+let _payJobId=null,_payMode=null;
 function collectPay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  _payJobId=id;_payMode=null;
   const due=j.total-(j.amtPaid||0);
-  const mode=prompt(`₹${due.toLocaleString('en-IN')} due\nMode? (cash/upi/card)`,'cash');
-  if(!mode)return;
-  j.amtPaid=j.total;j.payMode=mode;save();
-  alert('✅ Payment collected!');closeM('jobM');renderJobs();
+  document.getElementById('payDueInfo').textContent='Due: ₹'+due.toLocaleString('en-IN');
+  document.getElementById('pmPartialDiv').style.display='none';
+  document.getElementById('pmModeChosen').style.display='none';
+  document.getElementById('pmSaveBtn').style.display='none';
+  document.getElementById('pmPartialAmt').value='';
+  ['pmBtnCash','pmBtnUpi','pmBtnCard'].forEach(id=>document.getElementById(id).style.border='2px solid #d1d5db');
+  openM('payM');
+}
+function selectPayMode(mode){
+  _payMode=mode;
+  ['pmBtnCash','pmBtnUpi','pmBtnCard'].forEach(id=>document.getElementById(id).style.cssText='padding:14px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:13px;cursor:pointer');
+  if(mode==='cash')document.getElementById('pmBtnCash').style.cssText='padding:14px 4px;border-radius:10px;border:2.5px solid var(--green);background:#f0fdf4;font-weight:700;font-size:13px;cursor:pointer';
+  else if(mode==='upi')document.getElementById('pmBtnUpi').style.cssText='padding:14px 4px;border-radius:10px;border:2.5px solid var(--blue);background:#eff6ff;font-weight:700;font-size:13px;cursor:pointer';
+  else if(mode==='card')document.getElementById('pmBtnCard').style.cssText='padding:14px 4px;border-radius:10px;border:2.5px solid var(--purple);background:#faf5ff;font-weight:700;font-size:13px;cursor:pointer';
+  if(mode==='partial'){
+    document.getElementById('pmPartialDiv').style.display='block';
+    document.getElementById('pmModeChosen').style.display='none';
+    document.getElementById('pmSaveBtn').style.display='none';
+    return;
+  }
+  const icons={cash:'💵 Cash',upi:'📱 UPI',card:'💳 Card','partial-cash':'⚡ Partial — Cash','partial-upi':'⚡ Partial — UPI','partial-card':'⚡ Partial — Card'};
+  document.getElementById('pmModeChosen').textContent='Selected: '+icons[mode];
+  document.getElementById('pmModeChosen').style.display='block';
+  document.getElementById('pmSaveBtn').style.display='block';
+}
+function saveCollectPay(){
+  const j=DB.jobs.find(x=>x.id===_payJobId);if(!j||!_payMode)return;
+  if(_payMode.startsWith('partial')){
+    const partAmt=parseFloat(document.getElementById('pmPartialAmt').value||0);
+    if(!partAmt){alert('Amount enter ചെയ്യുക');return;}
+    j.amtPaid=(j.amtPaid||0)+partAmt;
+    j.payMode='partial';
+  } else {
+    j.amtPaid=j.total;
+    j.payMode=_payMode;
+  }
+  save();closeM('payM');openJob(_payJobId);
 }
 function delJob(id){
   if(!confirm('Delete job?'))return;
@@ -1942,11 +2072,19 @@ function renderReport(){
     <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${paid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${paid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>`;
-  // staff performance report (role-split, period-scoped)
+  // staff performance report — filtered by completedAt (day work finished), not job creation date
   const mr=document.getElementById('mechRpt');
   if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No staff added</div>';return;}
+  const now2=new Date();
+  const staffJobs=DB.jobs.filter(j=>{
+    const d=new Date(j.completedAt||j.at);
+    if(rPeriod==='today')return d.toDateString()===now2.toDateString();
+    if(rPeriod==='week'){const w=new Date(now2);w.setDate(w.getDate()-7);return d>=w;}
+    if(rPeriod==='month')return d.getMonth()===now2.getMonth()&&d.getFullYear()===now2.getFullYear();
+    return true;
+  });
   const stats={};
-  jobs.forEach(j=>{
+  staffJobs.forEach(j=>{
     const credits=jobWorkerCredits(j);
     Object.keys(credits).forEach(id=>{
       if(!stats[id])stats[id]={jobs:0,revenue:0};
