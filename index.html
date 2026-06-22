@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v8.2</title>
+<title>Garage Pro Kerala v8.3</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.3</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -345,6 +345,8 @@ textarea{resize:vertical;min-height:65px}
       <div class="fg"><label>Next Service Date</label><input id="fNextSvc" type="date"></div>
     </div>
     <label style="display:flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;font-weight:600;color:#991b1b"><input id="fUrgent" type="checkbox" style="width:auto"> 🚨 Urgent Job</label>
+    <label style="display:flex;align-items:center;gap:7px;margin-top:6px;font-size:13px;font-weight:600;color:#1d4ed8"><input id="fPartsWait" type="checkbox" style="width:auto" onchange="document.getElementById('fPartsWaitBox').style.display=this.checked?'block':'none'"> 🔩 Parts Awaited</label>
+    <div id="fPartsWaitBox" style="display:none"><textarea id="fPartsWaitList" rows="2" placeholder="e.g. Oil seal, Wheel bearing..."></textarea></div>
     <button class="btn b-green" style="margin-top:10px" onclick="saveJob()">✅ Quick Save (basic details only — mechanic/items optional)</button>
   </div>
 
@@ -1270,6 +1272,10 @@ function renderBriefing(low){
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:var(--gold)">⏳ PENDING (${pendingJ.length})</div>`;
   html+=pendingJ.length?pendingJ.slice(0,8).map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car}<br><span style="font-size:10px;color:var(--gray)">${j.complaint?j.complaint.slice(0,50):'No description'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Pending jobs ഇല്ല</div>';
   if(pendingJ.length>8)html+=`<div style="font-size:11px;color:var(--blue);margin-top:4px;cursor:pointer" onclick="go('kanban')">+${pendingJ.length-8} more → Board കാണുക</div>`;
+  // Parts awaited section
+  const partsWaitJ=DB.jobs.filter(j=>j.partsAwaited&&j.status!=='completed');
+  html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#1d4ed8">🔩 PARTS AWAITED (${partsWaitJ.length})</div>`;
+  html+=partsWaitJ.length?partsWaitJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car} (${j.vnum})<br><span style="font-size:10px;color:#1d4ed8;font-weight:600">${j.partsAwaitedList||'Parts list ഇല്ല'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Parts wait ഇല്ല ✅</div>';
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#991b1b">📦 SPARES NEEDED (${low.length})</div>`;
   html+=low.length?low.slice(0,8).map(s=>`<div class="irow"><span style="font-size:12px">${s.name}</span><span style="font-size:11px;font-weight:700;color:#991b1b">${s.qty} ${s.qty<=0?'(OUT)':'left'} / min ${s.min}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Stock OK ✅</div>';
   el.innerHTML=html;
@@ -1284,10 +1290,11 @@ function renderKanban(){
     <div class="kb-col kb-${st}">
       <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
       ${jobs.length?jobs.map(j=>`
-        <div class="kb-card" onclick="openJob('${j.id}')">
-          <div class="kb-name">${j.name}</div>
+        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8':''}${j.urgent?'border-left:3px solid #dc2626':''}">
+          <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
           <div class="kb-sub">${j.car}</div>
           <div class="kb-sub">${j.vnum}</div>
+          ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
           <div class="kb-amt">₹${j.total.toLocaleString('en-IN')}</div>
         </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
     </div>`).join('');
@@ -1662,6 +1669,8 @@ function saveJob(){
   const fuel=document.getElementById('fFuel').value;
   const jd=document.getElementById('fDate').value;
   const urgent=document.getElementById('fUrgent').checked;
+  const partsAwaited=document.getElementById('fPartsWait').checked;
+  const partsAwaitedList=document.getElementById('fPartsWaitList').value.trim();
   if(!name||!phone||!vnum||!JOB.car){
     alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car model');return;
   }
@@ -1672,7 +1681,7 @@ function saveJob(){
   const total=sub+gst;
   const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
   const job={
-    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,urgent,
+    id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,urgent,partsAwaited,partsAwaitedList,
     labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
     photos:[...JOB.photos],status:'pending',
     mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
@@ -1687,6 +1696,9 @@ function saveJob(){
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fUrgent').checked=false;
+  document.getElementById('fPartsWait').checked=false;
+  document.getElementById('fPartsWaitList').value='';
+  document.getElementById('fPartsWaitBox').style.display='none';
   document.getElementById('carSrch').value='';
   document.getElementById('carPicker').style.display='none';
   document.getElementById('selCarLabel').textContent='';
@@ -1754,7 +1766,7 @@ function openJob(id){
   const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${WT_ICON[i.wtype||'mech']} ${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
   const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
-  document.getElementById('jobMT').innerHTML=j.id+(j.urgent?' <span style="background:#dc2626;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🚨 URGENT</span>':'');
+  document.getElementById('jobMT').innerHTML=j.id+(j.urgent?' <span style="background:#dc2626;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🚨 URGENT</span>':'')+(j.partsAwaited?' <span style="background:#1d4ed8;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🔩 PARTS AWAITED</span>':'');
   document.getElementById('jobMB').innerHTML=`
     <div class="card">
       <div style="font-size:13px;line-height:2">
@@ -1793,6 +1805,10 @@ function openJob(id){
       </select></div>
       <div class="fg"><label>Address</label><input id="jdAddr" value="${j.addr?j.addr.replace(/"/g,'&quot;'):''}"></div>
       <label style="display:flex;align-items:center;gap:7px;margin:6px 0;font-size:13px;font-weight:600;color:#991b1b"><input id="jdUrgent" type="checkbox" style="width:auto" ${j.urgent?'checked':''}> 🚨 Urgent Job</label>
+      <label style="display:flex;align-items:center;gap:7px;margin:4px 0 2px;font-size:13px;font-weight:600;color:#1d4ed8"><input id="jdPartsWait" type="checkbox" style="width:auto" ${j.partsAwaited?'checked':''} onchange="document.getElementById('jdPartsWaitBox').style.display=this.checked?'block':'none'"> 🔩 Parts Awaited (spares കിട്ടാൻ കാത്തിരിക്കുന്നു)</label>
+      <div id="jdPartsWaitBox" style="display:${j.partsAwaited?'block':'none'}">
+        <textarea id="jdPartsWaitList" rows="2" placeholder="e.g. Oil seal (front), Wheel bearing — Hyundai i20 old...">${j.partsAwaitedList||''}</textarea>
+      </div>
       <button class="btn b-blue" onclick="updateJobDetails('${j.id}')">💾 Update Details</button>
       <div class="fg" style="margin-top:7px"><label>🔧 Mechanic (mechanical work)</label>
         <select id="jdMech"></select>
@@ -1869,6 +1885,8 @@ function updateJobDetails(id){
   j.fuel=document.getElementById('jdFuel').value;
   j.addr=document.getElementById('jdAddr').value.trim();
   j.urgent=document.getElementById('jdUrgent').checked;
+  j.partsAwaited=document.getElementById('jdPartsWait').checked;
+  j.partsAwaitedList=document.getElementById('jdPartsWaitList').value.trim();
   save();openJob(id);
 }
 function openQuickCash(){
