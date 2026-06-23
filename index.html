@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v8.3</title>
+<title>Garage Pro Kerala v8.4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.3</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.4</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -260,7 +260,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="sg">
     <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
     <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
-    <div class="sc"><div class="sv">₹<span id="sR">0</span></div><div class="sl">Revenue</div></div>
+    <div class="sc"><div class="sv">₹<span id="sR">0</span></div><div class="sl">This Month</div></div>
     <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
   </div>
   <div class="sg4">
@@ -418,6 +418,15 @@ textarea{resize:vertical;min-height:65px}
     <div class="ptab" data-p="week">Week</div>
     <div class="ptab" data-p="month">Month</div>
     <div class="ptab" data-p="all">All Time</div>
+    <div class="ptab" data-p="custom">📅 Range</div>
+  </div>
+  <div id="customRangeBox" style="display:none;background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:10px;padding:10px 12px;margin:8px 0">
+    <div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:6px">📅 Custom Date Range</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="flex:1"><label style="font-size:10px;color:var(--gray)">From</label><input type="date" id="rFrom" style="width:100%;padding:6px;border:1.5px solid #bae6fd;border-radius:7px;font-size:13px"></div>
+      <div style="flex:1"><label style="font-size:10px;color:var(--gray)">To</label><input type="date" id="rTo" style="width:100%;padding:6px;border:1.5px solid #bae6fd;border-radius:7px;font-size:13px"></div>
+      <button onclick="applyCustomRange()" style="background:#0369a1;color:#fff;border:none;border-radius:8px;padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer;margin-top:10px">Go</button>
+    </div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;margin-bottom:10px">
@@ -988,6 +997,15 @@ const CARS={
 let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{}};
 let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
 let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
+let rFromDate=null,rToDate=null;
+function applyCustomRange(){
+  const f=document.getElementById('rFrom').value;
+  const t=document.getElementById('rTo').value;
+  if(!f||!t){alert('From/To dates ഇടൂ');return;}
+  rFromDate=new Date(f+'T00:00:00');
+  rToDate=new Date(t+'T23:59:59');
+  renderReport();
+}
 let editStockId=null,rateEditName=null,photoType='';
 
 // ====================== FIREBASE CONFIG ======================
@@ -1238,7 +1256,9 @@ function renderHome(){
   document.getElementById('hLow').textContent=low.length;
   document.getElementById('sJ').textContent=DB.jobs.length;
   document.getElementById('sP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
-  document.getElementById('sR').textContent=DB.jobs.reduce((s,j)=>s+j.total,0).toLocaleString('en-IN');
+  const now=new Date();
+  const monthRev=DB.jobs.filter(j=>{const d=new Date(j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,j)=>s+(j.total||0),0);
+  document.getElementById('sR').textContent=monthRev.toLocaleString('en-IN');
   document.getElementById('sCu').textContent=DB.customers.length;
   let mech=0,body=0,paint=0,parts=0;
   DB.jobs.forEach(j=>{
@@ -2037,13 +2057,16 @@ function getFiltJobs(){
     if(rPeriod==='today')return d.toDateString()===now.toDateString();
     if(rPeriod==='week'){const w=new Date(now);w.setDate(w.getDate()-7);return d>=w;}
     if(rPeriod==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=rToDate;
     return true;
   });
 }
 function renderReport(){
   const jobs=getFiltJobs();
-  const lbl={today:'Today',week:'This Week',month:'This Month',all:'All Time'};
+  const lbl={today:'Today',week:'This Week',month:'This Month',all:'All Time',
+    custom:rFromDate&&rToDate?`${rFromDate.toLocaleDateString('en-IN')} → ${rToDate.toLocaleDateString('en-IN')}`:'Custom Range'};
   document.getElementById('rPLbl').textContent=lbl[rPeriod];
+  document.getElementById('customRangeBox').style.display=rPeriod==='custom'?'block':'none';
   let mech=0,body=0,paint=0,parts=0,total=0;
   jobs.forEach(j=>{
     total+=j.total||0;
@@ -2099,6 +2122,7 @@ function renderReport(){
     if(rPeriod==='today')return d.toDateString()===now2.toDateString();
     if(rPeriod==='week'){const w=new Date(now2);w.setDate(w.getDate()-7);return d>=w;}
     if(rPeriod==='month')return d.getMonth()===now2.getMonth()&&d.getFullYear()===now2.getFullYear();
+    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=rToDate;
     return true;
   });
   const stats={};
