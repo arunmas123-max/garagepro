@@ -312,10 +312,18 @@ textarea{resize:vertical;min-height:65px}
 <!-- KANBAN -->
 <div class="pg" id="kanban">
   <div class="card" style="background:linear-gradient(135deg,var(--ink),#374151);color:#fff;border:none;padding:10px 12px;margin-bottom:10px">
-    <div style="font-weight:700">🔄 Live Job Board</div>
-    <div style="font-size:11px;opacity:.7;margin-top:2px">Tap card to update status</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-weight:700">🔄 Live Job Board</div>
+        <div style="font-size:11px;opacity:.7;margin-top:2px">Tap card to update status</div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button id="kbByStatus" onclick="setKbView('status')" style="background:rgba(255,255,255,.9);color:var(--ink);border:none;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📋 Status</button>
+        <button id="kbByPerson" onclick="setKbView('person')" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">👷 Person</button>
+      </div>
+    </div>
   </div>
-  <div class="kanban-wrap"><div class="kanban" id="kanbanBoard"></div></div>
+  <div class="kanban-wrap"><div id="kanbanBoard"></div></div>
 </div>
 
 <!-- NEW JOB -->
@@ -1447,22 +1455,106 @@ function renderBriefing(low){
 }
 
 // ====================== KANBAN ======================
+let kbView='status';
+function setKbView(v){
+  kbView=v;
+  document.getElementById('kbByStatus').style.background=v==='status'?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';
+  document.getElementById('kbByStatus').style.color=v==='status'?'var(--ink)':'#fff';
+  document.getElementById('kbByPerson').style.background=v==='person'?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';
+  document.getElementById('kbByPerson').style.color=v==='person'?'var(--ink)':'#fff';
+  renderKanban();
+}
+function kbJobCard(j){
+  return `<div class="kb-card" onclick="openJob('${j.id}')" style="${j.urgent?'border-left:3px solid #dc2626;':j.partsAwaited?'border-left:3px solid #1d4ed8;':''}">
+    <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
+    <div class="kb-sub">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
+      <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':j.status==='ready'?'rdy':'done'}" style="font-size:8px">${j.status}</span>
+      <div class="kb-amt" style="margin:0">₹${(j.total||0).toLocaleString('en-IN')}</div>
+    </div>
+    ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
+  </div>`;
+}
 function renderKanban(){
-  const cols={pending:[],  'in-progress':[], ready:[], completed:[]};
-  DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
-  const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
-  document.getElementById('kanbanBoard').innerHTML=Object.entries(cols).map(([st,jobs])=>`
-    <div class="kb-col kb-${st}">
-      <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
-      ${jobs.length?jobs.map(j=>`
-        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8':''}${j.urgent?'border-left:3px solid #dc2626':''}">
-          <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
-          <div class="kb-sub">${j.car}</div>
-          <div class="kb-sub">${j.vnum}</div>
-          ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
-          <div class="kb-amt">₹${j.total.toLocaleString('en-IN')}</div>
-        </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
-    </div>`).join('');
+  const board=document.getElementById('kanbanBoard');
+  if(kbView==='status'){
+    board.className='kanban';
+    board.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;min-width:480px';
+    const cols={pending:[],'in-progress':[],ready:[],completed:[]};
+    DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
+    const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
+    board.innerHTML=Object.entries(cols).map(([st,jobs])=>`
+      <div class="kb-col kb-${st}">
+        <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
+        ${jobs.length?jobs.map(kbJobCard).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
+      </div>`).join('');
+  } else {
+    // By Person view
+    board.className='';
+    board.style.cssText='';
+    const activeJobs=DB.jobs.filter(j=>j.status!=='completed');
+    const persons=DB.mechanics||[];
+    if(!persons.length){board.innerHTML='<div class="empty"><div class="empty-i">👷</div>No staff added yet</div>';return;}
+    // spec color map
+    const specColor={mechanical:'var(--rust)',body:'var(--blue)',painting:'var(--purple)'};
+    const specIcon={mechanical:'🔧',body:'🚗',painting:'🎨'};
+    board.innerHTML=persons.map(p=>{
+      const myJobs=activeJobs.filter(j=>j.mechId===p.id);
+      const col=specColor[p.spec]||'var(--rust)';
+      const icon=specIcon[p.spec]||'👷';
+      // Last 7 days bar graph
+      const days=[];
+      for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+      const dayCounts=days.map(d=>DB.jobs.filter(j=>j.mechId===p.id&&new Date(j.at).toDateString()===d.toDateString()).length);
+      const maxC=Math.max(...dayCounts,1);
+      const dayLabels=['S','M','T','W','T','F','S'];
+      const todayIdx=new Date().getDay();
+      const graphBars=dayCounts.map((c,i)=>{
+        const dIdx=(todayIdx-6+i+7)%7;
+        const isToday=(i===6);
+        const h=Math.max(4,Math.round((c/maxC)*48));
+        return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:2px">
+          <div style="font-size:9px;font-weight:700;color:${isToday?col:'#9ca3af'}">${c||''}</div>
+          <div style="height:${h}px;width:100%;border-radius:3px 3px 0 0;background:${isToday?col:'#e5e7eb'}"></div>
+          <div style="font-size:8px;color:${isToday?col:'#9ca3af'};font-weight:${isToday?'700':'400'}">${dayLabels[dIdx]}</div>
+        </div>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:8px;border-top:3px solid ${col}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:38px;height:38px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">${icon}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px">${p.name}</div>
+              <div style="font-size:10px;color:var(--gray);text-transform:capitalize">${p.spec}${p.phone?' • '+p.phone:''}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:18px;font-weight:800;color:${col}">${myJobs.length}</div>
+            <div style="font-size:9px;color:#9ca3af">ACTIVE</div>
+          </div>
+        </div>
+        <!-- 7-day graph -->
+        <div style="background:#f8f9fa;border-radius:8px;padding:8px;margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;color:#9ca3af;margin-bottom:5px;text-transform:uppercase">Last 7 Days</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:60px">${graphBars}</div>
+        </div>
+        <!-- Active vehicles -->
+        ${myJobs.length?`
+        <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:5px">Active Vehicles (${myJobs.length})</div>
+        ${myJobs.map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#f8f9fa;border-radius:7px;margin-bottom:4px;cursor:pointer" onclick="openJob('${j.id}')">
+          <div>
+            <div style="font-weight:600;font-size:12px">${j.urgent?'🚨 ':''}${j.name}</div>
+            <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
+          </div>
+          <div style="text-align:right">
+            <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':'rdy'}" style="font-size:8px">${j.status}</span>
+            <div style="font-size:10px;color:var(--rust);font-weight:700;margin-top:2px">₹${(j.total||0).toLocaleString('en-IN')}</div>
+          </div>
+        </div>`).join('')}`
+        :`<div style="text-align:center;padding:12px;color:#d1d5db;font-size:12px">😴 No active jobs</div>`}
+      </div>`;
+    }).join('');
+  }
 }
 
 // ====================== CAR MODELS (Cloud) ======================
@@ -2588,21 +2680,66 @@ function clearAllData(){
 function renderMechanics(){
   const el=document.getElementById('mechList');
   if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
-  el.innerHTML=DB.mechanics.map(m=>`
-    <div class="card">
+  const specColor={mechanical:'var(--rust)',body:'var(--blue)',painting:'var(--purple)'};
+  const specIcon={mechanical:'🔧',body:'🚗',painting:'🎨'};
+  el.innerHTML=DB.mechanics.map(m=>{
+    const col=specColor[m.spec]||'var(--rust)';
+    const icon=specIcon[m.spec]||'👷';
+    const activeJobs=DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed');
+    const todayJobs=DB.jobs.filter(j=>j.mechId===m.id&&new Date(j.at).toDateString()===new Date().toDateString());
+    // 7-day mini graph
+    const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+    const dayCounts=days.map(d=>DB.jobs.filter(j=>j.mechId===m.id&&new Date(j.at).toDateString()===d.toDateString()).length);
+    const maxC=Math.max(...dayCounts,1);
+    const dayLabels=['S','M','T','W','T','F','S'];
+    const todayDow=new Date().getDay();
+    const graphBars=dayCounts.map((c,i)=>{
+      const dIdx=(todayDow-6+i+7)%7;
+      const isToday=(i===6);
+      const h=Math.max(3,Math.round((c/maxC)*36));
+      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
+        <div style="font-size:8px;font-weight:700;color:${isToday?col:'#9ca3af'}">${c||''}</div>
+        <div style="height:${h}px;width:100%;border-radius:2px 2px 0 0;background:${isToday?col:'#e5e7eb'}"></div>
+        <div style="font-size:7px;color:${isToday?col:'#9ca3af'};font-weight:${isToday?'700':'400'}">${dayLabels[dIdx]}</div>
+      </div>`;
+    }).join('');
+    return `<div class="card" style="border-top:3px solid ${col}">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${m.name[0]}</div>
-          <div><div style="font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--gray)">${m.spec} ${m.phone?'• '+m.phone:''}</div></div>
+          <div style="width:38px;height:38px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">${icon}</div>
+          <div>
+            <div style="font-weight:700">${m.name}</div>
+            <div style="font-size:11px;color:var(--gray);text-transform:capitalize">${m.spec}${m.phone?' • '+m.phone:''}</div>
+          </div>
         </div>
         <span onclick="editMech('${m.id}')" style="color:var(--blue);font-size:12px;font-weight:700;cursor:pointer">✏️ Edit</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px">
-        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${m.jobs||0}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
-        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">₹${(m.revenue||0).toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">REVENUE</div></div>
-        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed').length}</div><div style="font-size:9px;color:#9ca3af">PENDING</div></div>
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:8px">
+        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${todayJobs.length}</div><div style="font-size:8px;color:#9ca3af">TODAY</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${activeJobs.length}</div><div style="font-size:8px;color:#9ca3af">ACTIVE</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${m.jobs||0}</div><div style="font-size:8px;color:#9ca3af">TOTAL</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:10px">₹${((m.revenue||0)/1000).toFixed(0)}K</div><div style="font-size:8px;color:#9ca3af">REVENUE</div></div>
       </div>
-    </div>`).join('');
+      <!-- 7-day graph -->
+      <div style="background:#f8f9fa;border-radius:8px;padding:7px;margin-top:6px">
+        <div style="font-size:8px;font-weight:700;color:#9ca3af;margin-bottom:4px">📊 LAST 7 DAYS</div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:48px">${graphBars}</div>
+      </div>
+      <!-- Active vehicles -->
+      ${activeJobs.length?`<div style="margin-top:7px">
+        <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">🚗 Active Vehicles</div>
+        ${activeJobs.slice(0,4).map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 7px;background:#fff7ed;border-left:3px solid ${col};border-radius:0 6px 6px 0;margin-bottom:3px;cursor:pointer" onclick="openJob('${j.id}')">
+          <div>
+            <div style="font-weight:600;font-size:11px">${j.urgent?'🚨 ':''}${j.name} ${j.vnum?'• '+j.vnum:''}</div>
+            <div style="font-size:9px;color:var(--gray)">${j.car||''}</div>
+          </div>
+          <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':'rdy'}" style="font-size:8px">${j.status}</span>
+        </div>`).join('')}
+        ${activeJobs.length>4?`<div style="font-size:10px;color:var(--blue);text-align:center;padding:3px;cursor:pointer" onclick="setKbView('person');go('kanban')">+${activeJobs.length-4} more → Board കാണുക</div>`:''}
+      </div>`:'<div style="font-size:11px;color:#d1d5db;text-align:center;padding:8px 0;margin-top:4px">😴 No active jobs</div>'}
+    </div>`;
+  }).join('');
   updateMechDD();
 }
 let editMechId=null;
