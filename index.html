@@ -250,6 +250,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="tab" data-pg="manage"><i>⚙️</i>Manage</div>
   <div class="tab" data-pg="stock"><i>📦</i>Stock</div>
   <div class="tab" data-pg="rates"><i>🔩</i>Rates</div>
+  <div class="tab" data-pg="search"><i>🔍</i>Search</div>
   <div class="tab" data-pg="ai"><i>🤖</i>AI</div>
 </nav>
 
@@ -269,8 +270,17 @@ textarea{resize:vertical;min-height:65px}
     <div class="sc" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
     <div class="sc" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
   </div>
-  <div class="card">
-    <div class="card-t">🚀 Quick Actions</div>
+  <div class="card" style="padding:10px 12px;background:linear-gradient(135deg,#1e3a5f,#1d4ed8);border:none">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="font-size:18px">🔍</div>
+      <input id="homeVSearch" type="text" placeholder="Vehicle No. search... (KL07AB1234)" 
+        style="flex:1;padding:8px 12px;border:none;border-radius:8px;font-size:13px;font-weight:600;text-transform:uppercase;outline:none"
+        oninput="onHomeVSearch(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){openVehicleSearch(this.value.trim());this.value=''}">
+      <button onclick="openVehicleSearch(document.getElementById('homeVSearch').value)" 
+        style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Go</button>
+    </div>
+    <div id="homeVSearchDrop" style="display:none;background:#fff;border-radius:8px;margin-top:6px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+  </div>
     <button class="btn b-rust" onclick="go('job')">➕ New Job Card</button>
     <button class="btn b-gold" onclick="openQuickCash()">⚡ Quick Cash Job</button>
     <button class="btn b-ink" onclick="go('kanban')">🔄 Job Board (Kanban)</button>
@@ -560,6 +570,18 @@ textarea{resize:vertical;min-height:65px}
     <div class="chip" data-rc="Glass">Glass</div>
   </div>
   <div id="ratesList"></div>
+</div>
+
+<!-- SEARCH -->
+<div class="pg" id="search">
+  <div class="card" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);color:#fff;border:none;padding:12px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:8px">🔍 Vehicle Search</div>
+    <input id="srchInp" type="text" placeholder="Vehicle No. type ചെയ്യൂ... (KL07AB1234)"
+      style="width:100%;padding:10px 12px;border:none;border-radius:8px;font-size:14px;font-weight:700;text-transform:uppercase;outline:none;box-sizing:border-box"
+      oninput="doVehicleSearch(this.value)">
+    <div style="font-size:10px;opacity:.7;margin-top:6px">Customer name / Vehicle No. — രണ്ടും search ചെയ്യാം</div>
+  </div>
+  <div id="srchResults"></div>
 </div>
 
 <!-- AI -->
@@ -1252,7 +1274,7 @@ function go(name){
   if(name==='job'){editingJobId=null;setTimeout(()=>{const fd=document.getElementById('fDate');if(fd&&!fd.value)fd.value=new Date().toISOString().slice(0,10);},50);}
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pg===name));
   document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===name));
-  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,ai:()=>{}};
+  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,search:()=>{},ai:()=>{}};
   if(fn[name])fn[name]();
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.pg)));
@@ -1451,6 +1473,98 @@ function renderBriefing(low){
   html+=partsWaitJ.length?partsWaitJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car} (${j.vnum})<br><span style="font-size:10px;color:#1d4ed8;font-weight:600">${j.partsAwaitedList||'Parts list ഇല്ല'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Parts wait ഇല്ല ✅</div>';
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#991b1b">📦 SPARES NEEDED (${low.length})</div>`;
   html+=low.length?low.slice(0,8).map(s=>`<div class="irow"><span style="font-size:12px">${s.name}</span><span style="font-size:11px;font-weight:700;color:#991b1b">${s.qty} ${s.qty<=0?'(OUT)':'left'} / min ${s.min}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Stock OK ✅</div>';
+  el.innerHTML=html;
+}
+
+// ====================== VEHICLE SEARCH ======================
+function onHomeVSearch(val){
+  const drop=document.getElementById('homeVSearchDrop');
+  if(!val||val.length<2){drop.style.display='none';return;}
+  const q=val.trim().toUpperCase();
+  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
+  const vnums=[...new Set(matches.map(j=>j.vnum).filter(Boolean))].slice(0,5);
+  const names=[...new Set(matches.map(j=>j.name).filter(Boolean))].slice(0,3);
+  const items=[...vnums.map(v=>({label:'🚗 '+v,val:v})),...names.map(n=>({label:'👤 '+n,val:n}))];
+  if(!items.length){drop.style.display='none';return;}
+  drop.style.display='block';
+  drop.innerHTML=items.map(i=>`<div style="padding:9px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6;cursor:pointer;color:var(--ink)" 
+    onclick="openVehicleSearch('${i.val}');document.getElementById('homeVSearch').value='';document.getElementById('homeVSearchDrop').style.display='none'">${i.label}</div>`).join('');
+}
+function openVehicleSearch(q){
+  if(!q||!q.trim())return;
+  document.getElementById('homeVSearchDrop').style.display='none';
+  document.getElementById('srchInp').value=q.trim();
+  go('search');
+  doVehicleSearch(q.trim());
+}
+function doVehicleSearch(val){
+  const el=document.getElementById('srchResults');
+  if(!val||val.length<2){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div>';return;}
+  const q=val.trim().toUpperCase();
+  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
+  if(!matches.length){el.innerHTML='<div class="empty"><div class="empty-i">🔍</div>No results for "'+val+'"</div>';return;}
+  // Group by vnum
+  const grouped={};
+  matches.forEach(j=>{
+    const key=(j.vnum||'UNKNOWN').toUpperCase();
+    if(!grouped[key])grouped[key]=[];
+    grouped[key].push(j);
+  });
+  let html='';
+  Object.entries(grouped).forEach(([vnum,jobs])=>{
+    jobs.sort((a,b)=>new Date(b.at)-new Date(a.at));
+    const latest=jobs[0];
+    const totalPaid=jobs.reduce((s,j)=>s+(j.paid||0),0);
+    const totalAmt=jobs.reduce((s,j)=>s+(j.total||0),0);
+    const pendingAmt=totalAmt-totalPaid;
+    const lastKm=jobs.find(j=>j.km)?.km||'—';
+    const nextSvc=jobs.find(j=>j.nextSvc)?.nextSvc;
+    html+=`<div class="card" style="border-top:3px solid var(--blue)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:var(--ink)">${vnum==='UNKNOWN'?'No Reg. No.':vnum}</div>
+          <div style="font-size:12px;color:var(--gray)">${latest.name} ${latest.car?'• '+latest.car:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:700;color:var(--blue)">${jobs.length} visit${jobs.length>1?'s':''}</div>
+          ${pendingAmt>0?`<div style="font-size:11px;font-weight:700;color:#dc2626">₹${pendingAmt.toLocaleString('en-IN')} due</div>`:'<div style="font-size:10px;color:var(--green)">✅ Cleared</div>'}
+        </div>
+      </div>
+      <!-- Summary row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px">
+        <div style="background:#eff6ff;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:12px;color:var(--blue)">${new Date(latest.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+          <div style="font-size:8px;color:#9ca3af">LAST VISIT</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:12px;color:var(--green)">${lastKm}</div>
+          <div style="font-size:8px;color:#9ca3af">LAST KM</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:11px;color:var(--gold)">${nextSvc?new Date(nextSvc).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'—'}</div>
+          <div style="font-size:8px;color:#9ca3af">NEXT SVC</div>
+        </div>
+      </div>
+      <!-- Job history -->
+      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:5px">Service History</div>
+      ${jobs.map(j=>`<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="openJob('${j.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <div style="font-size:11px;font-weight:700;color:var(--ink)">${new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          <div style="display:flex;gap:5px;align-items:center">
+            ${j.km?`<span style="font-size:9px;color:var(--gray)">🛣 ${j.km} km</span>`:''}
+            <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}">${j.status}</span>
+          </div>
+        </div>
+        ${j.complaint?`<div style="font-size:11px;color:#374151;margin-bottom:3px">📝 ${j.complaint.slice(0,80)}${j.complaint.length>80?'...':''}</div>`:''}
+        ${j.labour&&j.labour.length?`<div style="font-size:10px;color:var(--rust)">🔧 ${j.labour.map(l=>l.name).join(', ').slice(0,60)}</div>`:''}
+        ${j.spares&&j.spares.length?`<div style="font-size:10px;color:var(--blue)">🔩 ${j.spares.map(s=>s.name).join(', ').slice(0,60)}</div>`:''}
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <span style="font-size:10px;color:var(--gray)">${j.mechId?(DB.mechanics.find(m=>m.id===j.mechId)||{}).name||'':''}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--ink)">₹${(j.total||0).toLocaleString('en-IN')}</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  });
   el.innerHTML=html;
 }
 
