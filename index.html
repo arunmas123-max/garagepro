@@ -2165,6 +2165,10 @@ function openJob(id){
     </div>
     <div class="card">
       <div class="card-t">✏️ Edit Job</div>
+      <div class="fg"><label>Customer Name</label><input id="jdName" value="${(j.name||'').replace(/"/g,'&quot;')}"></div>
+      <div class="fg"><label>Phone</label><input id="jdPhone" type="tel" value="${j.phone||''}"></div>
+      <div class="fg"><label>Car Model</label><input id="jdCar" value="${(j.car||'').replace(/"/g,'&quot;')}" placeholder="e.g. Alto 800, Swift Dzire..."></div>
+      <div class="fg"><label>Vehicle No.</label><input id="jdVnum" value="${(j.vnum||'').replace(/"/g,'&quot;')}" style="text-transform:uppercase" placeholder="e.g. KL07AB1234"></div>
       <div class="fg"><label>Job Description / Complaint</label><textarea id="jdDesc" rows="3">${j.complaint?j.complaint.replace(/</g,'&lt;'):''}</textarea></div>
       <div class="fg"><label>KM Reading</label><input id="jdKm" type="number" value="${j.km||''}"></div>
       <div class="fg"><label>Fuel Level</label><select id="jdFuel">
@@ -2249,8 +2253,18 @@ function assignWorkers(id){
 function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
 function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
 function addPhotoToJob(id,type){jobPhotoTargetId=id;photoType=type;document.getElementById('photoIn').click();}
+function showToast(msg,dur=2500){
+  let t=document.getElementById('gpToast');
+  if(!t){t=document.createElement('div');t.id='gpToast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity='0',dur);
+}
 function updateJobDetails(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  j.name=document.getElementById('jdName').value.trim()||j.name;
+  j.phone=document.getElementById('jdPhone').value.trim();
+  j.car=document.getElementById('jdCar').value.trim();
+  j.vnum=document.getElementById('jdVnum').value.trim().toUpperCase();
   j.complaint=document.getElementById('jdDesc').value.trim();
   j.km=document.getElementById('jdKm').value.trim();
   j.fuel=document.getElementById('jdFuel').value;
@@ -2259,6 +2273,7 @@ function updateJobDetails(id){
   j.partsAwaited=document.getElementById('jdPartsWait').checked;
   j.partsAwaitedList=document.getElementById('jdPartsWaitList').value.trim();
   save();openJob(id);
+  showToast('✅ Job details updated!');
 }
 function openQuickCash(){
   const sel=document.getElementById('qcMech');
