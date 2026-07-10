@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v8.6</title>
+<title>Garage Pro Kerala v8.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -221,7 +221,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -247,12 +247,14 @@ textarea{resize:vertical;min-height:65px}
   <div class="tab" data-pg="jobs"><i>📋</i>Jobs</div>
   <div class="tab" data-pg="report"><i>📈</i>Report</div>
   <div class="tab" data-pg="customers"><i>👥</i>Customers</div>
-  <div class="tab" data-pg="manage"><i>⚙️</i>Manage</div>
-  <div class="tab" data-pg="stock"><i>📦</i>Stock</div>
-  <div class="tab" data-pg="rates"><i>🔩</i>Rates</div>
-  <div class="tab" data-pg="search"><i>🔍</i>Search</div>
-  <div class="tab" data-pg="ai"><i>🤖</i>AI</div>
+  <div class="tab" id="moreTab" onclick="toggleMoreMenu()"><i>⋯</i>More</div>
 </nav>
+<div id="moreMenu" style="display:none;position:fixed;top:54px;right:0;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:0 0 0 12px;box-shadow:0 4px 16px rgba(0,0,0,.13);min-width:140px">
+  <div onclick="goMore('manage')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">⚙️ Manage</div>
+  <div onclick="goMore('stock')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">📦 Stock</div>
+  <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
+  <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI</div>
+</div>
 
 <main>
 <!-- HOME -->
@@ -261,10 +263,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="sg">
     <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
     <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
-    <div class="sc" onclick="openMonthlyIncome()" style="cursor:pointer;position:relative">
-      <div style="position:absolute;top:4px;right:6px;font-size:9px;color:var(--rust);font-weight:700">TAP ▼</div>
-      <div class="sv">₹<span id="sR">0</span></div><div class="sl">This Month</div>
-    </div>
+    <div class="sc"><div class="sv">₹<span id="sR">0</span></div><div class="sl">This Month</div></div>
     <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
   </div>
   <div class="sg4">
@@ -273,17 +272,8 @@ textarea{resize:vertical;min-height:65px}
     <div class="sc" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
     <div class="sc" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
   </div>
-  <div class="card" style="padding:10px 12px;background:linear-gradient(135deg,#1e3a5f,#1d4ed8);border:none">
-    <div style="display:flex;gap:8px;align-items:center">
-      <div style="font-size:18px">🔍</div>
-      <input id="homeVSearch" type="text" placeholder="Vehicle No. search... (KL07AB1234)" 
-        style="flex:1;padding:8px 12px;border:none;border-radius:8px;font-size:13px;font-weight:600;text-transform:uppercase;outline:none"
-        oninput="onHomeVSearch(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){openVehicleSearch(this.value.trim());this.value=''}">
-      <button onclick="openVehicleSearch(document.getElementById('homeVSearch').value)" 
-        style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Go</button>
-    </div>
-    <div id="homeVSearchDrop" style="display:none;background:#fff;border-radius:8px;margin-top:6px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
-  </div>
+  <div class="card">
+    <div class="card-t">🚀 Quick Actions</div>
     <button class="btn b-rust" onclick="go('job')">➕ New Job Card</button>
     <button class="btn b-gold" onclick="openQuickCash()">⚡ Quick Cash Job</button>
     <button class="btn b-ink" onclick="go('kanban')">🔄 Job Board (Kanban)</button>
@@ -325,18 +315,10 @@ textarea{resize:vertical;min-height:65px}
 <!-- KANBAN -->
 <div class="pg" id="kanban">
   <div class="card" style="background:linear-gradient(135deg,var(--ink),#374151);color:#fff;border:none;padding:10px 12px;margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <div style="font-weight:700">🔄 Live Job Board</div>
-        <div style="font-size:11px;opacity:.7;margin-top:2px">Tap card to update status</div>
-      </div>
-      <div style="display:flex;gap:5px">
-        <button id="kbByStatus" onclick="setKbView('status')" style="background:rgba(255,255,255,.9);color:var(--ink);border:none;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📋 Status</button>
-        <button id="kbByPerson" onclick="setKbView('person')" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">👷 Person</button>
-      </div>
-    </div>
+    <div style="font-weight:700">🔄 Live Job Board</div>
+    <div style="font-size:11px;opacity:.7;margin-top:2px">Tap card to update status</div>
   </div>
-  <div class="kanban-wrap"><div id="kanbanBoard"></div></div>
+  <div class="kanban-wrap"><div class="kanban" id="kanbanBoard"></div></div>
 </div>
 
 <!-- NEW JOB -->
@@ -349,8 +331,10 @@ textarea{resize:vertical;min-height:65px}
     </div>
     <div class="fg"><label>Address / Place</label><input id="fAddr" type="text" placeholder="e.g. Kalady, Trivandrum"></div>
     <div class="r2">
-      <div class="fg"><label>Vehicle No *</label><input id="fV" type="text" placeholder="KL07AB1234" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Vehicle No *</label><input id="fV" type="text" placeholder="KL07AB1234" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onblur="vnumLookup()"></div>
       <div class="fg"><label>KM Reading</label><input id="fKm" type="number" placeholder="45000"></div>
+    </div>
+    <div id="vnumResult" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:9px;padding:10px 12px;margin-bottom:4px;cursor:pointer" onclick="applyVnumResult()">
     </div>
     <div class="fg"><label>Assign Mechanic</label>
       <select id="fMech"><option value="">-- Select Mechanic --</option></select>
@@ -575,18 +559,6 @@ textarea{resize:vertical;min-height:65px}
   <div id="ratesList"></div>
 </div>
 
-<!-- SEARCH -->
-<div class="pg" id="search">
-  <div class="card" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);color:#fff;border:none;padding:12px">
-    <div style="font-weight:700;font-size:15px;margin-bottom:8px">🔍 Vehicle Search</div>
-    <input id="srchInp" type="text" placeholder="Vehicle No. type ചെയ്യൂ... (KL07AB1234)"
-      style="width:100%;padding:10px 12px;border:none;border-radius:8px;font-size:14px;font-weight:700;text-transform:uppercase;outline:none;box-sizing:border-box"
-      oninput="doVehicleSearch(this.value)">
-    <div style="font-size:10px;opacity:.7;margin-top:6px">Customer name / Vehicle No. — രണ്ടും search ചെയ്യാം</div>
-  </div>
-  <div id="srchResults"></div>
-</div>
-
 <!-- AI -->
 <div class="pg" id="ai">
   <div class="ai-box">
@@ -701,25 +673,6 @@ textarea{resize:vertical;min-height:65px}
   <div class="mbox">
     <div class="mhead"><div class="mt" id="jobMT">Job</div><button class="mc" onclick="closeM('jobM')">×</button></div>
     <div class="mbody" id="jobMB"></div>
-  </div>
-</div>
-
-<!-- MONTHLY INCOME MODAL -->
-<div class="modal" id="incomeM">
-  <div class="mbox" style="max-width:520px">
-    <div class="mhead" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8)">
-      <div style="display:flex;flex-direction:column">
-        <div class="mt" id="incomeMT" style="color:#fff">Monthly Income</div>
-        <div style="display:flex;gap:5px;margin-top:6px">
-          <button onclick="incomeTab('day')" id="iTabDay" style="background:rgba(255,255,255,.9);color:var(--ink);border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📅 Day</button>
-          <button onclick="incomeTab('graph')" id="iTabGraph" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📊 Graph</button>
-          <button onclick="incomeTab('mech')" id="iTabMech" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">👷 Mechanic</button>
-          <button onclick="incomeTab('jobs')" id="iTabJobs" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">📋 Jobs</button>
-        </div>
-      </div>
-      <button class="mc" onclick="closeM('incomeM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
-    </div>
-    <div class="mbody" id="incomeMB"></div>
   </div>
 </div>
 
@@ -1296,7 +1249,7 @@ function go(name){
   if(name==='job'){editingJobId=null;setTimeout(()=>{const fd=document.getElementById('fDate');if(fd&&!fd.value)fd.value=new Date().toISOString().slice(0,10);},50);}
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pg===name));
   document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===name));
-  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,search:()=>{},ai:()=>{}};
+  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,ai:()=>{}};
   if(fn[name])fn[name]();
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.pg)));
@@ -1498,396 +1451,27 @@ function renderBriefing(low){
   el.innerHTML=html;
 }
 
-// ====================== MONTHLY INCOME ======================
-let _incomeTab='day';
-function openMonthlyIncome(){
-  const now=new Date();
-  const mn=now.toLocaleString('en-IN',{month:'long',year:'numeric'});
-  document.getElementById('incomeMT').textContent='📊 '+mn+' Income';
-  _incomeTab='day';
-  setIncomeTabStyle('day');
-  renderIncomeTab();
-  openM('incomeM');
-}
-function incomeTab(t){_incomeTab=t;setIncomeTabStyle(t);renderIncomeTab();}
-function setIncomeTabStyle(active){
-  ['day','graph','mech','jobs'].forEach(t=>{
-    const el=document.getElementById('iTab'+t.charAt(0).toUpperCase()+t.slice(1));
-    if(!el)return;
-    el.style.background=t===active?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';
-    el.style.color=t===active?'var(--ink)':'#fff';
-  });
-}
-function renderIncomeTab(){
-  const el=document.getElementById('incomeMB');
-  const now=new Date();
-  const mJobs=DB.jobs.filter(j=>{const d=new Date(j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
-  if(_incomeTab==='day') renderIncomeDay(el,mJobs,now);
-  else if(_incomeTab==='graph') renderIncomeGraph(el,mJobs,now);
-  else if(_incomeTab==='mech') renderIncomeMech(el,mJobs);
-  else renderIncomeJobs(el,mJobs);
-}
-
-function renderIncomeDay(el,mJobs,now){
-  // Group by date
-  const byDay={};
-  mJobs.forEach(j=>{
-    const dk=new Date(j.at).toDateString();
-    if(!byDay[dk])byDay[dk]=[];
-    byDay[dk].push(j);
-  });
-  const total=mJobs.reduce((s,j)=>s+(j.total||0),0);
-  const paid=mJobs.reduce((s,j)=>s+(j.paid||0),0);
-  let html=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px">
-    <div style="background:#eff6ff;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:14px;color:var(--blue)">₹${total.toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">TOTAL</div></div>
-    <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:14px;color:var(--green)">₹${paid.toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">COLLECTED</div></div>
-    <div style="background:#fef3c7;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:14px;color:var(--gold)">₹${(total-paid).toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">PENDING</div></div>
-  </div>`;
-  // Sorted days descending
-  const sortedDays=Object.keys(byDay).sort((a,b)=>new Date(b)-new Date(a));
-  if(!sortedDays.length){html+='<div style="text-align:center;padding:20px;color:#9ca3af">ഈ month-ൽ jobs ഇല്ല</div>';el.innerHTML=html;return;}
-  let expanded=null;
-  html+=sortedDays.map(dk=>{
-    const jobs=byDay[dk];
-    const dayTotal=jobs.reduce((s,j)=>s+(j.total||0),0);
-    const dayPaid=jobs.reduce((s,j)=>s+(j.paid||0),0);
-    const d=new Date(dk);
-    const isToday=d.toDateString()===new Date().toDateString();
-    const dLabel=d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
-    return `<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:6px;overflow:hidden">
-      <div onclick="toggleDayExpand(this)" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;background:${isToday?'#eff6ff':'#fff'}">
-        <div>
-          <div style="font-weight:700;font-size:13px;color:${isToday?'var(--blue)':'var(--ink)'}">${isToday?'📍 Today — ':''} ${dLabel}</div>
-          <div style="font-size:10px;color:#9ca3af">${jobs.length} job${jobs.length>1?'s':''} ${dayPaid<dayTotal?'• ₹'+(dayTotal-dayPaid).toLocaleString('en-IN')+' due':''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-weight:800;font-size:14px;color:var(--rust)">₹${dayTotal.toLocaleString('en-IN')}</div>
-          <div style="font-size:10px;color:var(--green)">+₹${dayPaid.toLocaleString('en-IN')} paid</div>
-        </div>
-      </div>
-      <div class="dayJobList" style="display:none;border-top:1px solid var(--border)">
-        ${jobs.map(j=>`<div onclick="closeM('incomeM');openJob('${j.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer">
-          <div>
-            <div style="font-size:12px;font-weight:600">${j.name} ${j.vnum?'• '+j.vnum:''}</div>
-            <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.complaint?'• '+j.complaint.slice(0,30):''}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:12px;font-weight:700;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</div>
-            <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}" style="font-size:8px">${j.status}</span>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('');
-  el.innerHTML=html;
-}
-function toggleDayExpand(hdr){
-  const list=hdr.nextElementSibling;
-  list.style.display=list.style.display==='none'?'block':'none';
-}
-
-function renderIncomeGraph(el,mJobs,now){
-  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
-  const dayTotals=Array.from({length:daysInMonth},(_,i)=>{
-    const d=i+1;
-    const jobs=mJobs.filter(j=>new Date(j.at).getDate()===d);
-    return{d,total:jobs.reduce((s,j)=>s+(j.total||0),0),count:jobs.length};
-  });
-  const maxT=Math.max(...dayTotals.map(x=>x.total),1);
-  const today=now.getDate();
-  let html=`<div style="font-size:10px;font-weight:700;color:#9ca3af;margin-bottom:8px">DAILY INCOME — ${now.toLocaleString('en-IN',{month:'long',year:'numeric'})}</div>`;
-  html+=`<div style="display:flex;align-items:flex-end;gap:2px;height:120px;overflow-x:auto;padding-bottom:4px">`;
-  html+=dayTotals.map(({d,total,count})=>{
-    const h=Math.max(total>0?4:0,Math.round((total/maxT)*110));
-    const isToday=d===today;
-    const col=isToday?'var(--rust)':total>0?'var(--blue)':'#e5e7eb';
-    return `<div style="display:flex;flex-direction:column;align-items:center;min-width:${daysInMonth>20?'9px':'12px'};flex:1" title="${d}: ₹${total}">
-      ${total>0&&h>15?`<div style="font-size:6px;color:${col};font-weight:700;writing-mode:vertical-lr;transform:rotate(180deg)">${(total/1000).toFixed(0)}k</div>`:''}
-      <div style="height:${h}px;width:100%;border-radius:2px 2px 0 0;background:${col}"></div>
-      <div style="font-size:6px;color:${isToday?'var(--rust)':'#9ca3af'};font-weight:${isToday?'700':'400'};margin-top:2px">${d}</div>
-    </div>`;
-  }).join('');
-  html+=`</div>`;
-  // Weekly summary
-  const weeks=[0,0,0,0,0];
-  dayTotals.forEach(({d,total})=>weeks[Math.floor((d-1)/7)]+=total);
-  html+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px">`;
-  ['W1','W2','W3','W4'].forEach((w,i)=>{
-    html+=`<div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center">
-      <div style="font-weight:700;font-size:11px;color:var(--blue)">₹${weeks[i].toLocaleString('en-IN')}</div>
-      <div style="font-size:8px;color:#9ca3af">${w}</div>
-    </div>`;
-  });
-  html+=`</div>`;
-  el.innerHTML=html;
-}
-
-function renderIncomeMech(el,mJobs){
-  const mechMap={};
-  mJobs.forEach(j=>{
-    const mid=j.mechId||'unassigned';
-    if(!mechMap[mid])mechMap[mid]={jobs:[],total:0,paid:0};
-    mechMap[mid].jobs.push(j);
-    mechMap[mid].total+=j.total||0;
-    mechMap[mid].paid+=j.paid||0;
-  });
-  const specColor={mechanical:'var(--rust)',body:'var(--blue)',painting:'var(--purple)'};
-  let html='';
-  // Sort by total desc
-  Object.entries(mechMap).sort((a,b)=>b[1].total-a[1].total).forEach(([mid,data])=>{
-    const m=DB.mechanics.find(x=>x.id===mid);
-    const name=m?m.name:'Unassigned';
-    const spec=m?m.spec:'';
-    const col=specColor[spec]||'#6b7280';
-    // Last 7 days bar — within month scope
-    const now=new Date();
-    const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
-    const dayCounts=days.map(d=>data.jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).length);
-    const maxC=Math.max(...dayCounts,1);
-    const dayLabels=['S','M','T','W','T','F','S'];
-    const todayDow=now.getDay();
-    const bars=dayCounts.map((c,i)=>{
-      const dIdx=(todayDow-6+i+7)%7;const isT=(i===6);const h=Math.max(c>0?3:0,Math.round((c/maxC)*32));
-      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
-        <div style="font-size:7px;font-weight:700;color:${isT?col:'#9ca3af'}">${c||''}</div>
-        <div style="height:${h}px;width:100%;border-radius:2px 2px 0 0;background:${isT?col:'#e5e7eb'}"></div>
-        <div style="font-size:6px;color:${isT?col:'#9ca3af'}">${dayLabels[dIdx]}</div>
-      </div>`;
-    }).join('');
-    // Recent vehicles — unique list with dates
-    const recentJobs=[...data.jobs].sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,5);
-    html+=`<div class="card" style="border-left:4px solid ${col};padding:10px 12px;margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div><div style="font-weight:700;font-size:13px">${name}</div><div style="font-size:10px;color:var(--gray);text-transform:capitalize">${spec} • ${data.jobs.length} jobs</div></div>
-        <div style="text-align:right"><div style="font-weight:800;font-size:15px;color:${col}">₹${data.total.toLocaleString('en-IN')}</div><div style="font-size:9px;color:var(--green)">₹${data.paid.toLocaleString('en-IN')} collected</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-end;gap:2px;height:42px;background:#f8f9fa;border-radius:6px;padding:4px 6px;margin-bottom:8px">${bars}</div>
-      <div style="font-size:9px;font-weight:700;color:#9ca3af;margin-bottom:4px">RECENT VEHICLES</div>
-      ${recentJobs.map(j=>`<div onclick="closeM('incomeM');openJob('${j.id}')" style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f3f4f6;cursor:pointer">
-        <div><div style="font-size:11px;font-weight:600">${j.name} ${j.vnum?'• '+j.vnum:''}</div>
-        <div style="font-size:9px;color:var(--gray)">${j.car||''} • ${new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</div></div>
-        <div style="font-size:11px;font-weight:700;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</div>
-      </div>`).join('')}
-    </div>`;
-  });
-  el.innerHTML=html||'<div style="text-align:center;padding:20px;color:#9ca3af">ഈ month-ൽ jobs ഇല്ല</div>';
-}
-
-function renderIncomeJobs(el,mJobs){
-  const sorted=[...mJobs].sort((a,b)=>new Date(b.at)-new Date(a.at));
-  const total=sorted.reduce((s,j)=>s+(j.total||0),0);
-  let html=`<div style="font-size:12px;font-weight:700;color:var(--gray);margin-bottom:8px">${sorted.length} jobs • ₹${total.toLocaleString('en-IN')} total</div>`;
-  html+=sorted.map(j=>{
-    const m=DB.mechanics.find(x=>x.id===j.mechId);
-    return `<div onclick="closeM('incomeM');openJob('${j.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px;cursor:pointer">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700">${j.name} ${j.vnum?'<span style="color:var(--blue)">• '+j.vnum+'</span>':''}</div>
-        <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.complaint?'• '+j.complaint.slice(0,28):''}</div>
-        <div style="font-size:9px;color:#9ca3af;margin-top:1px">${new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})} ${m?'• '+m.name:''}</div>
-      </div>
-      <div style="text-align:right;margin-left:8px">
-        <div style="font-size:13px;font-weight:800;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</div>
-        <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}" style="font-size:8px">${j.status}</span>
-        ${(j.paid||0)<(j.total||0)?`<div style="font-size:9px;color:#dc2626;font-weight:600">₹${((j.total||0)-(j.paid||0)).toLocaleString('en-IN')} due</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-  el.innerHTML=html||'<div style="text-align:center;padding:20px;color:#9ca3af">ഈ month-ൽ jobs ഇല്ല</div>';
-}
-
-// ====================== VEHICLE SEARCH ======================
-function onHomeVSearch(val){
-  const drop=document.getElementById('homeVSearchDrop');
-  if(!val||val.length<2){drop.style.display='none';return;}
-  const q=val.trim().toUpperCase();
-  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
-  const vnums=[...new Set(matches.map(j=>j.vnum).filter(Boolean))].slice(0,5);
-  const names=[...new Set(matches.map(j=>j.name).filter(Boolean))].slice(0,3);
-  const items=[...vnums.map(v=>({label:'🚗 '+v,val:v})),...names.map(n=>({label:'👤 '+n,val:n}))];
-  if(!items.length){drop.style.display='none';return;}
-  drop.style.display='block';
-  drop.innerHTML=items.map(i=>`<div style="padding:9px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6;cursor:pointer;color:var(--ink)" 
-    onclick="openVehicleSearch('${i.val}');document.getElementById('homeVSearch').value='';document.getElementById('homeVSearchDrop').style.display='none'">${i.label}</div>`).join('');
-}
-function openVehicleSearch(q){
-  if(!q||!q.trim())return;
-  document.getElementById('homeVSearchDrop').style.display='none';
-  document.getElementById('srchInp').value=q.trim();
-  go('search');
-  doVehicleSearch(q.trim());
-}
-function doVehicleSearch(val){
-  const el=document.getElementById('srchResults');
-  if(!val||val.length<2){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div>';return;}
-  const q=val.trim().toUpperCase();
-  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
-  if(!matches.length){el.innerHTML='<div class="empty"><div class="empty-i">🔍</div>No results for "'+val+'"</div>';return;}
-  // Group by vnum
-  const grouped={};
-  matches.forEach(j=>{
-    const key=(j.vnum||'UNKNOWN').toUpperCase();
-    if(!grouped[key])grouped[key]=[];
-    grouped[key].push(j);
-  });
-  let html='';
-  Object.entries(grouped).forEach(([vnum,jobs])=>{
-    jobs.sort((a,b)=>new Date(b.at)-new Date(a.at));
-    const latest=jobs[0];
-    const totalPaid=jobs.reduce((s,j)=>s+(j.paid||0),0);
-    const totalAmt=jobs.reduce((s,j)=>s+(j.total||0),0);
-    const pendingAmt=totalAmt-totalPaid;
-    const lastKm=jobs.find(j=>j.km)?.km||'—';
-    const nextSvc=jobs.find(j=>j.nextSvc)?.nextSvc;
-    html+=`<div class="card" style="border-top:3px solid var(--blue)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:var(--ink)">${vnum==='UNKNOWN'?'No Reg. No.':vnum}</div>
-          <div style="font-size:12px;color:var(--gray)">${latest.name} ${latest.car?'• '+latest.car:''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:11px;font-weight:700;color:var(--blue)">${jobs.length} visit${jobs.length>1?'s':''}</div>
-          ${pendingAmt>0?`<div style="font-size:11px;font-weight:700;color:#dc2626">₹${pendingAmt.toLocaleString('en-IN')} due</div>`:'<div style="font-size:10px;color:var(--green)">✅ Cleared</div>'}
-        </div>
-      </div>
-      <!-- Summary row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px">
-        <div style="background:#eff6ff;border-radius:7px;padding:7px;text-align:center">
-          <div style="font-weight:700;font-size:12px;color:var(--blue)">${new Date(latest.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})}</div>
-          <div style="font-size:8px;color:#9ca3af">LAST VISIT</div>
-        </div>
-        <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center">
-          <div style="font-weight:700;font-size:12px;color:var(--green)">${lastKm}</div>
-          <div style="font-size:8px;color:#9ca3af">LAST KM</div>
-        </div>
-        <div style="background:#fef3c7;border-radius:7px;padding:7px;text-align:center">
-          <div style="font-weight:700;font-size:11px;color:var(--gold)">${nextSvc?new Date(nextSvc).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):'—'}</div>
-          <div style="font-size:8px;color:#9ca3af">NEXT SVC</div>
-        </div>
-      </div>
-      <!-- Job history -->
-      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:5px">Service History</div>
-      ${jobs.map(j=>`<div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer" onclick="openJob('${j.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-          <div style="font-size:11px;font-weight:700;color:var(--ink)">${new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
-          <div style="display:flex;gap:5px;align-items:center">
-            ${j.km?`<span style="font-size:9px;color:var(--gray)">🛣 ${j.km} km</span>`:''}
-            <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}">${j.status}</span>
-          </div>
-        </div>
-        ${j.complaint?`<div style="font-size:11px;color:#374151;margin-bottom:3px">📝 ${j.complaint.slice(0,80)}${j.complaint.length>80?'...':''}</div>`:''}
-        ${j.labour&&j.labour.length?`<div style="font-size:10px;color:var(--rust)">🔧 ${j.labour.map(l=>l.name).join(', ').slice(0,60)}</div>`:''}
-        ${j.spares&&j.spares.length?`<div style="font-size:10px;color:var(--blue)">🔩 ${j.spares.map(s=>s.name).join(', ').slice(0,60)}</div>`:''}
-        <div style="display:flex;justify-content:space-between;margin-top:4px">
-          <span style="font-size:10px;color:var(--gray)">${j.mechId?(DB.mechanics.find(m=>m.id===j.mechId)||{}).name||'':''}</span>
-          <span style="font-size:11px;font-weight:700;color:var(--ink)">₹${(j.total||0).toLocaleString('en-IN')}</span>
-        </div>
-      </div>`).join('')}
-    </div>`;
-  });
-  el.innerHTML=html;
-}
-
 // ====================== KANBAN ======================
-let kbView='status';
-function setKbView(v){
-  kbView=v;
-  document.getElementById('kbByStatus').style.background=v==='status'?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';
-  document.getElementById('kbByStatus').style.color=v==='status'?'var(--ink)':'#fff';
-  document.getElementById('kbByPerson').style.background=v==='person'?'rgba(255,255,255,.9)':'rgba(255,255,255,.2)';
-  document.getElementById('kbByPerson').style.color=v==='person'?'var(--ink)':'#fff';
-  renderKanban();
-}
-function kbJobCard(j){
-  return `<div class="kb-card" onclick="openJob('${j.id}')" style="${j.urgent?'border-left:3px solid #dc2626;':j.partsAwaited?'border-left:3px solid #1d4ed8;':''}">
-    <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
-    <div class="kb-sub">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px">
-      <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':j.status==='ready'?'rdy':'done'}" style="font-size:8px">${j.status}</span>
-      <div class="kb-amt" style="margin:0">₹${(j.total||0).toLocaleString('en-IN')}</div>
-    </div>
-    ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
-  </div>`;
-}
 function renderKanban(){
-  const board=document.getElementById('kanbanBoard');
-  if(kbView==='status'){
-    board.className='kanban';
-    board.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;min-width:480px';
-    const cols={pending:[],'in-progress':[],ready:[],completed:[]};
-    DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
-    const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
-    board.innerHTML=Object.entries(cols).map(([st,jobs])=>`
-      <div class="kb-col kb-${st}">
-        <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
-        ${jobs.length?jobs.map(kbJobCard).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
-      </div>`).join('');
-  } else {
-    // By Person view
-    board.className='';
-    board.style.cssText='';
-    const activeJobs=DB.jobs.filter(j=>j.status!=='completed');
-    const persons=DB.mechanics||[];
-    if(!persons.length){board.innerHTML='<div class="empty"><div class="empty-i">👷</div>No staff added yet</div>';return;}
-    // spec color map
-    const specColor={mechanical:'var(--rust)',body:'var(--blue)',painting:'var(--purple)'};
-    const specIcon={mechanical:'🔧',body:'🚗',painting:'🎨'};
-    board.innerHTML=persons.map(p=>{
-      const myJobs=activeJobs.filter(j=>j.mechId===p.id);
-      const col=specColor[p.spec]||'var(--rust)';
-      const icon=specIcon[p.spec]||'👷';
-      // Last 7 days bar graph
-      const days=[];
-      for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
-      const dayCounts=days.map(d=>DB.jobs.filter(j=>j.mechId===p.id&&new Date(j.at).toDateString()===d.toDateString()).length);
-      const maxC=Math.max(...dayCounts,1);
-      const dayLabels=['S','M','T','W','T','F','S'];
-      const todayIdx=new Date().getDay();
-      const graphBars=dayCounts.map((c,i)=>{
-        const dIdx=(todayIdx-6+i+7)%7;
-        const isToday=(i===6);
-        const h=Math.max(4,Math.round((c/maxC)*48));
-        return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:2px">
-          <div style="font-size:9px;font-weight:700;color:${isToday?col:'#9ca3af'}">${c||''}</div>
-          <div style="height:${h}px;width:100%;border-radius:3px 3px 0 0;background:${isToday?col:'#e5e7eb'}"></div>
-          <div style="font-size:8px;color:${isToday?col:'#9ca3af'};font-weight:${isToday?'700':'400'}">${dayLabels[dIdx]}</div>
-        </div>`;
-      }).join('');
-      return `<div class="card" style="margin-bottom:8px;border-top:3px solid ${col}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="width:38px;height:38px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">${icon}</div>
-            <div>
-              <div style="font-weight:700;font-size:14px">${p.name}</div>
-              <div style="font-size:10px;color:var(--gray);text-transform:capitalize">${p.spec}${p.phone?' • '+p.phone:''}</div>
-            </div>
+  const cols={pending:[],  'in-progress':[], ready:[], completed:[]};
+  DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
+  const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
+  document.getElementById('kanbanBoard').innerHTML=Object.entries(cols).map(([st,jobs])=>`
+    <div class="kb-col kb-${st}">
+      <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
+      ${jobs.length?jobs.map(j=>`
+        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8':''}${j.urgent?'border-left:3px solid #dc2626':''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
+            <div style="font-size:9px;color:#9ca3af;white-space:nowrap;margin-left:4px">${(()=>{const d=Math.floor((Date.now()-new Date(j.at))/(1000*60*60*24));return d===0?'Today':d===1?'1d':d+'d';})()}</div>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:18px;font-weight:800;color:${col}">${myJobs.length}</div>
-            <div style="font-size:9px;color:#9ca3af">ACTIVE</div>
-          </div>
-        </div>
-        <!-- 7-day graph -->
-        <div style="background:#f8f9fa;border-radius:8px;padding:8px;margin-bottom:8px">
-          <div style="font-size:9px;font-weight:700;color:#9ca3af;margin-bottom:5px;text-transform:uppercase">Last 7 Days</div>
-          <div style="display:flex;align-items:flex-end;gap:3px;height:60px">${graphBars}</div>
-        </div>
-        <!-- Active vehicles -->
-        ${myJobs.length?`
-        <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:5px">Active Vehicles (${myJobs.length})</div>
-        ${myJobs.map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#f8f9fa;border-radius:7px;margin-bottom:4px;cursor:pointer" onclick="openJob('${j.id}')">
-          <div>
-            <div style="font-weight:600;font-size:12px">${j.urgent?'🚨 ':''}${j.name}</div>
-            <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
-          </div>
-          <div style="text-align:right">
-            <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':'rdy'}" style="font-size:8px">${j.status}</span>
-            <div style="font-size:10px;color:var(--rust);font-weight:700;margin-top:2px">₹${(j.total||0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>`).join('')}`
-        :`<div style="text-align:center;padding:12px;color:#d1d5db;font-size:12px">😴 No active jobs</div>`}
-      </div>`;
-    }).join('');
-  }
+          <div class="kb-sub">${j.car}</div>
+          <div class="kb-sub">${j.vnum}</div>
+          ${j.mechName?`<div style="font-size:9px;color:var(--blue);margin-top:2px">👷 ${j.mechName}</div>`:'<div style="font-size:9px;color:#f59e0b;margin-top:2px">⚠️ No mechanic</div>'}
+          ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
+          <div class="kb-amt">₹${j.total.toLocaleString('en-IN')}</div>
+        </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
+    </div>`).join('');
 }
 
 // ====================== CAR MODELS (Cloud) ======================
@@ -2285,6 +1869,8 @@ function saveJob(){
   save();
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('vnumResult').style.display='none';
+  _vnumMatch=null;
   document.getElementById('fUrgent').checked=false;
   document.getElementById('fPartsWait').checked=false;
   document.getElementById('fPartsWaitList').value='';
@@ -2384,10 +1970,6 @@ function openJob(id){
     </div>
     <div class="card">
       <div class="card-t">✏️ Edit Job</div>
-      <div class="fg"><label>Customer Name</label><input id="jdName" value="${(j.name||'').replace(/"/g,'&quot;')}"></div>
-      <div class="fg"><label>Phone</label><input id="jdPhone" type="tel" value="${j.phone||''}"></div>
-      <div class="fg"><label>Car Model</label><input id="jdCar" value="${(j.car||'').replace(/"/g,'&quot;')}" placeholder="e.g. Alto 800, Swift Dzire..."></div>
-      <div class="fg"><label>Vehicle No.</label><input id="jdVnum" value="${(j.vnum||'').replace(/"/g,'&quot;')}" style="text-transform:uppercase" placeholder="e.g. KL07AB1234"></div>
       <div class="fg"><label>Job Description / Complaint</label><textarea id="jdDesc" rows="3">${j.complaint?j.complaint.replace(/</g,'&lt;'):''}</textarea></div>
       <div class="fg"><label>KM Reading</label><input id="jdKm" type="number" value="${j.km||''}"></div>
       <div class="fg"><label>Fuel Level</label><select id="jdFuel">
@@ -2472,18 +2054,8 @@ function assignWorkers(id){
 function addLabourToJob(id){editingJobId=id;closeM('jobM');openLabourPicker();}
 function addSpareToJob(id){editingJobId=id;closeM('jobM');openSpareEntry();}
 function addPhotoToJob(id,type){jobPhotoTargetId=id;photoType=type;document.getElementById('photoIn').click();}
-function showToast(msg,dur=2500){
-  let t=document.getElementById('gpToast');
-  if(!t){t=document.createElement('div');t.id='gpToast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap';document.body.appendChild(t);}
-  t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity='0',dur);
-}
 function updateJobDetails(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
-  j.name=document.getElementById('jdName').value.trim()||j.name;
-  j.phone=document.getElementById('jdPhone').value.trim();
-  j.car=document.getElementById('jdCar').value.trim();
-  j.vnum=document.getElementById('jdVnum').value.trim().toUpperCase();
   j.complaint=document.getElementById('jdDesc').value.trim();
   j.km=document.getElementById('jdKm').value.trim();
   j.fuel=document.getElementById('jdFuel').value;
@@ -2492,7 +2064,6 @@ function updateJobDetails(id){
   j.partsAwaited=document.getElementById('jdPartsWait').checked;
   j.partsAwaitedList=document.getElementById('jdPartsWaitList').value.trim();
   save();openJob(id);
-  showToast('✅ Job details updated!');
 }
 function openQuickCash(){
   const sel=document.getElementById('qcMech');
@@ -2552,7 +2123,58 @@ function updSt(id,st){
   save();closeM('jobM');renderJobs();renderKanban();
   if(st==='completed'&&confirm('Customer-ന് WhatsApp notification അയക്കണോ?'))sendWA(j);
 }
-let _payJobId=null,_payMode=null;
+let _vnumMatch=null;
+function toggleMoreMenu(){
+  const m=document.getElementById('moreMenu');
+  m.style.display=m.style.display==='none'?'block':'none';
+}
+function goMore(pg){
+  document.getElementById('moreMenu').style.display='none';
+  go(pg);
+}
+document.addEventListener('click',e=>{
+  const menu=document.getElementById('moreMenu');
+  const moreTab=document.getElementById('moreTab');
+  if(menu&&moreTab&&!menu.contains(e.target)&&!moreTab.contains(e.target)){
+    menu.style.display='none';
+  }
+});
+function vnumLookup(){
+  const vnum=document.getElementById('fV').value.trim().toUpperCase();
+  const box=document.getElementById('vnumResult');
+  if(vnum.length<4){box.style.display='none';_vnumMatch=null;return;}
+  const jobs=DB.jobs.filter(j=>j.vnum&&j.vnum.toUpperCase()===vnum).sort((a,b)=>new Date(b.at)-new Date(a.at));
+  const cx=DB.customers.find(c=>c.vnum&&c.vnum.toUpperCase()===vnum);
+  if(!jobs.length&&!cx){box.style.display='none';_vnumMatch=null;return;}
+  const last=jobs[0];
+  const cx2=cx||DB.customers.find(c=>c.phone===last?.phone);
+  _vnumMatch={name:cx2?.name||last?.name||'',phone:cx2?.phone||last?.phone||'',addr:cx2?.addr||last?.addr||'',car:last?.car||'',cat:last?.cat||''};
+  const lastDate=last?new Date(last.at).toLocaleDateString('en-IN'):'';
+  const complaints=jobs.slice(0,3).map(j=>j.complaint?j.complaint.slice(0,40):'').filter(Boolean);
+  box.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="font-weight:700;font-size:13px;color:var(--green)">✅ Customer Found — Tap to fill</div>
+      <div style="font-size:10px;color:var(--gray)">${jobs.length} previous visit${jobs.length>1?'s':''}</div>
+    </div>
+    <div style="font-size:13px;font-weight:600">${_vnumMatch.name} | 📞 ${_vnumMatch.phone}</div>
+    ${_vnumMatch.addr?`<div style="font-size:11px;color:var(--gray)">📍 ${_vnumMatch.addr}</div>`:''}
+    ${last?.car?`<div style="font-size:11px;color:var(--blue)">🚗 ${last.car} | Last visit: ${lastDate}</div>`:''}
+    ${complaints.length?`<div style="font-size:10px;color:#9ca3af;margin-top:3px">Past: ${complaints.join(' • ')}</div>`:''}`;
+  box.style.display='block';
+}
+function applyVnumResult(){
+  if(!_vnumMatch)return;
+  document.getElementById('fN').value=_vnumMatch.name;
+  document.getElementById('fPh').value=_vnumMatch.phone;
+  document.getElementById('fAddr').value=_vnumMatch.addr||'';
+  if(_vnumMatch.car){
+    document.getElementById('carSrch').value=_vnumMatch.car;
+    const cm=DB.carModels.find(m=>m.model===_vnumMatch.car||m.model+' '+m.brand===_vnumMatch.car);
+    if(cm){JOB.car=cm.model;JOB.cat=cm.cat;renderCarPicker();selectCar(cm.id);}
+  }
+  document.getElementById('vnumResult').style.display='none';
+  _vnumMatch=null;
+}
 function collectPay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   _payJobId=id;_payMode=null;
@@ -3028,66 +2650,21 @@ function clearAllData(){
 function renderMechanics(){
   const el=document.getElementById('mechList');
   if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
-  const specColor={mechanical:'var(--rust)',body:'var(--blue)',painting:'var(--purple)'};
-  const specIcon={mechanical:'🔧',body:'🚗',painting:'🎨'};
-  el.innerHTML=DB.mechanics.map(m=>{
-    const col=specColor[m.spec]||'var(--rust)';
-    const icon=specIcon[m.spec]||'👷';
-    const activeJobs=DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed');
-    const todayJobs=DB.jobs.filter(j=>j.mechId===m.id&&new Date(j.at).toDateString()===new Date().toDateString());
-    // 7-day mini graph
-    const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
-    const dayCounts=days.map(d=>DB.jobs.filter(j=>j.mechId===m.id&&new Date(j.at).toDateString()===d.toDateString()).length);
-    const maxC=Math.max(...dayCounts,1);
-    const dayLabels=['S','M','T','W','T','F','S'];
-    const todayDow=new Date().getDay();
-    const graphBars=dayCounts.map((c,i)=>{
-      const dIdx=(todayDow-6+i+7)%7;
-      const isToday=(i===6);
-      const h=Math.max(3,Math.round((c/maxC)*36));
-      return `<div style="display:flex;flex-direction:column;align-items:center;flex:1">
-        <div style="font-size:8px;font-weight:700;color:${isToday?col:'#9ca3af'}">${c||''}</div>
-        <div style="height:${h}px;width:100%;border-radius:2px 2px 0 0;background:${isToday?col:'#e5e7eb'}"></div>
-        <div style="font-size:7px;color:${isToday?col:'#9ca3af'};font-weight:${isToday?'700':'400'}">${dayLabels[dIdx]}</div>
-      </div>`;
-    }).join('');
-    return `<div class="card" style="border-top:3px solid ${col}">
+  el.innerHTML=DB.mechanics.map(m=>`
+    <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:38px;height:38px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px">${icon}</div>
-          <div>
-            <div style="font-weight:700">${m.name}</div>
-            <div style="font-size:11px;color:var(--gray);text-transform:capitalize">${m.spec}${m.phone?' • '+m.phone:''}</div>
-          </div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${m.name[0]}</div>
+          <div><div style="font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--gray)">${m.spec} ${m.phone?'• '+m.phone:''}</div></div>
         </div>
         <span onclick="editMech('${m.id}')" style="color:var(--blue);font-size:12px;font-weight:700;cursor:pointer">✏️ Edit</span>
       </div>
-      <!-- Stats row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:8px">
-        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${todayJobs.length}</div><div style="font-size:8px;color:#9ca3af">TODAY</div></div>
-        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${activeJobs.length}</div><div style="font-size:8px;color:#9ca3af">ACTIVE</div></div>
-        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:13px">${m.jobs||0}</div><div style="font-size:8px;color:#9ca3af">TOTAL</div></div>
-        <div style="background:#f8f9fa;border-radius:7px;padding:6px;text-align:center"><div style="font-weight:700;color:${col};font-size:10px">₹${((m.revenue||0)/1000).toFixed(0)}K</div><div style="font-size:8px;color:#9ca3af">REVENUE</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:8px">
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${m.jobs||0}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust);font-size:12px">₹${(m.revenue||0).toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">REVENUE</div></div>
+        <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${DB.jobs.filter(j=>j.mechId===m.id&&j.status!=='completed').length}</div><div style="font-size:9px;color:#9ca3af">PENDING</div></div>
       </div>
-      <!-- 7-day graph -->
-      <div style="background:#f8f9fa;border-radius:8px;padding:7px;margin-top:6px">
-        <div style="font-size:8px;font-weight:700;color:#9ca3af;margin-bottom:4px">📊 LAST 7 DAYS</div>
-        <div style="display:flex;align-items:flex-end;gap:2px;height:48px">${graphBars}</div>
-      </div>
-      <!-- Active vehicles -->
-      ${activeJobs.length?`<div style="margin-top:7px">
-        <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">🚗 Active Vehicles</div>
-        ${activeJobs.slice(0,4).map(j=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 7px;background:#fff7ed;border-left:3px solid ${col};border-radius:0 6px 6px 0;margin-bottom:3px;cursor:pointer" onclick="openJob('${j.id}')">
-          <div>
-            <div style="font-weight:600;font-size:11px">${j.urgent?'🚨 ':''}${j.name} ${j.vnum?'• '+j.vnum:''}</div>
-            <div style="font-size:9px;color:var(--gray)">${j.car||''}</div>
-          </div>
-          <span class="badge b-${j.status==='pending'?'pend':j.status==='in-progress'?'prog':'rdy'}" style="font-size:8px">${j.status}</span>
-        </div>`).join('')}
-        ${activeJobs.length>4?`<div style="font-size:10px;color:var(--blue);text-align:center;padding:3px;cursor:pointer" onclick="setKbView('person');go('kanban')">+${activeJobs.length-4} more → Board കാണുക</div>`:''}
-      </div>`:'<div style="font-size:11px;color:#d1d5db;text-align:center;padding:8px 0;margin-top:4px">😴 No active jobs</div>'}
-    </div>`;
-  }).join('');
+    </div>`).join('');
   updateMechDD();
 }
 let editMechId=null;
