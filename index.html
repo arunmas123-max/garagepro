@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v8.7</title>
+<title>Garage Pro Kerala v8.8</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -186,7 +186,8 @@ textarea{resize:vertical;min-height:65px}
 .lr-pv{font-size:12px;font-weight:800;color:var(--rust)}
 .lr-p.highlight{background:var(--rust);color:#fff}
 .lr-p.highlight .lr-pl{color:rgba(255,255,255,.8)}
-.lr-p.highlight .lr-pv{color:#fff}
+.lr-p.highlight .lr-pv{color:#fff}.inc-hidden{filter:blur(7px);transition:filter .2s;user-select:none}
+.incEyeBtn{cursor:pointer;font-size:13px}
 </style>
 </head>
 <body>
@@ -221,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.8</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -230,7 +231,7 @@ textarea{resize:vertical;min-height:65px}
   </div>
   <div class="hdr-st" id="hdrSt">
     <span>📋 <b id="hJ">0</b> today</span>
-    <span>💰 ₹<b id="hR">0</b></span>
+    <span>💰 ₹<b id="hR" class="money-sensitive">0</b> <span class="incEyeBtn" onclick="toggleIncomeVisibility()">👁️</span></span>
     <span>⏳ <b id="hP">0</b> pending</span>
     <span>⚠️ <b id="hLow">0</b> low stock</span>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
@@ -263,14 +264,14 @@ textarea{resize:vertical;min-height:65px}
   <div class="sg">
     <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
     <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
-    <div class="sc"><div class="sv">₹<span id="sR">0</span></div><div class="sl">This Month</div></div>
+    <div class="sc"><div class="sv money-sensitive">₹<span id="sR">0</span></div><div class="sl">This Month</div></div>
     <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
   </div>
   <div class="sg4">
-    <div class="sc" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Labour</div></div>
-    <div class="sc" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body</div></div>
-    <div class="sc" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
-    <div class="sc" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Labour</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
   </div>
   <div class="card">
     <div class="card-t">🚀 Quick Actions</div>
@@ -461,31 +462,34 @@ textarea{resize:vertical;min-height:65px}
     </div>
   </div>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div class="card-t" style="margin:0">💰 Income Breakdown</div>
-      <div id="rPLbl" style="font-size:11px;color:var(--gray)">Today</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="rPLbl" style="font-size:11px;color:var(--gray)">Today</div>
+        <span class="incEyeBtn" onclick="toggleIncomeVisibility()">👁️</span>
+      </div>
     </div>
     <div class="inc-row">
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--rust)"></div>🔧 Mechanical Labour</div>
       <div class="bar-w"><div class="bar-f" id="mechBar" style="background:var(--rust);width:0%"></div></div></div>
-      <div style="text-align:right"><div class="inc-amt" id="rMech">₹0</div><div style="font-size:10px;color:var(--gray)" id="rMechP">0%</div></div>
+      <div style="text-align:right" class="money-sensitive"><div class="inc-amt" id="rMech">₹0</div><div style="font-size:10px;color:var(--gray)" id="rMechP">0%</div></div>
     </div>
     <div class="inc-row">
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--blue)"></div>🚗 Body Work</div>
       <div class="bar-w"><div class="bar-f" id="bodyBar" style="background:var(--blue);width:0%"></div></div></div>
-      <div style="text-align:right"><div class="inc-amt" id="rBody">₹0</div><div style="font-size:10px;color:var(--gray)" id="rBodyP">0%</div></div>
+      <div style="text-align:right" class="money-sensitive"><div class="inc-amt" id="rBody">₹0</div><div style="font-size:10px;color:var(--gray)" id="rBodyP">0%</div></div>
     </div>
     <div class="inc-row">
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--purple)"></div>🎨 Painting</div>
       <div class="bar-w"><div class="bar-f" id="paintBar" style="background:var(--purple);width:0%"></div></div></div>
-      <div style="text-align:right"><div class="inc-amt" id="rPaint">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPaintP">0%</div></div>
+      <div style="text-align:right" class="money-sensitive"><div class="inc-amt" id="rPaint">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPaintP">0%</div></div>
     </div>
     <div class="inc-row">
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--green)"></div>🔩 Parts Sale</div>
       <div class="bar-w"><div class="bar-f" id="partsBar" style="background:var(--green);width:0%"></div></div></div>
-      <div style="text-align:right"><div class="inc-amt" id="rParts">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPartsP">0%</div></div>
+      <div style="text-align:right" class="money-sensitive"><div class="inc-amt" id="rParts">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPartsP">0%</div></div>
     </div>
-    <div style="background:linear-gradient(135deg,var(--rust),var(--rust2));color:#fff;border-radius:10px;padding:12px;margin-top:10px;display:flex;justify-content:space-between">
+    <div class="money-sensitive" style="background:linear-gradient(135deg,var(--rust),var(--rust2));color:#fff;border-radius:10px;padding:12px;margin-top:10px;display:flex;justify-content:space-between">
       <div><div style="font-size:11px;opacity:.8">Total Revenue</div><div style="font-size:22px;font-weight:800" id="rTotal">₹0</div></div>
       <div style="text-align:right"><div style="font-size:11px;opacity:.8">Jobs</div><div style="font-size:22px;font-weight:800" id="rJobs">0</div></div>
     </div>
@@ -497,11 +501,12 @@ textarea{resize:vertical;min-height:65px}
   </div>
   <div class="card"><div class="card-t">💳 Payment Status</div><div id="payRpt"></div></div>
   <div class="card"><div class="card-t">👷 Staff Performance</div><div id="mechRpt"></div></div>
+  <div class="card"><div class="card-t">🗂️ Worker Job Log — Vehicle Wise</div><div id="workerJobLog"></div></div>
 </div>
 
 <!-- CUSTOMERS -->
 <div class="pg" id="customers">
-  <div class="srch"><input id="cSrch" placeholder="Search customer..."></div>
+  <div class="srch"><input id="cSrch" placeholder="Search customer, vehicle no..."></div>
   <div id="custList"></div>
 </div>
 
@@ -1059,6 +1064,18 @@ function setSyncStatus(status) {
   }
 }
 
+// ====================== INCOME PRIVACY TOGGLE ======================
+let incomeHidden = localStorage.getItem('gp_hideIncome')==='1';
+function applyIncomeVisibility(){
+  document.querySelectorAll('.money-sensitive').forEach(el=>el.classList.toggle('inc-hidden',incomeHidden));
+  document.querySelectorAll('.incEyeBtn').forEach(b=>b.textContent=incomeHidden?'🙈':'👁️');
+}
+function toggleIncomeVisibility(){
+  incomeHidden=!incomeHidden;
+  localStorage.setItem('gp_hideIncome',incomeHidden?'1':'0');
+  applyIncomeVisibility();
+}
+
 // ====================== STORAGE ======================
 function jobWorkerCredits(j){
   let mechSum=0,bodySum=0,paintSum=0;
@@ -1296,16 +1313,18 @@ function renderHome(){
   document.getElementById('sCu').textContent=DB.customers.length;
   let mech=0,body=0,paint=0,parts=0;
   DB.jobs.forEach(j=>{
-    const labourSum=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
-    if(j.jobType==='body')body+=labourSum;
-    else if(j.jobType==='painting')paint+=labourSum;
-    else mech+=labourSum;
+    (j.labourItems||[]).forEach(it=>{
+      const amt=it.price*(it.qty||1);
+      const wt=it.wtype||'mech';
+      if(wt==='body')body+=amt;else if(wt==='paint')paint+=amt;else mech+=amt;
+    });
     parts+=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
   });
   document.getElementById('sMech').textContent=mech.toLocaleString('en-IN');
   document.getElementById('sBody').textContent=body.toLocaleString('en-IN');
   document.getElementById('sPaint').textContent=paint.toLocaleString('en-IN');
   document.getElementById('sParts').textContent=parts.toLocaleString('en-IN');
+  applyIncomeVisibility();
   const rc=document.getElementById('recentJobs');
   if(!DB.jobs.length){rc.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs yet</div>';return;}
   rc.innerHTML=DB.jobs.slice(0,5).map(j=>`
@@ -2277,10 +2296,11 @@ function renderReport(){
   let mech=0,body=0,paint=0,parts=0,total=0;
   jobs.forEach(j=>{
     total+=j.total||0;
-    if(j.jobType==='mechanical')mech+=j.total||0;
-    else if(j.jobType==='body')body+=j.total||0;
-    else if(j.jobType==='painting')paint+=j.total||0;
-    else{mech+=j.labour||0;}
+    (j.labourItems||[]).forEach(it=>{
+      const amt=it.price*(it.qty||1);
+      const wt=it.wtype||'mech';
+      if(wt==='body')body+=amt;else if(wt==='paint')paint+=amt;else mech+=amt;
+    });
     parts+=j.spareItems?.reduce((s,it)=>s+it.sell*(it.qty||1),0)||0;
   });
   const max=Math.max(mech,body,paint,parts)||1;
@@ -2347,9 +2367,36 @@ function renderReport(){
         <div style="width:28px;height:28px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${m.name[0]}</div>
         <div><div style="font-weight:600">${m.name} <span style="font-size:9px;color:var(--gray);font-weight:400">(${m.spec})</span></div><div style="font-size:10px;color:var(--gray)">${s.jobs} jobs</div></div>
       </div>
-      <div style="font-weight:700;color:var(--rust)">₹${s.revenue.toLocaleString('en-IN')}</div>
+      <div style="font-weight:700;color:var(--rust)" class="money-sensitive">₹${s.revenue.toLocaleString('en-IN')}</div>
     </div>`;
   }).join('');
+  // Worker Job Log — collapsible box per staff member showing which vehicles they worked on
+  const wjl=document.getElementById('workerJobLog');
+  if(!DB.mechanics.length){wjl.innerHTML='<div style="font-size:12px;color:var(--gray)">No staff added</div>';}
+  else{
+    const boxes=DB.mechanics.map(m=>{
+      const mJobs=staffJobs.filter(j=>(jobWorkerCredits(j)[m.id]||0)>0);
+      if(!mJobs.length)return '';
+      const rows=mJobs.sort((a,b)=>new Date(b.completedAt||b.at)-new Date(a.completedAt||a.at)).map(j=>{
+        const amt=jobWorkerCredits(j)[m.id]||0;
+        const d=new Date(j.completedAt||j.at).toLocaleDateString('en-IN');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:11.5px">
+          <div><b>🚗 ${j.vnum||'-'}</b> ${j.car?'• '+j.car:''}<div style="color:var(--gray);font-size:10px">${j.complaint?j.complaint.slice(0,35):''} • ${d}</div></div>
+          <div style="font-weight:700;color:var(--rust);white-space:nowrap" class="money-sensitive">₹${amt.toLocaleString('en-IN')}</div>
+        </div>`;
+      }).join('');
+      return `<div style="border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
+        <div onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.wjlArrow').textContent=b.style.display==='none'?'▶':'▼'"
+          style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f8f9fa;cursor:pointer">
+          <span style="font-weight:700;font-size:13px">👤 ${m.name} <span style="font-size:10px;color:var(--gray);font-weight:400">(${mJobs.length} vehicles)</span></span>
+          <span class="wjlArrow" style="font-size:11px;color:var(--gray)">▼</span>
+        </div>
+        <div style="padding:6px 12px">${rows}</div>
+      </div>`;
+    }).join('');
+    wjl.innerHTML=boxes||'<div style="font-size:12px;color:var(--gray)">No worker jobs in this period</div>';
+  }
+  applyIncomeVisibility();
 }
 document.querySelectorAll('.ptab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));
@@ -2359,7 +2406,7 @@ document.querySelectorAll('.ptab').forEach(t=>t.addEventListener('click',()=>{
 // ====================== CUSTOMERS ======================
 function renderCustomers(){
   const search=document.getElementById('cSrch').value.toLowerCase();
-  const custs=DB.customers.filter(c=>!search||`${c.name}${c.phone}`.toLowerCase().includes(search));
+  const custs=DB.customers.filter(c=>!search||`${c.name}${c.phone}${c.vnum||''}`.toLowerCase().includes(search));
   const el=document.getElementById('custList');
   if(!custs.length){el.innerHTML='<div class="empty"><div class="empty-i">👥</div>No customers</div>';return;}
   el.innerHTML=custs.sort((a,b)=>b.spent-a.spent).map(c=>`
@@ -2368,7 +2415,7 @@ function renderCustomers(){
         <div>
           <div style="font-weight:700;font-size:14px">${c.name}</div>
           <div style="font-size:11px;color:var(--gray)">📞 <a href="tel:${c.phone}" style="color:var(--blue)">${c.phone}</a></div>
-          <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}</div>
+          <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}${c.vnum?' • 🔢 '+c.vnum:''}</div>
           ${c.lastVisit?`<div style="font-size:11px;color:var(--gray)">📅 Last: ${new Date(c.lastVisit).toLocaleDateString('en-IN')}</div>`:''}
         </div>
         <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button><button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">🗑️</button>
