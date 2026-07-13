@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v8.9</title>
+<title>Garage Pro Kerala v9.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v8.9</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.0</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -268,8 +268,8 @@ textarea{resize:vertical;min-height:65px}
     <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
   </div>
   <div class="sg4">
-    <div class="sc money-sensitive" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Labour</div></div>
-    <div class="sc money-sensitive" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Mechanical Labour</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body Worker</div></div>
     <div class="sc money-sensitive" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
     <div class="sc money-sensitive" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
   </div>
@@ -483,6 +483,17 @@ textarea{resize:vertical;min-height:65px}
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--purple)"></div>🎨 Painting</div>
       <div class="bar-w"><div class="bar-f" id="paintBar" style="background:var(--purple);width:0%"></div></div></div>
       <div style="text-align:right" class="money-sensitive"><div class="inc-amt" id="rPaint">₹0</div><div style="font-size:10px;color:var(--gray)" id="rPaintP">0%</div></div>
+    </div>
+    <div class="money-sensitive" style="background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:9px;padding:8px 10px;margin:4px 0 8px;font-size:11px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#7c3aed;font-weight:600">🎨 Paint above includes materials</span>
+        <span onclick="openPaintMatEdit()" style="color:var(--blue);cursor:pointer;font-weight:700">✏️ Set material cost</span>
+      </div>
+      <div id="paintMatInfo" style="margin-top:3px;color:var(--gray)"></div>
+      <div id="paintMatEditBox" style="display:none;gap:6px;margin-top:6px;align-items:center">
+        <input id="paintMatInput" type="number" placeholder="This month's paint material purchase ₹" style="flex:1;padding:6px 8px;border:1.5px solid #e9d5ff;border-radius:7px;font-size:12px">
+        <button onclick="savePaintMaterial()" style="background:#7c3aed;color:#fff;border:none;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Save</button>
+      </div>
     </div>
     <div class="inc-row">
       <div><div class="inc-lbl"><div class="inc-dot" style="background:var(--green)"></div>🔩 Parts Sale</div>
@@ -1031,7 +1042,7 @@ const CARS={
 };
 
 // ====================== STATE ======================
-let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[]};
+let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{}};
 let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
 let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
 let rFromDate=null,rToDate=null;
@@ -1074,6 +1085,22 @@ function toggleIncomeVisibility(){
   incomeHidden=!incomeHidden;
   localStorage.setItem('gp_hideIncome',incomeHidden?'1':'0');
   applyIncomeVisibility();
+}
+function curMonthKey(){
+  const n=new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+}
+function savePaintMaterial(){
+  const val=parseFloat(document.getElementById('paintMatInput').value||0);
+  if(!DB.paintMaterialCosts)DB.paintMaterialCosts={};
+  DB.paintMaterialCosts[curMonthKey()]=val;
+  save();
+  document.getElementById('paintMatEditBox').style.display='none';
+  renderReport();renderHome();
+}
+function openPaintMatEdit(){
+  document.getElementById('paintMatInput').value=DB.paintMaterialCosts?.[curMonthKey()]||'';
+  document.getElementById('paintMatEditBox').style.display='flex';
 }
 
 // ====================== STORAGE ======================
@@ -1123,6 +1150,7 @@ function saveToFirebase() {
     carModels: DB.carModels,
     customLabour: DB.customLabour,
     lrDisabled: DB.lrDisabled,
+    paintMaterialCosts: DB.paintMaterialCosts,
     lastUpdated: Date.now(),
     updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
   };
@@ -1148,6 +1176,7 @@ function load() {
     if (!DB.carModels) DB.carModels = [];
     if (!DB.customLabour) DB.customLabour = [];
     if (!DB.lrDisabled) DB.lrDisabled = {};
+    if (!DB.paintMaterialCosts) DB.paintMaterialCosts = {};
     DB.spareHistory.forEach((s,i)=>{ if(!s.id) s.id='SP'+Date.now()+'_'+i; });
   } catch(e) {}
   // Then load from Firebase (latest data)
@@ -1175,6 +1204,7 @@ function loadFromFirebase() {
         DB.carModels = data.carModels || [];
         DB.customLabour = data.customLabour || [];
         DB.lrDisabled = data.lrDisabled || {};
+        DB.paintMaterialCosts = data.paintMaterialCosts || {};
         localStorage.setItem('gp_kl_v5', JSON.stringify(DB));
         localStorage.setItem('gp_lastupdate', fbTime.toString());
         renderAll();
@@ -1308,11 +1338,12 @@ function renderHome(){
   document.getElementById('sJ').textContent=DB.jobs.length;
   document.getElementById('sP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
   const now=new Date();
-  const monthRev=DB.jobs.filter(j=>{const d=new Date(j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).reduce((s,j)=>s+(j.total||0),0);
+  const monthJobs=DB.jobs.filter(j=>{const d=new Date(j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const monthRev=monthJobs.reduce((s,j)=>s+(j.total||0),0);
   document.getElementById('sR').textContent=monthRev.toLocaleString('en-IN');
   document.getElementById('sCu').textContent=DB.customers.length;
   let mech=0,body=0,paint=0,parts=0;
-  DB.jobs.forEach(j=>{
+  monthJobs.forEach(j=>{
     (j.labourItems||[]).forEach(it=>{
       const amt=it.price*(it.qty||1);
       const wt=it.wtype||'mech';
@@ -2314,6 +2345,16 @@ function renderReport(){
   document.getElementById('rPaint').textContent='₹'+paint.toLocaleString('en-IN');
   document.getElementById('rPaintP').textContent=pct(paint)+'%';
   document.getElementById('paintBar').style.width=Math.round(paint/max*100)+'%';
+  const paintMatInfo=document.getElementById('paintMatInfo');
+  if(rPeriod==='month'){
+    const matCost=DB.paintMaterialCosts?.[curMonthKey()]||0;
+    const netPaint=Math.max(0,paint-matCost);
+    paintMatInfo.innerHTML=matCost>0
+      ?`Material cost: ₹${matCost.toLocaleString('en-IN')} → Net paint labour: <b>₹${netPaint.toLocaleString('en-IN')}</b>`
+      :`Material cost not entered yet for this month`;
+  }else{
+    paintMatInfo.innerHTML=`Material tracking works only in Month view`;
+  }
   document.getElementById('rParts').textContent='₹'+parts.toLocaleString('en-IN');
   document.getElementById('rPartsP').textContent=pct(parts)+'%';
   document.getElementById('partsBar').style.width=Math.round(parts/max*100)+'%';
