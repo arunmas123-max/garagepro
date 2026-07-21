@@ -254,6 +254,7 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('manage')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">⚙️ Manage</div>
   <div onclick="goMore('stock')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">📦 Stock</div>
   <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
+  <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
   <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI</div>
 </div>
 
@@ -281,6 +282,17 @@ textarea{resize:vertical;min-height:65px}
     <div id="teamCards" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch"></div>
   </div>
   <div class="card">
+  <div class="card" style="padding:10px 12px;background:linear-gradient(135deg,#1e3a5f,#1d4ed8);border:none;margin-bottom:8px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="font-size:18px">🔍</div>
+      <input id="homeVSearch" type="text" placeholder="Vehicle No. / Customer name..." 
+        style="flex:1;padding:8px 12px;border:none;border-radius:8px;font-size:13px;font-weight:600;text-transform:uppercase;outline:none"
+        oninput="onHomeVSearch(this.value)" onkeydown="if(event.key==='Enter'&&this.value.trim()){openVehicleSearch(this.value.trim());this.value=''}">
+      <button onclick="openVehicleSearch(document.getElementById('homeVSearch').value)" 
+        style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Go</button>
+    </div>
+    <div id="homeVSearchDrop" style="display:none;background:#fff;border-radius:8px;margin-top:6px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
+  </div>
     <div class="card-t">🚀 Quick Actions</div>
     <button class="btn b-rust" onclick="go('job')">➕ New Job Card</button>
     <button class="btn b-gold" onclick="openQuickCash()">⚡ Quick Cash Job</button>
@@ -580,6 +592,18 @@ textarea{resize:vertical;min-height:65px}
     <div class="chip" data-rc="Glass">Glass</div>
   </div>
   <div id="ratesList"></div>
+</div>
+
+<!-- SEARCH -->
+<div class="pg" id="search">
+  <div class="card" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8);color:#fff;border:none;padding:12px;margin-bottom:8px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:8px">🔍 Vehicle Search</div>
+    <input id="srchInp" type="text" placeholder="Vehicle No. / Customer name..."
+      style="width:100%;padding:10px 12px;border:none;border-radius:8px;font-size:14px;font-weight:700;text-transform:uppercase;outline:none;box-sizing:border-box"
+      oninput="doVehicleSearch(this.value)">
+    <div style="font-size:10px;opacity:.7;margin-top:6px">KL number അല്ലെങ്കിൽ customer name — രണ്ടും search ചെയ്യാം</div>
+  </div>
+  <div id="srchResults"><div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div></div>
 </div>
 
 <!-- AI -->
@@ -1158,6 +1182,8 @@ function saveToFirebase() {
     customLabour: DB.customLabour,
     lrDisabled: DB.lrDisabled,
     paintMaterialCosts: DB.paintMaterialCosts,
+    todos: DB.todos || [],
+    partsBuy: DB.partsBuy || [],
     lastUpdated: Date.now(),
     updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
   };
@@ -1212,6 +1238,8 @@ function loadFromFirebase() {
         DB.customLabour = data.customLabour || [];
         DB.lrDisabled = data.lrDisabled || {};
         DB.paintMaterialCosts = data.paintMaterialCosts || {};
+        DB.todos = data.todos || [];
+        DB.partsBuy = data.partsBuy || [];
         localStorage.setItem('gp_kl_v5', JSON.stringify(DB));
         localStorage.setItem('gp_lastupdate', fbTime.toString());
         renderAll();
@@ -1303,7 +1331,7 @@ function go(name){
   if(name==='job'){editingJobId=null;setTimeout(()=>{const fd=document.getElementById('fDate');if(fd&&!fd.value)fd.value=new Date().toISOString().slice(0,10);},50);}
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.pg===name));
   document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===name));
-  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,ai:()=>{}};
+  const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,search:()=>{},ai:()=>{}};
   if(fn[name])fn[name]();
 }
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.pg)));
@@ -2216,6 +2244,90 @@ function toggleMoreMenu(){
 function goMore(pg){
   document.getElementById('moreMenu').style.display='none';
   go(pg);
+}
+// ====================== VEHICLE SEARCH ======================
+function onHomeVSearch(val){
+  const drop=document.getElementById('homeVSearchDrop');
+  if(!val||val.length<2){drop.style.display='none';return;}
+  const q=val.trim().toUpperCase();
+  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
+  const vnums=[...new Set(matches.map(j=>j.vnum).filter(Boolean))].slice(0,4);
+  const names=[...new Set(matches.map(j=>j.name).filter(Boolean))].slice(0,3);
+  const items=[...vnums.map(v=>({label:'🚗 '+v,val:v})),...names.map(n=>({label:'👤 '+n,val:n}))];
+  if(!items.length){drop.style.display='none';return;}
+  drop.style.display='block';
+  drop.innerHTML=items.map(i=>`<div style="padding:9px 12px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6;cursor:pointer;color:var(--ink)"
+    onclick="openVehicleSearch('${i.val.replace(/'/g,"\\'")}');document.getElementById('homeVSearch').value='';document.getElementById('homeVSearchDrop').style.display='none'">${i.label}</div>`).join('');
+}
+function openVehicleSearch(q){
+  if(!q||!q.trim())return;
+  document.getElementById('homeVSearchDrop').style.display='none';
+  goMore('search');
+  setTimeout(()=>{
+    const inp=document.getElementById('srchInp');
+    if(inp){inp.value=q.trim();doVehicleSearch(q.trim());}
+  },100);
+}
+function doVehicleSearch(val){
+  const el=document.getElementById('srchResults');
+  if(!el)return;
+  if(!val||val.length<2){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div>';return;}
+  const q=val.trim().toUpperCase();
+  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
+  if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">🔍 "'+val+'" — results ഇല്ല</div>';return;}
+  const grouped={};
+  matches.forEach(j=>{const key=(j.vnum||'NO-REG').toUpperCase();if(!grouped[key])grouped[key]=[];grouped[key].push(j);});
+  let html='';
+  Object.entries(grouped).sort((a,b)=>new Date(b[1][0].at)-new Date(a[1][0].at)).forEach(([vnum,jobs])=>{
+    jobs.sort((a,b)=>new Date(b.at)-new Date(a.at));
+    const latest=jobs[0];
+    const totalAmt=jobs.reduce((s,j)=>s+(j.total||0),0);
+    const totalPaid=jobs.reduce((s,j)=>s+(j.paid||0),0);
+    const pending=totalAmt-totalPaid;
+    const lastKm=jobs.find(j=>j.km&&j.km!='0')?.km||'—';
+    html+=`<div class="card" style="border-top:3px solid var(--blue);margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:16px;font-weight:800">${vnum==='NO-REG'?'No Reg.':vnum}</div>
+          <div style="font-size:12px;color:var(--gray)">${latest.name} ${latest.car?'• '+latest.car:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:700;color:var(--blue)">${jobs.length} visit${jobs.length>1?'s':''}</div>
+          ${pending>0?`<div style="font-size:11px;font-weight:700;color:#dc2626">₹${pending.toLocaleString('en-IN')} due</div>`:'<div style="font-size:10px;color:var(--green)">✅ Cleared</div>'}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px">
+        <div style="background:#eff6ff;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:11px;color:var(--blue)">${new Date(latest.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'})}</div>
+          <div style="font-size:8px;color:#9ca3af">LAST VISIT</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:11px;color:var(--green)">${lastKm} km</div>
+          <div style="font-size:8px;color:#9ca3af">LAST KM</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:7px;padding:7px;text-align:center">
+          <div style="font-weight:700;font-size:11px;color:var(--gold)">₹${totalAmt.toLocaleString('en-IN')}</div>
+          <div style="font-size:8px;color:#9ca3af">TOTAL SPENT</div>
+        </div>
+      </div>
+      <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;margin-bottom:5px">Service History</div>
+      ${jobs.map(j=>`<div onclick="goMore('jobs');setTimeout(()=>openJob('${j.id}'),200)" style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:5px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+          <div style="font-size:11px;font-weight:700">${new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          <div style="display:flex;gap:5px;align-items:center">
+            ${j.km&&j.km!='0'?`<span style="font-size:9px;color:var(--gray)">🛣 ${j.km} km</span>`:''}
+            <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}">${j.status}</span>
+          </div>
+        </div>
+        ${j.complaint?`<div style="font-size:11px;color:#374151;margin-bottom:2px">📝 ${j.complaint.slice(0,70)}${j.complaint.length>70?'...':''}</div>`:''}
+        <div style="display:flex;justify-content:space-between;margin-top:3px">
+          <span style="font-size:10px;color:var(--gray)">${(DB.mechanics.find(m=>m.id===j.mechId)||{}).name||''}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</span>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  });
+  el.innerHTML=html;
 }
 document.addEventListener('click',e=>{
   const menu=document.getElementById('moreMenu');
