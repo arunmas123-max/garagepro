@@ -2460,9 +2460,12 @@ function openDeliveryPayment(id){
         🚗 Confirm Delivery</button>
     </div>
     <div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:6px">Partial / Unpaid ആണെങ്കിലും deliver ചെയ്യാം</div>`;
-  // Pre-select Fully Paid if balance is 0
-  if(balance<=0) dpSelectStatus('full');
   openM('deliveryPayM');
+  // Pre-select after modal is open
+  _dpStatus='';_dpMode='';
+  setTimeout(()=>{
+    if(balance<=0) dpSelectStatus('full');
+  },50);
 }
 let _dpStatus='';let _dpMode='';
 function dpSelectStatus(s){
