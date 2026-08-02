@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.3</title>
+<title>Garage Pro Kerala v9.4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.3</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.4</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -261,7 +261,9 @@ textarea{resize:vertical;min-height:65px}
 <main>
 <!-- HOME -->
 <div class="pg on" id="home">
-  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div>
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div>
+  <!-- Daily Target Widget -->
+  <div id="dailyTargetWidget"></div>
   <div class="sg">
     <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
     <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
@@ -720,6 +722,17 @@ textarea{resize:vertical;min-height:65px}
   <div class="mbox">
     <div class="mhead"><div class="mt" id="jobMT">Job</div><button class="mc" onclick="closeM('jobM')">×</button></div>
     <div class="mbody" id="jobMB"></div>
+  </div>
+</div>
+
+<!-- UNASSIGNED JOBS MODAL -->
+<div class="modal" id="unassignM">
+  <div class="mbox">
+    <div class="mhead" style="background:#fff7ed;border-bottom:2px solid #f97316">
+      <div class="mt" style="color:#c2410c">⚠️ Unassigned Jobs</div>
+      <button class="mc" onclick="closeM('unassignM')">×</button>
+    </div>
+    <div class="mbody" id="unassignMB"></div>
   </div>
 </div>
 
@@ -1352,23 +1365,40 @@ function catBadgeHtml(cat){
 // ====================== HOME ======================
 function renderHome(){
   renderInstall();
+  // ── 1. Backup Warning (aggressive) ──────────────────────────────
   const last=localStorage.getItem('gp_lastbk');
   const days=last?Math.floor((Date.now()-parseInt(last))/864e5):999;
   const bkEl=document.getElementById('bkWarn');
-  if(DB.jobs.length&&days>3)bkEl.innerHTML=`<div class="bk-warn">⚠️ ${days===999?'Backup ചെയ്തിട്ടില്ല!':'Last backup '+days+' days ago'} → <b onclick="doBackup()" style="cursor:pointer;text-decoration:underline">Backup Now</b></div>`;
+  if(DB.jobs.length&&days>7)
+    bkEl.innerHTML=`<div style="background:#fef2f2;border:2px solid #dc2626;border-radius:9px;padding:10px 12px;margin-bottom:6px;font-size:12px;color:#991b1b;display:flex;justify-content:space-between;align-items:center">🚨 <b>${days===999?'Backup ഒരിക്കലും ചെയ്തിട്ടില്ല!':days+' ദിവസം backup ഇല്ല!'}</b> <button onclick="doBackup()" style="background:#dc2626;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Backup Now</button></div>`;
+  else if(DB.jobs.length&&days>3)
+    bkEl.innerHTML=`<div class="bk-warn">⚠️ ${days} days ago backup → <b onclick="doBackup()" style="cursor:pointer;text-decoration:underline">Backup Now</b></div>`;
   else bkEl.innerHTML='';
+
+  // ── 2. Low Stock Banner ──────────────────────────────────────────
   const low=DB.stock.filter(s=>s.qty<=s.min);
   const lb=document.getElementById('lowBanner');
-  if(low.length)lb.innerHTML=`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:12px;color:#991b1b;cursor:pointer" onclick="go('stock')">⚠️ <b>${low.length} parts</b> low stock! → View Stock</div>`;
+  if(low.length)lb.innerHTML=`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:9px 11px;margin-bottom:6px;font-size:12px;color:#991b1b;cursor:pointer" onclick="go('stock')">⚠️ <b>${low.length} parts</b> low stock! → View Stock</div>`;
   else lb.innerHTML='';
-  renderTodos();
-  renderPartsBuy();
-  renderBriefing(low);
-  renderTeamCards();
+
+  // ── 3. Unassigned Jobs Alert ─────────────────────────────────────
+  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId===''));
+  const ub=document.getElementById('unassignBanner');
+  if(unassigned.length)
+    ub.innerHTML=`<div onclick="openUnassignedList()" style="background:#fff7ed;border:2px solid #f97316;border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:12px;font-weight:700;color:#c2410c">⚠️ ${unassigned.length} Jobs — Mechanic ഇല്ല!</div><div style="font-size:10px;color:#9a3412">Tap ചെയ്ത് assign ചെയ്യൂ</div></div>
+      <div style="background:#f97316;color:#fff;border-radius:20px;padding:4px 10px;font-size:13px;font-weight:800">${unassigned.length}</div>
+    </div>`;
+  else ub.innerHTML='';
+
+  renderTodos();renderPartsBuy();renderBriefing(low);renderTeamCards();
+
+  // ── 4. Stats ─────────────────────────────────────────────────────
   const today=new Date().toDateString();
   const todayJ=DB.jobs.filter(j=>new Date(j.at).toDateString()===today);
+  const todayRev=todayJ.reduce((s,j)=>s+(j.total||0),0);
   document.getElementById('hJ').textContent=todayJ.length;
-  document.getElementById('hR').textContent=todayJ.reduce((s,j)=>s+j.total,0).toLocaleString('en-IN');
+  document.getElementById('hR').textContent=todayRev.toLocaleString('en-IN');
   document.getElementById('hP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
   document.getElementById('hLow').textContent=low.length;
   document.getElementById('sJ').textContent=DB.jobs.length;
@@ -1381,8 +1411,7 @@ function renderHome(){
   let mech=0,body=0,paint=0,parts=0;
   monthJobs.forEach(j=>{
     (j.labourItems||[]).forEach(it=>{
-      const amt=it.price*(it.qty||1);
-      const wt=it.wtype||'mech';
+      const amt=it.price*(it.qty||1);const wt=it.wtype||'mech';
       if(wt==='body')body+=amt;else if(wt==='paint')paint+=amt;else mech+=amt;
     });
     parts+=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
@@ -1392,13 +1421,74 @@ function renderHome(){
   document.getElementById('sPaint').textContent=paint.toLocaleString('en-IN');
   document.getElementById('sParts').textContent=parts.toLocaleString('en-IN');
   applyIncomeVisibility();
+
+  // ── 5. Daily Target Widget ────────────────────────────────────────
+  const target=parseInt(localStorage.getItem('gp_daily_target')||'0');
+  const pct=target>0?Math.min(100,Math.round(todayRev/target*100)):0;
+  const barCol=pct>=100?'var(--green)':pct>=60?'var(--gold)':'var(--rust)';
+  document.getElementById('dailyTargetWidget').innerHTML=`
+    <div class="card" style="padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700">🎯 Daily Target</div>
+        <button onclick="editDailyTarget()" style="background:#f3f4f6;border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Set</button>
+      </div>
+      ${target>0?`
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+        <span style="color:var(--gray)">Target: <b style="color:var(--ink)">₹${target.toLocaleString('en-IN')}</b></span>
+        <span style="color:${barCol};font-weight:700">₹${todayRev.toLocaleString('en-IN')} (${pct}%)</span>
+      </div>
+      <div style="background:#f3f4f6;border-radius:20px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${barCol};border-radius:20px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--gray);margin-top:4px;text-align:right">${pct>=100?'🎉 Target Reached!':target>todayRev?'₹'+(target-todayRev).toLocaleString('en-IN')+' more needed':'On Track ✅'}</div>`
+      :`<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px 0">Target set ചെയ്തിട്ടില്ല — ✏️ Set tap ചെയ്യൂ</div>`}
+    </div>`;
+
+  // ── Recent Jobs ───────────────────────────────────────────────────
   const rc=document.getElementById('recentJobs');
   if(!DB.jobs.length){rc.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs yet</div>';return;}
-  rc.innerHTML=DB.jobs.slice(0,5).map(j=>`
-    <div style="padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')">
-      <div style="font-weight:700;font-size:13px">${j.name} — ${j.car}</div>
-      <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${j.total.toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
-    </div>`).join('');
+  rc.innerHTML=DB.jobs.slice(0,5).map(j=>{
+    const age=Math.floor((Date.now()-new Date(j.at))/864e5);
+    const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
+    return `<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')">
+      <div style="display:flex;justify-content:space-between">
+        <div style="font-weight:700;font-size:13px">${j.name} — ${j.car||''}</div>
+        <span style="font-size:9px;font-weight:700;color:${ageCol};background:${ageCol}18;padding:2px 6px;border-radius:10px">${age}d</span>
+      </div>
+      <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${(j.total||0).toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
+    </div>`;
+  }).join('');
+}
+function editDailyTarget(){
+  const cur=localStorage.getItem('gp_daily_target')||'';
+  const val=prompt('Daily Target (₹) enter ചെയ്യൂ:',cur);
+  if(val===null)return;
+  const n=parseInt(val.replace(/,/g,''));
+  if(isNaN(n)||n<0){alert('Valid amount enter ചെയ്യൂ');return;}
+  localStorage.setItem('gp_daily_target',n.toString());
+  renderHome();
+}
+function openUnassignedList(){
+  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId===''));
+  if(!unassigned.length)return;
+  const html=unassigned.map(j=>{
+    const age=Math.floor((Date.now()-new Date(j.at))/864e5);
+    const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
+    return `<div onclick="closeM('unassignM');openJob('${j.id}')" style="border:1px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;background:#fff7ed">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="flex:1"><div style="font-weight:700;font-size:13px">${j.name} ${j.vnum?'• '+j.vnum:''}</div>
+        <div style="font-size:10px;color:var(--gray)">${j.car||''} • ${new Date(j.at).toLocaleDateString('en-IN')}</div>
+        ${j.complaint?`<div style="font-size:10px;color:#374151;margin-top:2px">${j.complaint.slice(0,40)}</div>`:''}
+        </div>
+        <div style="text-align:right;margin-left:8px">
+          <span style="font-size:9px;font-weight:700;color:${ageCol};background:${ageCol}20;padding:2px 6px;border-radius:10px">${age}d</span>
+          <div style="font-size:12px;font-weight:700;color:var(--rust);margin-top:3px">₹${(j.total||0).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('unassignMB').innerHTML=`<div style="margin-bottom:8px;font-size:12px;color:#9a3412;font-weight:700">⚠️ ${unassigned.length} jobs — Mechanic assign ചെയ്തിട്ടില്ല. Tap ചെയ്ത് assign ചെയ്യൂ.</div>${html}`;
+  openM('unassignM');
 }
 function addTodo(){
   const inp=document.getElementById('todoInp');
@@ -1573,16 +1663,15 @@ function renderKanban(){
     <div class="kb-col kb-${st}">
       <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
       ${jobs.length?jobs.map(j=>`
-        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8':''}${j.urgent?'border-left:3px solid #dc2626':''}">
+        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8;':j.urgent?'border-left:3px solid #dc2626;':''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
-            <div style="font-size:9px;color:#9ca3af;white-space:nowrap;margin-left:4px">${(()=>{const d=Math.floor((Date.now()-new Date(j.at))/(1000*60*60*24));return d===0?'Today':d===1?'1d':d+'d';})()}</div>
+            ${(()=>{const age=Math.floor((Date.now()-new Date(j.at))/864e5);const c=age>14?'#dc2626':age>7?'#d97706':'#16a34a';return `<span style="font-size:8px;font-weight:700;color:${c};background:${c}20;padding:1px 5px;border-radius:8px;white-space:nowrap;margin-left:4px">${age===0?'Today':age+'d'}</span>`;})()}
           </div>
-          <div class="kb-sub">${j.car}</div>
-          <div class="kb-sub">${j.vnum}</div>
+          <div class="kb-sub">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
           ${j.mechName?`<div style="font-size:9px;color:var(--blue);margin-top:2px">👷 ${j.mechName}</div>`:'<div style="font-size:9px;color:#f59e0b;margin-top:2px">⚠️ No mechanic</div>'}
           ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
-          <div class="kb-amt">₹${j.total.toLocaleString('en-IN')}</div>
+          <div class="kb-amt">₹${(j.total||0).toLocaleString('en-IN')}</div>
         </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
     </div>`).join('');
 }
