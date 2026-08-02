@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.9</title>
+<title>Garage Pro Kerala v10.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.9</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.0</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -439,7 +439,8 @@ textarea{resize:vertical;min-height:65px}
     <div class="fg" id="paySection">
       <label>Payment Mode</label>
       <select id="fPayMode" onchange="onPayMode()">
-        <option value="pending">⏳ Pending</option>
+        <option value="pending">⏳ Pending — later collect ചെയ്യാം</option>
+        <option value="advance">💰 Advance — part payment now</option>
         <option value="cash">💵 Cash (Full)</option>
         <option value="upi">📱 UPI (Full)</option>
         <option value="card">💳 Card (Full)</option>
@@ -447,7 +448,8 @@ textarea{resize:vertical;min-height:65px}
       </select>
     </div>
     <div class="fg" id="partialDiv" style="display:none">
-      <label>Amount Received ₹</label><input id="fPartial" type="number" placeholder="0">
+      <label id="partialLabel">Advance / Partial Amount ₹</label>
+      <input id="fPartial" type="number" placeholder="0">
     </div>
     <button class="btn b-green" id="saveBtn" onclick="saveJob()">✅ Save Job Card</button>
   </div>
@@ -2090,7 +2092,11 @@ function renderEstimate(){
   eb.style.display='block';ps.style.display='block';sb.style.display='block';
 }
 function onPayMode(){
-  document.getElementById('partialDiv').style.display=document.getElementById('fPayMode').value==='partial'?'block':'none';
+  const mode=document.getElementById('fPayMode').value;
+  const showDiv=mode==='partial'||mode==='advance';
+  document.getElementById('partialDiv').style.display=showDiv?'block':'none';
+  const lbl=document.getElementById('partialLabel');
+  if(lbl)lbl.textContent=mode==='advance'?'Advance Amount ₹':'Partial Amount Received ₹';
 }
 
 // ====================== SAVE JOB ======================
@@ -2119,13 +2125,15 @@ function saveJob(){
   const sub=labour+partsTotal;
   const gst=0;
   const total=sub+gst;
-  const amtPaid=payMode==='pending'?0:payMode==='partial'?partial:total;
+  const amtPaid=payMode==='pending'?0:payMode==='partial'||payMode==='advance'?partial:total;
+  const effectivePayMode=payMode==='advance'?'partial':payMode; // advance stored as partial
+  const payHistory=amtPaid>0?[{amt:amtPaid,mode:effectivePayMode,at:new Date().toISOString(),note:payMode==='advance'?'advance':''}]:[];
   const job={
     id:'JOB'+Date.now(),name,phone,vnum,addr,fuel,car:JOB.car,cat:JOB.cat,km,complaint,jobType,urgent,partsAwaited,partsAwaitedList,
     labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
     photos:[...JOB.photos],status:'pending',
     mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
-    nextSvc,payMode,amtPaid,labour,partsTotal,sub,gst,total,
+    nextSvc,payMode:effectivePayMode,amtPaid,paid:amtPaid,payHistory,labour,partsTotal,sub,gst,total,
     at: jd ? new Date(jd+'T'+new Date().toTimeString().slice(0,8)).toISOString() : new Date().toISOString()
   };
   DB.jobs.unshift(job);
@@ -2231,7 +2239,7 @@ function openJob(id){
       
       <div class="irow" style="font-size:16px;font-weight:800;color:var(--rust)"><span>TOTAL</span><span>₹${j.total?.toLocaleString('en-IN')}</span></div>
       <div style="margin-top:8px;padding:8px;background:#f8f9fa;border-radius:7px;font-size:12px">
-        💳 ${j.payMode||'pending'} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${(j.total-(j.amtPaid||0)).toLocaleString('en-IN')}
+        ${j.payMode==='partial'&&(j.payHistory||[]).some(p=>p.note==='advance')?'💰 Advance':'💳 '+(j.payMode||'pending')} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${((j.total||0)-(j.amtPaid||0)).toLocaleString('en-IN')}
       </div>
     </div>
     <div class="card">
@@ -2280,7 +2288,8 @@ function openJob(id){
       ${j.status!=='pending'?`<button class="btn b-gray b-sm" onclick="updSt('${j.id}','pending')">↩ Reopen</button>`:''}
     </div>
     ${(j.amtPaid||0)<(j.total||0)?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Collect Payment</button>`:
-      j.status==='completed'?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Update Payment</button>`:''}
+      (j.total||0)>0&&j.status==='completed'?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Update Payment</button>`:
+      `<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Advance / Payment</button>`}
 
     <button class="btn b-wa" onclick='sendWA(${JSON.stringify(j).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})'>📱 WhatsApp</button>
     <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Bill</button>
@@ -2761,8 +2770,18 @@ function applyVnumResult(){
 function collectPay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   _payJobId=id;_payMode=null;
-  const due=j.total-(j.amtPaid||0);
-  document.getElementById('payDueInfo').textContent='Due: ₹'+due.toLocaleString('en-IN');
+  const total=j.total||0;
+  const paid=j.amtPaid||0;
+  const due=total-paid;
+  const isAdvance=total===0;
+  const infoEl=document.getElementById('payDueInfo');
+  if(isAdvance){
+    infoEl.innerHTML=`<div>💰 Advance Payment<br><span style="font-size:11px;font-weight:400">Job total ₹0 — Labour/parts add ചെയ്‌തിട്ടില്ല. Advance collect ചെയ്യാം.</span></div>`;
+  } else if(paid>0){
+    infoEl.innerHTML=`Total: ₹${total.toLocaleString('en-IN')} | Paid: ₹${paid.toLocaleString('en-IN')} | <b>Due: ₹${due.toLocaleString('en-IN')}</b>`;
+  } else {
+    infoEl.textContent='Due: ₹'+due.toLocaleString('en-IN');
+  }
   document.getElementById('pmPartialDiv').style.display='none';
   document.getElementById('pmModeChosen').style.display='none';
   document.getElementById('pmSaveBtn').style.display='none';
@@ -2789,21 +2808,38 @@ function selectPayMode(mode){
 }
 function saveCollectPay(){
   const j=DB.jobs.find(x=>x.id===_payJobId);if(!j||!_payMode)return;
+  const now=new Date().toISOString();
   if(_payMode.startsWith('partial')){
     const partAmt=parseFloat(document.getElementById('pmPartialAmt').value||0);
     if(!partAmt){alert('Amount enter ചെയ്യുക');return;}
     j.amtPaid=(j.amtPaid||0)+partAmt;
-    j.paid=j.amtPaid; // keep in sync
+    j.paid=j.amtPaid;
     j.payMode='partial';
     if(!j.payHistory)j.payHistory=[];
-    j.payHistory.push({amt:partAmt,mode:'partial',at:new Date().toISOString()});
+    j.payHistory.push({amt:partAmt,mode:'partial',at:now,note:'partial'});
+    showToast('✅ ₹'+partAmt.toLocaleString('en-IN')+' collected!');
   } else {
-    j.amtPaid=j.total;
-    j.paid=j.total; // keep in sync
-    j.payMode=_payMode;
-    j.paidAt=new Date().toISOString(); // ← record payment date
-    if(!j.payHistory)j.payHistory=[];
-    j.payHistory.push({amt:j.total,mode:_payMode,at:j.paidAt});
+    // Full payment or advance
+    const isAdvance=(j.total||0)===0;
+    if(isAdvance){
+      // Advance — amount is partial by definition
+      const advAmt=parseFloat(prompt('Advance Amount ₹')||'0');
+      if(!advAmt||advAmt<=0){return;}
+      j.amtPaid=(j.amtPaid||0)+advAmt;
+      j.paid=j.amtPaid;
+      j.payMode='partial';
+      if(!j.payHistory)j.payHistory=[];
+      j.payHistory.push({amt:advAmt,mode:_payMode,at:now,note:'advance'});
+      showToast('✅ Advance ₹'+advAmt.toLocaleString('en-IN')+' collected!');
+    } else {
+      j.amtPaid=j.total;
+      j.paid=j.total;
+      j.payMode=_payMode;
+      j.paidAt=now;
+      if(!j.payHistory)j.payHistory=[];
+      j.payHistory.push({amt:j.total,mode:_payMode,at:now});
+      showToast('✅ Full payment collected!');
+    }
   }
   save();closeM('payM');openJob(_payJobId);
 }
