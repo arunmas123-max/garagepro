@@ -896,7 +896,7 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<div class="modal" id="deliveryPayM">
+<div class="modal" id="deliveryPayM" style="z-index:300">
   <div class="mbox">
     <div class="mhead" style="background:linear-gradient(135deg,#166534,#16a34a)">
       <div class="mt" style="color:#fff">🚗 Delivery & Payment</div>
@@ -2461,6 +2461,8 @@ function openDeliveryPayment(id){
     </div>
     <div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:6px">Partial / Unpaid ആണെങ്കിലും deliver ചെയ്യാം</div>`;
   openM('deliveryPayM');
+  // Close jobM so it doesn't block touch events
+  document.getElementById('jobM').classList.remove('on');
   // Pre-select after modal is open
   _dpStatus='';_dpMode='';
   setTimeout(()=>{
@@ -2529,7 +2531,7 @@ function confirmDelivery(id){
   j.completedAt=new Date().toISOString();
   _dpStatus='';_dpMode='';
   save();
-  closeM('deliveryPayM');closeM('jobM');
+  closeM('deliveryPayM');
   renderJobs();renderKanban();renderHome();
   showToast('🚗 Delivered! Payment saved ✅');
   if(confirm('Customer-ന് WhatsApp notification അയക്കണോ?'))sendWA(j);
