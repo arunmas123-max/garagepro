@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.5</title>
+<title>Garage Pro Kerala v9.6</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.5</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.6</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -255,6 +255,7 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('stock')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">📦 Stock</div>
   <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
   <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
+  <div onclick="openDataHealth()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🏥 Data Health</div>
   <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI</div>
 </div>
 
@@ -725,6 +726,17 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
+<!-- DATA HEALTH MODAL -->
+<div class="modal" id="dataHealthM">
+  <div class="mbox">
+    <div class="mhead" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8)">
+      <div class="mt" style="color:#fff">🏥 Data Health Check</div>
+      <button class="mc" onclick="closeM('dataHealthM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
+    </div>
+    <div class="mbody" id="dataHealthMB"></div>
+  </div>
+</div>
+
 <!-- UNASSIGNED JOBS MODAL -->
 <div class="modal" id="unassignM">
   <div class="mbox">
@@ -1155,12 +1167,23 @@ function jobWorkerCredits(j){
     const wt=it.wtype||'mech';
     if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
   });
-  const partsSum=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
-  const tinkerId=j.tinkerId||(bodySum>0?j.mechId:null);
-  const painterId=j.painterId||(paintSum>0?j.mechId:null);
+  // Parts credit goes only to assigned mechanic (not body/paint workers)
+  const partsSum=(j.spareItems||[]).reduce((s,it)=>s+(it.custSup?0:it.sell*(it.qty||1)),0);
+  const tinkerId=j.tinkerId||(bodySum>0&&!j.mechId?null:bodySum>0?j.mechId:null);
+  const painterId=j.painterId||(paintSum>0&&!j.mechId?null:paintSum>0?j.mechId:null);
   const credits={};
   const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
-  add(j.mechId,mechSum+partsSum);add(tinkerId,bodySum);add(painterId,paintSum);
+  // mechId gets: mechanical labour + parts
+  // tinkerId gets: body labour only
+  // painterId gets: paint labour only
+  if(j.tinkerId){
+    add(j.mechId,mechSum+partsSum);
+    add(j.tinkerId,bodySum);
+    add(j.painterId||j.mechId,paintSum);
+  } else {
+    // Single mechanic — gets all
+    add(j.mechId,mechSum+bodySum+paintSum+partsSum);
+  }
   return credits;
 }
 function recomputeWorkerStats(){
@@ -2253,9 +2276,14 @@ function recalcJob(j){
   j.sub=j.labour+j.partsTotal;
   j.gst=0;
   j.total=j.sub+j.gst;
-  const delta=j.total-oldTotal;
+  // Fix: due amount should also update
+  if(j.payMode==='pending'||!j.payMode){j.amtPaid=0;j.paid=0;}
+  else if(j.payMode!=='partial'){j.amtPaid=j.total;j.paid=j.total;}
+  // Fix: customer spent — recompute from all jobs instead of delta (prevents drift)
   const cx=DB.customers.find(c=>c.phone===j.phone);
-  if(cx)cx.spent=Math.max(0,(cx.spent||0)+delta);
+  if(cx){
+    cx.spent=DB.jobs.filter(jb=>jb.phone===j.phone).reduce((s,jb)=>s+(jb.total||0),0);
+  }
 }
 function jobLabourPrice(r,cat){const cr=DB.customRates[r.n];const x=cr?{...r,...cr}:r;return x[cat||'hb']||x.hb;}
 function assignWorkers(id){
@@ -2345,6 +2373,85 @@ let _vnumMatch=null;
 function toggleMoreMenu(){
   const m=document.getElementById('moreMenu');
   m.style.display=m.style.display==='none'?'block':'none';
+}
+function fixAllMismatches(){
+  DB.jobs.forEach(j=>{
+    const labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
+    const parts=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+    const expectedTotal=labour+parts;
+    if(Math.abs((j.total||0)-expectedTotal)>1){
+      j.labour=labour;j.partsTotal=parts;j.sub=expectedTotal;j.gst=0;j.total=expectedTotal;
+    }
+  });
+  save();showToast('✅ All mismatches fixed!');
+}
+function runFullRecalc(){
+  DB.jobs.forEach(j=>recalcJob(j));
+  DB.customers.forEach(cx=>{
+    cx.spent=DB.jobs.filter(j=>j.phone===cx.phone).reduce((s,j)=>s+(j.total||0),0);
+    cx.jobs=DB.jobs.filter(j=>j.phone===cx.phone).length;
+  });
+  save();showToast('✅ Full recalc done!');
+}
+function openDataHealth(){
+  document.getElementById('moreMenu').style.display='none';
+  const issues=[];const warnings=[];
+  let mismatchCount=0;
+  DB.jobs.forEach(j=>{
+    const labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
+    const parts=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
+    const expectedTotal=labour+parts;
+    if(Math.abs((j.total||0)-expectedTotal)>1){
+      mismatchCount++;
+      issues.push(`<div style="padding:6px 8px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;margin-bottom:4px;cursor:pointer;font-size:11px" onclick="closeM('dataHealthM');openJob('${j.id}')">
+        <b>${j.name} — ${j.vnum||''}</b><br>
+        Stored: ₹${(j.total||0).toLocaleString('en-IN')} | Expected: ₹${expectedTotal.toLocaleString('en-IN')}
+        <span style="color:var(--blue);font-size:10px"> → tap to open</span>
+      </div>`);
+    }
+  });
+  let overpaidCount=0;
+  DB.jobs.forEach(j=>{
+    if((j.amtPaid||0)>(j.total||0)+1){
+      overpaidCount++;
+      warnings.push(`<div style="padding:6px 8px;background:#fef3c7;border-left:3px solid #d97706;border-radius:0 6px 6px 0;margin-bottom:4px;font-size:11px">
+        <b>${j.name}</b> — Paid ₹${(j.amtPaid||0).toLocaleString('en-IN')} / Total ₹${(j.total||0).toLocaleString('en-IN')}
+      </div>`);
+    }
+  });
+  const zeroCompleted=DB.jobs.filter(j=>j.status==='completed'&&(j.total||0)===0);
+  const allJobsTotal=DB.jobs.reduce((s,j)=>s+(j.total||0),0);
+  const allJobsCollected=DB.jobs.reduce((s,j)=>s+(j.amtPaid||0),0);
+  const allDue=allJobsTotal-allJobsCollected;
+  const lastBk=localStorage.getItem('gp_lastbk');
+  const bkDays=lastBk?Math.floor((Date.now()-parseInt(lastBk))/864e5):999;
+  const lastSync=typeof lastSyncTime!=='undefined'&&lastSyncTime?Math.floor((Date.now()-lastSyncTime)/60000):null;
+  const score=Math.max(0,100-(mismatchCount*10)-(overpaidCount*5)-(zeroCompleted.length*2)-(bkDays>7?20:bkDays>3?10:0));
+  const scoreCol=score>=90?'var(--green)':score>=70?'var(--gold)':'#dc2626';
+  document.getElementById('dataHealthMB').innerHTML=`
+    <div style="text-align:center;padding:12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px">
+      <div style="font-size:40px;font-weight:900;color:${scoreCol}">${score}</div>
+      <div style="font-size:11px;color:#9ca3af;font-weight:700">DATA HEALTH SCORE / 100</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:13px;color:var(--green)">₹${allJobsTotal.toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">TOTAL BILLED</div></div>
+      <div style="background:#eff6ff;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:13px;color:var(--blue)">₹${allJobsCollected.toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">COLLECTED</div></div>
+      <div style="background:#fef3c7;border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:13px;color:var(--gold)">₹${allDue.toLocaleString('en-IN')}</div><div style="font-size:8px;color:#9ca3af">TOTAL DUE</div></div>
+      <div style="background:${bkDays>7?'#fef2f2':bkDays>3?'#fef3c7':'#f0fdf4'};border-radius:8px;padding:8px;text-align:center"><div style="font-weight:800;font-size:13px;color:${bkDays>7?'#dc2626':bkDays>3?'var(--gold)':'var(--green)'}">${bkDays===999?'Never':bkDays+'d'}</div><div style="font-size:8px;color:#9ca3af">LAST BACKUP</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 10px;background:#f8f9fa;border-radius:8px;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:600">☁️ Firebase Sync</span>
+      <span style="font-size:11px;font-weight:700;color:${lastSync!==null&&lastSync<3?'var(--green)':'#d97706'}">${lastSync===null?'Unknown':lastSync<3?'✅ Live':'⚠️ '+lastSync+'min ago'}</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:${mismatchCount?'#dc2626':'var(--green)'};margin-bottom:4px">${mismatchCount?'🚨':'✅'} Calculation Mismatches: ${mismatchCount}</div>
+    ${mismatchCount?`<div style="margin-bottom:8px">${issues.join('')}<button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#dc2626;color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px">🔧 Fix All Mismatches</button></div>`:''}
+    ${overpaidCount?`<div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">⚠️ Overpaid: ${overpaidCount}</div>${warnings.join('')}`:''}
+    <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
+      <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 Backup Now</button>
+    </div>`;
+  openM('dataHealthM');
 }
 function goMore(pg){
   document.getElementById('moreMenu').style.display='none';
@@ -2512,10 +2619,17 @@ function saveCollectPay(){
     const partAmt=parseFloat(document.getElementById('pmPartialAmt').value||0);
     if(!partAmt){alert('Amount enter ചെയ്യുക');return;}
     j.amtPaid=(j.amtPaid||0)+partAmt;
+    j.paid=j.amtPaid; // keep in sync
     j.payMode='partial';
+    if(!j.payHistory)j.payHistory=[];
+    j.payHistory.push({amt:partAmt,mode:'partial',at:new Date().toISOString()});
   } else {
     j.amtPaid=j.total;
+    j.paid=j.total; // keep in sync
     j.payMode=_payMode;
+    j.paidAt=new Date().toISOString(); // ← record payment date
+    if(!j.payHistory)j.payHistory=[];
+    j.payHistory.push({amt:j.total,mode:_payMode,at:j.paidAt});
   }
   save();closeM('payM');openJob(_payJobId);
 }
@@ -2654,14 +2768,20 @@ function renderReport(){
     document.getElementById('chart7').innerHTML=dayRevs.map((r)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(r>0?4:0,Math.round(r/maxR*70))}px;background:${r>0?'#1d4ed8':'#e5e7eb'}">${r?`<div class="c-val" style="font-size:6px">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
     document.getElementById('chartLbls').innerHTML=rangeDays.map(d=>`<div style="flex:1;text-align:center;font-size:6px;color:var(--gray)">${d.getDate()}/${d.getMonth()+1}</div>`).join('');
   }
-  // payment report
-  const paid=jobs.filter(j=>['cash','upi','card'].includes(j.payMode));
-  const partial=jobs.filter(j=>j.payMode==='partial');
-  const pending=jobs.filter(j=>!j.payMode||j.payMode==='pending');
+  // payment report — based on amtPaid vs total (not just payMode string)
+  const fullyPaid=jobs.filter(j=>(j.amtPaid||0)>=(j.total||0)&&(j.total||0)>0);
+  const partial=jobs.filter(j=>(j.amtPaid||0)>0&&(j.amtPaid||0)<(j.total||0));
+  const pending=jobs.filter(j=>!(j.amtPaid||0)&&(j.total||0)>=0);
+  const totalBilled=jobs.reduce((s,j)=>s+(j.total||0),0);
+  const totalCollected=jobs.reduce((s,j)=>s+(j.amtPaid||0),0);
   document.getElementById('payRpt').innerHTML=`
-    <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${paid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${paid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
-    <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
-    <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>`;
+    <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${fullyPaid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${fullyPaid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
+    <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.amtPaid||0),0).toLocaleString('en-IN')} collected / ₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')} billed</div></div>
+    <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
+    <div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;display:flex;justify-content:space-between">
+      <span style="font-size:11px;color:#15803d;font-weight:700">💰 Total Collected</span>
+      <span style="font-size:13px;font-weight:800;color:#15803d">₹${totalCollected.toLocaleString('en-IN')} / ₹${totalBilled.toLocaleString('en-IN')}</span>
+    </div>`;
   // staff performance — use same filtered jobs as income breakdown
   const mr=document.getElementById('mechRpt');
   if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No staff added</div>';return;}
