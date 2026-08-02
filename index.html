@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.2</title>
+<title>Garage Pro Kerala v10.3</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.3</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -2243,7 +2243,9 @@ function openJob(id){
       
       <div class="irow" style="font-size:16px;font-weight:800;color:var(--rust)"><span>TOTAL</span><span>₹${j.total?.toLocaleString('en-IN')}</span></div>
       <div style="margin-top:8px;padding:8px;background:#f8f9fa;border-radius:7px;font-size:12px">
-        ${j.payMode==='partial'&&(j.payHistory||[]).some(p=>p.note==='advance')?'💰 Advance':'💳 '+(j.payMode||'pending')} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${((j.total||0)-(j.amtPaid||0)).toLocaleString('en-IN')}
+        ${j.payMode==='partial'&&(j.payHistory||[]).some(p=>p.note==='advance')?'💰 Advance':'💳 '+(j.payMode||'pending')} | Paid: ₹${(j.amtPaid||0).toLocaleString('en-IN')} | Due: ₹${Math.max(0,(j.total||0)-(j.amtPaid||0)).toLocaleString('en-IN')}
+        ${(j.amtPaid||0)>(j.total||0)&&(j.total||0)>0?`<br><span style="color:#dc2626;font-weight:700">⚠️ Overpaid ₹${((j.amtPaid||0)-(j.total||0)).toLocaleString('en-IN')} excess! </span><button onclick="fixOverpay('${j.id}')" style="background:#dc2626;color:#fff;border:none;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;margin-left:4px">✏️ Fix</button>`:''}
+        ${(j.payHistory||[]).length>0?`<br><span style="font-size:10px;color:#9ca3af">${(j.payHistory||[]).length} payment(s) — <span onclick="showPayHistory('${j.id}')" style="color:var(--blue);cursor:pointer;text-decoration:underline">History</span></span>`:''}
       </div>
     </div>
     <div class="card">
@@ -2817,20 +2819,23 @@ function saveCollectPay(){
   const now=new Date().toISOString();
   if(_payMode.startsWith('partial')){
     const partAmt=parseFloat(document.getElementById('pmPartialAmt').value||0);
-    if(!partAmt){alert('Amount enter ചെയ്യുക');return;}
-    j.amtPaid=(j.amtPaid||0)+partAmt;
+    if(!partAmt||partAmt<=0){alert('Valid amount enter ചെയ്യുക');return;}
+    const newTotal=(j.amtPaid||0)+partAmt;
+    // Cap at total — prevent overpay
+    if((j.total||0)>0&&newTotal>(j.total||0)){
+      if(!confirm(`⚠️ Total ₹${(j.total||0).toLocaleString('en-IN')}-ൽ കൂടുതൽ ആകും (₹${newTotal.toLocaleString('en-IN')}). Continue ചെയ്യണോ?`))return;
+    }
+    j.amtPaid=newTotal;
     j.paid=j.amtPaid;
-    j.payMode='partial';
+    j.payMode=j.amtPaid>=(j.total||0)&&(j.total||0)>0?'cash':'partial';
     if(!j.payHistory)j.payHistory=[];
-    j.payHistory.push({amt:partAmt,mode:'partial',at:now,note:'partial'});
+    j.payHistory.push({amt:partAmt,mode:_payMode.replace('partial-',''),at:now});
     showToast('✅ ₹'+partAmt.toLocaleString('en-IN')+' collected!');
   } else {
-    // Full payment or advance
     const isAdvance=(j.total||0)===0;
     if(isAdvance){
-      // Advance — amount is partial by definition
       const advAmt=parseFloat(prompt('Advance Amount ₹')||'0');
-      if(!advAmt||advAmt<=0){return;}
+      if(!advAmt||advAmt<=0)return;
       j.amtPaid=(j.amtPaid||0)+advAmt;
       j.paid=j.amtPaid;
       j.payMode='partial';
@@ -2843,11 +2848,57 @@ function saveCollectPay(){
       j.payMode=_payMode;
       j.paidAt=now;
       if(!j.payHistory)j.payHistory=[];
-      j.payHistory.push({amt:j.total,mode:_payMode,at:now});
+      j.payHistory.push({amt:j.total-(j.amtPaid-j.total),mode:_payMode,at:now});
       showToast('✅ Full payment collected!');
     }
   }
   save();closeM('payM');openJob(_payJobId);
+}
+function fixOverpay(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const correct=parseFloat(prompt(`Current amtPaid: ₹${(j.amtPaid||0).toLocaleString('en-IN')}\nTotal: ₹${(j.total||0).toLocaleString('en-IN')}\n\nCorrect paid amount enter ചെയ്യൂ:`,(j.amtPaid||0).toString())||'0');
+  if(isNaN(correct)||correct<0)return;
+  j.amtPaid=correct;
+  j.paid=correct;
+  if(correct>=(j.total||0)&&(j.total||0)>0)j.payMode='cash';
+  else if(correct>0)j.payMode='partial';
+  else j.payMode='pending';
+  save();openJob(id);showToast('✅ Payment corrected!');
+}
+function showPayHistory(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const hist=(j.payHistory||[]);
+  if(!hist.length){showToast('No payment history');return;}
+  const rows=hist.map((p,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:12px">
+    <div>
+      <span style="font-weight:600">₹${(p.amt||0).toLocaleString('en-IN')}</span>
+      <span style="color:#9ca3af;margin-left:6px">${p.mode||''} ${p.note?'('+p.note+')':''}</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="color:#9ca3af">${p.at?new Date(p.at).toLocaleDateString('en-IN'):''}</span>
+      <span onclick="removePayEntry('${id}',${i})" style="color:#dc2626;cursor:pointer;font-size:11px">🗑️</span>
+    </div>
+  </div>`).join('');
+  const total=hist.reduce((s,p)=>s+(p.amt||0),0);
+  document.getElementById('unassignMB').innerHTML=`
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">Payment History — ${j.name}</div>
+    ${rows}
+    <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:13px">
+      <span>Total Paid</span><span style="color:var(--green)">₹${total.toLocaleString('en-IN')}</span>
+    </div>`;
+  openM('unassignM');
+}
+function removePayEntry(jobId,idx){
+  if(!confirm('ഈ payment entry delete ചെയ്യണോ?'))return;
+  const j=DB.jobs.find(x=>x.id===jobId);if(!j||!j.payHistory)return;
+  const removed=j.payHistory[idx];
+  j.payHistory.splice(idx,1);
+  j.amtPaid=Math.max(0,(j.amtPaid||0)-(removed.amt||0));
+  j.paid=j.amtPaid;
+  if(j.amtPaid<=0){j.payMode='pending';}
+  else if(j.amtPaid<(j.total||0)){j.payMode='partial';}
+  save();closeM('unassignM');openJob(jobId);
+  showToast('✅ Payment entry removed!');
 }
 function delJob(id){
   if(!confirm('Delete job?'))return;
