@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.2</title>
+<title>Garage Pro Kerala v9.3</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.3</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -525,7 +525,7 @@ textarea{resize:vertical;min-height:65px}
     </div>
   </div>
   <div class="card">
-    <div class="card-t" style="margin-bottom:4px">📊 Last 7 Days Revenue</div>
+    <div class="card-t" style="margin-bottom:4px" id="chartTitle">📊 Last 7 Days Revenue</div>
     <div class="chart-w" id="chart7"></div>
     <div style="display:flex;gap:3px;margin-top:2px" id="chartLbls"></div>
   </div>
@@ -2457,11 +2457,11 @@ function printInv(id){
 function getFiltJobs(){
   const now=new Date();
   return DB.jobs.filter(j=>{
-    const d=new Date(j.at);
+    const d=new Date(j.at); // job creation date
     if(rPeriod==='today')return d.toDateString()===now.toDateString();
     if(rPeriod==='week'){const w=new Date(now);w.setDate(w.getDate()-7);return d>=w;}
     if(rPeriod==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=rToDate;
+    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=new Date(rToDate.getTime()+86400000);
     return true;
   });
 }
@@ -2507,19 +2507,48 @@ function renderReport(){
   document.getElementById('partsBar').style.width=Math.round(parts/max*100)+'%';
   document.getElementById('rTotal').textContent='₹'+total.toLocaleString('en-IN');
   document.getElementById('rJobs').textContent=jobs.length;
-  // 7-day chart
-  const days=[];
-  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
-  const dayRevs=days.map(d=>DB.jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
-  const maxR=Math.max(...dayRevs)||1;
-  const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c'];
-  document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>`
-    <div class="cb-w">
-      <div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">
-        ${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}
-      </div>
-    </div>`).join('');
-  document.getElementById('chartLbls').innerHTML=days.map(d=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${d.toLocaleDateString('en-IN',{weekday:'short'})}</div>`).join('');
+  // Update chart title
+  const chartTitles={today:'📊 Today — Hourly Revenue',week:'📊 Last 7 Days Revenue',month:'📊 This Month — Daily Revenue',all:'📊 Last 7 Days Revenue',custom:'📊 Custom Range — Daily Revenue'};
+  document.getElementById('chartTitle').textContent=chartTitles[rPeriod]||'📊 Revenue Chart';
+  // Period-aware chart
+  const now=new Date();
+  let chartDays=[];let chartLabel='';
+  if(rPeriod==='today'){
+    // Hourly breakdown for today
+    chartDays=Array.from({length:12},(_,i)=>i*2); // 0,2,4...22 hours
+    const hourRevs=chartDays.map(h=>jobs.filter(j=>{const d=new Date(j.at);return d.toDateString()===now.toDateString()&&d.getHours()>=h&&d.getHours()<h+2;}).reduce((s,j)=>s+(j.total||0),0));
+    const maxR=Math.max(...hourRevs)||1;
+    const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c','#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706'];
+    document.getElementById('chart7').innerHTML=hourRevs.map((r,i)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
+    document.getElementById('chartLbls').innerHTML=chartDays.map(h=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${h}h</div>`).join('');
+  } else if(rPeriod==='week'||rPeriod==='all'){
+    // Last 7 days
+    const days7=[];for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);days7.push(d);}
+    const dayRevs=days7.map(d=>jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
+    const maxR=Math.max(...dayRevs)||1;
+    const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c'];
+    document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
+    document.getElementById('chartLbls').innerHTML=days7.map(d=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${d.toLocaleDateString('en-IN',{weekday:'short'})}</div>`).join('');
+  } else if(rPeriod==='month'){
+    // Daily for this month
+    const daysInMon=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    const monDays=Array.from({length:daysInMon},(_,i)=>i+1);
+    const dayRevs=monDays.map(d=>jobs.filter(j=>{const jd=new Date(j.at);return jd.getDate()===d&&jd.getMonth()===now.getMonth();}).reduce((s,j)=>s+(j.total||0),0));
+    const maxR=Math.max(...dayRevs)||1;
+    document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>{
+      const isToday=(i+1)===now.getDate();
+      return `<div class="cb-w"><div class="c-bar" style="height:${Math.max(r>0?4:0,Math.round(r/maxR*70))}px;background:${isToday?'#c2410c':r>0?'#1d4ed8':'#e5e7eb'}">${r?`<div class="c-val" style="font-size:6px">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`;
+    }).join('');
+    document.getElementById('chartLbls').innerHTML=monDays.map((d,i)=>`<div style="flex:1;text-align:center;font-size:${daysInMon>20?'6px':'8px'};color:${d===now.getDate()?'#c2410c':'var(--gray)'}">${d}</div>`).join('');
+  } else if(rPeriod==='custom'&&rFromDate&&rToDate){
+    // Day-wise for custom range
+    const rangeDays=[];let cur=new Date(rFromDate);
+    while(cur<=rToDate&&rangeDays.length<31){rangeDays.push(new Date(cur));cur.setDate(cur.getDate()+1);}
+    const dayRevs=rangeDays.map(d=>jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
+    const maxR=Math.max(...dayRevs)||1;
+    document.getElementById('chart7').innerHTML=dayRevs.map((r)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(r>0?4:0,Math.round(r/maxR*70))}px;background:${r>0?'#1d4ed8':'#e5e7eb'}">${r?`<div class="c-val" style="font-size:6px">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
+    document.getElementById('chartLbls').innerHTML=rangeDays.map(d=>`<div style="flex:1;text-align:center;font-size:6px;color:var(--gray)">${d.getDate()}/${d.getMonth()+1}</div>`).join('');
+  }
   // payment report
   const paid=jobs.filter(j=>['cash','upi','card'].includes(j.payMode));
   const partial=jobs.filter(j=>j.payMode==='partial');
@@ -2528,18 +2557,10 @@ function renderReport(){
     <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${paid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${paid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⏳ Unpaid</div><div style="font-size:11px;color:var(--gray)">${pending.length} jobs</div></div><div style="font-weight:700;color:var(--red)">₹${pending.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>`;
-  // staff performance report — filtered by completedAt (day work finished), not job creation date
+  // staff performance — use same filtered jobs as income breakdown
   const mr=document.getElementById('mechRpt');
   if(!DB.mechanics.length){mr.innerHTML='<div style="font-size:12px;color:var(--gray)">No staff added</div>';return;}
-  const now2=new Date();
-  const staffJobs=DB.jobs.filter(j=>{
-    const d=new Date(j.completedAt||j.at);
-    if(rPeriod==='today')return d.toDateString()===now2.toDateString();
-    if(rPeriod==='week'){const w=new Date(now2);w.setDate(w.getDate()-7);return d>=w;}
-    if(rPeriod==='month')return d.getMonth()===now2.getMonth()&&d.getFullYear()===now2.getFullYear();
-    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=rToDate;
-    return true;
-  });
+  const staffJobs=jobs; // use same getFiltJobs() result — consistent with income
   const stats={};
   staffJobs.forEach(j=>{
     const credits=jobWorkerCredits(j);
@@ -2565,9 +2586,9 @@ function renderReport(){
     const boxes=DB.mechanics.map(m=>{
       const mJobs=staffJobs.filter(j=>(jobWorkerCredits(j)[m.id]||0)>0);
       if(!mJobs.length)return '';
-      const rows=mJobs.sort((a,b)=>new Date(b.completedAt||b.at)-new Date(a.completedAt||a.at)).map(j=>{
+      const rows=mJobs.sort((a,b)=>new Date(b.at)-new Date(a.at)).map(j=>{
         const amt=jobWorkerCredits(j)[m.id]||0;
-        const d=new Date(j.completedAt||j.at).toLocaleDateString('en-IN');
+        const d=new Date(j.at).toLocaleDateString('en-IN');
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:11.5px">
           <div><b>🚗 ${j.vnum||'-'}</b> ${j.car?'• '+j.car:''}<div style="color:var(--gray);font-size:10px">${j.complaint?j.complaint.slice(0,35):''} • ${d}</div></div>
           <div style="font-weight:700;color:var(--rust);white-space:nowrap" class="money-sensitive">₹${amt.toLocaleString('en-IN')}</div>
