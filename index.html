@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.4</title>
+<title>Garage Pro Kerala v9.5</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.4</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.5</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1422,26 +1422,42 @@ function renderHome(){
   document.getElementById('sParts').textContent=parts.toLocaleString('en-IN');
   applyIncomeVisibility();
 
-  // ── 5. Daily Target Widget ────────────────────────────────────────
-  const target=parseInt(localStorage.getItem('gp_daily_target')||'0');
-  const pct=target>0?Math.min(100,Math.round(todayRev/target*100)):0;
-  const barCol=pct>=100?'var(--green)':pct>=60?'var(--gold)':'var(--rust)';
+  // ── 5. Weekly Target Widget ───────────────────────────────────────
+  const weekTarget=parseInt(localStorage.getItem('gp_weekly_target')||'0');
+  // This week Monday → Sunday
+  const nowW=new Date();
+  const dayOfWeek=nowW.getDay(); // 0=Sun
+  const monday=new Date(nowW);
+  monday.setDate(nowW.getDate()-(dayOfWeek===0?6:dayOfWeek-1));
+  monday.setHours(0,0,0,0);
+  const sunday=new Date(monday);sunday.setDate(monday.getDate()+6);sunday.setHours(23,59,59,999);
+  const weekJobs=DB.jobs.filter(j=>{const d=new Date(j.at);return d>=monday&&d<=sunday;});
+  const weekRev=weekJobs.reduce((s,j)=>s+(j.total||0),0);
+  const weekPct=weekTarget>0?Math.min(100,Math.round(weekRev/weekTarget*100)):0;
+  const weekBarCol=weekPct>=100?'var(--green)':weekPct>=60?'var(--gold)':'var(--rust)';
+  const daysLeft=7-Math.ceil((nowW-monday)/864e5);
   document.getElementById('dailyTargetWidget').innerHTML=`
     <div class="card" style="padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div style="font-size:12px;font-weight:700">🎯 Daily Target</div>
-        <button onclick="editDailyTarget()" style="background:#f3f4f6;border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Set</button>
+        <div>
+          <div style="font-size:12px;font-weight:700">🎯 Weekly Target</div>
+          <div style="font-size:9px;color:#9ca3af">${monday.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} — ${sunday.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} • ${weekJobs.length} jobs</div>
+        </div>
+        <button onclick="editWeeklyTarget()" style="background:#f3f4f6;border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">✏️ Set</button>
       </div>
-      ${target>0?`
+      ${weekTarget>0?`
       <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
-        <span style="color:var(--gray)">Target: <b style="color:var(--ink)">₹${target.toLocaleString('en-IN')}</b></span>
-        <span style="color:${barCol};font-weight:700">₹${todayRev.toLocaleString('en-IN')} (${pct}%)</span>
+        <span style="color:var(--gray)">Target: <b style="color:var(--ink)">₹${weekTarget.toLocaleString('en-IN')}</b></span>
+        <span style="color:${weekBarCol};font-weight:700">₹${weekRev.toLocaleString('en-IN')} (${weekPct}%)</span>
       </div>
       <div style="background:#f3f4f6;border-radius:20px;height:8px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${barCol};border-radius:20px;transition:width .5s"></div>
+        <div style="height:100%;width:${weekPct}%;background:${weekBarCol};border-radius:20px;transition:width .5s"></div>
       </div>
-      <div style="font-size:10px;color:var(--gray);margin-top:4px;text-align:right">${pct>=100?'🎉 Target Reached!':target>todayRev?'₹'+(target-todayRev).toLocaleString('en-IN')+' more needed':'On Track ✅'}</div>`
-      :`<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px 0">Target set ചെയ്തിട്ടില്ല — ✏️ Set tap ചെയ്യൂ</div>`}
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:10px;color:var(--gray)">${daysLeft} day${daysLeft!==1?'s':''} remaining</span>
+        <span style="font-size:10px;color:${weekBarCol};font-weight:600">${weekPct>=100?'🎉 Target Reached!':weekTarget>weekRev?'₹'+(weekTarget-weekRev).toLocaleString('en-IN')+' more needed':''}</span>
+      </div>`
+      :`<div style="font-size:11px;color:#9ca3af;text-align:center;padding:4px 0">Weekly target set ചെയ്തിട്ടില്ല — ✏️ Set tap ചെയ്യൂ</div>`}
     </div>`;
 
   // ── Recent Jobs ───────────────────────────────────────────────────
@@ -1459,13 +1475,13 @@ function renderHome(){
     </div>`;
   }).join('');
 }
-function editDailyTarget(){
-  const cur=localStorage.getItem('gp_daily_target')||'';
-  const val=prompt('Daily Target (₹) enter ചെയ്യൂ:',cur);
+function editWeeklyTarget(){
+  const cur=localStorage.getItem('gp_weekly_target')||'';
+  const val=prompt('Weekly Target (₹) enter ചെയ്യൂ:\n(Staff salary + expenses cover ആകണം എന്ന് calculate ചെയ്ത് set ചെയ്യൂ)',cur);
   if(val===null)return;
   const n=parseInt(val.replace(/,/g,''));
   if(isNaN(n)||n<0){alert('Valid amount enter ചെയ്യൂ');return;}
-  localStorage.setItem('gp_daily_target',n.toString());
+  localStorage.setItem('gp_weekly_target',n.toString());
   renderHome();
 }
 function openUnassignedList(){
