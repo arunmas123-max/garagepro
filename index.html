@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.8</title>
+<title>Garage Pro Kerala v9.9</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.8</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.9</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -896,7 +896,17 @@ textarea{resize:vertical;min-height:65px}
   </div>
 </div>
 
-<div class="modal" id="payM">
+<div class="modal" id="deliveryPayM">
+  <div class="mbox">
+    <div class="mhead" style="background:linear-gradient(135deg,#166534,#16a34a)">
+      <div class="mt" style="color:#fff">🚗 Delivery & Payment</div>
+      <button class="mc" onclick="closeM('deliveryPayM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
+    </div>
+    <div class="mbody" id="deliveryPayMB"></div>
+  </div>
+</div>
+
+<!-- PAY MODAL -->
   <div class="mbox">
     <div class="mhead"><div class="mt">💰 Collect Payment</div><button class="mc" onclick="closeM('payM')">×</button></div>
     <div class="mbody">
@@ -2266,10 +2276,12 @@ function openJob(id){
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       ${j.status==='pending'?`<button class="btn b-rust b-sm" onclick="updSt('${j.id}','in-progress')">🔧 Start Work</button>`:''}
       ${j.status==='in-progress'?`<button class="btn b-blue b-sm" onclick="updSt('${j.id}','ready')">✅ Mark Ready</button>`:''}
-      ${j.status==='ready'?`<button class="btn b-green b-sm" onclick="updSt('${j.id}','completed')">🚗 Delivered</button>`:''}
+      ${j.status==='ready'?`<button class="btn b-green b-sm" onclick="openDeliveryPayment('${j.id}')">🚗 Delivered</button>`:''}
       ${j.status!=='pending'?`<button class="btn b-gray b-sm" onclick="updSt('${j.id}','pending')">↩ Reopen</button>`:''}
     </div>
-    ${(j.amtPaid||0)<j.total?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Collect Payment</button>`:''}
+    ${(j.amtPaid||0)<(j.total||0)?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Collect Payment</button>`:
+      j.status==='completed'?`<button class="btn b-gold" onclick="collectPay('${j.id}')">💰 Update Payment</button>`:''}
+
     <button class="btn b-wa" onclick='sendWA(${JSON.stringify(j).replace(/\\/g,"\\\\").replace(/'/g,"\\'")})'>📱 WhatsApp</button>
     <button class="btn b-blue" onclick="printInv('${j.id}')">🖨️ Print Bill</button>
     <button class="btn b-red" style="margin-top:7px" onclick="delJob('${j.id}')">🗑️ Delete Job</button>`;
@@ -2376,6 +2388,148 @@ function removeSpareItem(id,idx){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   if(!confirm('ഈ spare part delete ചെയ്യണോ?'))return;
   j.spareItems.splice(idx,1);recalcJob(j);save();openJob(id);
+}
+function openDeliveryPayment(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const total=j.total||0;
+  const alreadyPaid=j.amtPaid||0;
+  const balance=total-alreadyPaid;
+  document.getElementById('deliveryPayMB').innerHTML=`
+    <!-- Job Summary -->
+    <div style="background:#f0fdf4;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-weight:700;font-size:14px">${j.name} — ${j.car||''}</div>
+      <div style="font-size:11px;color:var(--gray)">${j.vnum||''} ${j.complaint?'• '+j.complaint.slice(0,40):''}</div>
+    </div>
+    <!-- Amount Summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      <div style="background:#eff6ff;border-radius:8px;padding:8px;text-align:center">
+        <div style="font-weight:800;font-size:13px;color:var(--blue)">₹${total.toLocaleString('en-IN')}</div>
+        <div style="font-size:8px;color:#9ca3af">TOTAL BILL</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:8px;text-align:center">
+        <div style="font-weight:800;font-size:13px;color:var(--green)">₹${alreadyPaid.toLocaleString('en-IN')}</div>
+        <div style="font-size:8px;color:#9ca3af">PAID</div>
+      </div>
+      <div style="background:${balance>0?'#fef2f2':'#f0fdf4'};border-radius:8px;padding:8px;text-align:center">
+        <div style="font-weight:800;font-size:13px;color:${balance>0?'#dc2626':'var(--green)'}">₹${balance.toLocaleString('en-IN')}</div>
+        <div style="font-size:8px;color:#9ca3af">BALANCE</div>
+      </div>
+    </div>
+    <!-- Payment Status -->
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px">Payment Status:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px" id="dpStatusBtns">
+      <button onclick="dpSelectStatus('full')" id="dpBtnFull"
+        style="padding:12px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:11px;cursor:pointer">
+        ✅<br>Fully Paid</button>
+      <button onclick="dpSelectStatus('partial')" id="dpBtnPartial"
+        style="padding:12px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:11px;cursor:pointer">
+        ⚡<br>Partial</button>
+      <button onclick="dpSelectStatus('unpaid')" id="dpBtnUnpaid"
+        style="padding:12px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:11px;cursor:pointer">
+        ⏳<br>Not Paid</button>
+    </div>
+    <!-- Received Amount (shown for full/partial) -->
+    <div id="dpAmtDiv" style="display:none">
+      <div class="fg"><label>Received Amount ₹</label>
+        <input id="dpAmt" type="number" value="${balance}" oninput="dpUpdateBalance(${total})"
+          style="font-size:16px;font-weight:700;color:var(--ink)">
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px">
+        <span style="color:var(--gray)">Balance:</span>
+        <span id="dpBalDisplay" style="font-weight:700;color:#dc2626">₹${balance.toLocaleString('en-IN')}</span>
+      </div>
+      <!-- Payment Mode -->
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Payment Mode:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:10px" id="dpModeBtns">
+        <button onclick="dpSelectMode('cash')" id="dpModeCash"
+          style="padding:9px 2px;border-radius:8px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:10px;cursor:pointer">💵<br>Cash</button>
+        <button onclick="dpSelectMode('upi')" id="dpModeUpi"
+          style="padding:9px 2px;border-radius:8px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:10px;cursor:pointer">📱<br>UPI</button>
+        <button onclick="dpSelectMode('card')" id="dpModeCard"
+          style="padding:9px 2px;border-radius:8px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:10px;cursor:pointer">💳<br>Card</button>
+        <button onclick="dpSelectMode('bank')" id="dpModeBank"
+          style="padding:9px 2px;border-radius:8px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:10px;cursor:pointer">🏦<br>Bank</button>
+      </div>
+    </div>
+    <!-- Note -->
+    <div class="fg"><label>Note (optional)</label><input id="dpNote" placeholder="e.g. Balance pending, Insurance claim..."></div>
+    <!-- Confirm Buttons -->
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="confirmDelivery('${id}')"
+        style="flex:1;background:linear-gradient(135deg,#166534,#16a34a);color:#fff;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer">
+        🚗 Confirm Delivery</button>
+    </div>
+    <div style="text-align:center;font-size:10px;color:#9ca3af;margin-top:6px">Partial / Unpaid ആണെങ്കിലും deliver ചെയ്യാം</div>`;
+  // Pre-select Fully Paid if balance is 0
+  if(balance<=0) dpSelectStatus('full');
+  openM('deliveryPayM');
+}
+let _dpStatus='';let _dpMode='';
+function dpSelectStatus(s){
+  _dpStatus=s;_dpMode='';
+  ['full','partial','unpaid'].forEach(x=>{
+    const b=document.getElementById('dpBtn'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(!b)return;
+    b.style.border=x===s?'2px solid var(--green)':'2px solid #d1d5db';
+    b.style.background=x===s?'#f0fdf4':'#f9fafb';
+    b.style.color=x===s?'var(--green)':'inherit';
+  });
+  const amtDiv=document.getElementById('dpAmtDiv');
+  if(s==='unpaid'){amtDiv.style.display='none';}
+  else{
+    amtDiv.style.display='block';
+    if(s==='full'){const j=DB.jobs.find(x=>x.id===document.getElementById('deliveryPayMB').innerHTML.match(/confirmDelivery\('([^']+)'\)/)?.[1]);
+      // set amount to full balance
+      const inp=document.getElementById('dpAmt');
+      if(inp&&!inp.dataset.userEdited)inp.value=inp.getAttribute('value');
+    }
+  }
+}
+function dpSelectMode(m){
+  _dpMode=m;
+  ['cash','upi','card','bank'].forEach(x=>{
+    const b=document.getElementById('dpMode'+x.charAt(0).toUpperCase()+x.slice(1));
+    if(!b)return;
+    b.style.border=x===m?'2px solid var(--blue)':'2px solid #d1d5db';
+    b.style.background=x===m?'#eff6ff':'#f9fafb';
+    b.style.color=x===m?'var(--blue)':'inherit';
+  });
+}
+function dpUpdateBalance(total){
+  const inp=document.getElementById('dpAmt');
+  inp.dataset.userEdited='1';
+  const received=parseFloat(inp.value)||0;
+  const bal=total-received;
+  const el=document.getElementById('dpBalDisplay');
+  if(el){el.textContent='₹'+Math.abs(bal).toLocaleString('en-IN')+(bal<0?' (excess)':'');el.style.color=bal>0?'#dc2626':'var(--green)';}
+}
+function confirmDelivery(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  const total=j.total||0;
+  const note=document.getElementById('dpNote').value.trim();
+  if(!_dpStatus){showToast('⚠️ Payment status select ചെയ്യൂ');return;}
+  if(_dpStatus==='unpaid'){
+    j.payMode='pending';j.amtPaid=0;j.paid=0;
+  } else {
+    if(!_dpMode){showToast('⚠️ Payment mode select ചെയ്യൂ');return;}
+    const received=parseFloat(document.getElementById('dpAmt').value)||0;
+    if(received<=0){showToast('⚠️ Amount enter ചെയ്യൂ');return;}
+    j.amtPaid=(j.amtPaid||0)+received;
+    j.paid=j.amtPaid;
+    j.payMode=_dpStatus==='full'?_dpMode:'partial';
+    j.paidAt=new Date().toISOString();
+    if(!j.payHistory)j.payHistory=[];
+    j.payHistory.push({amt:received,mode:_dpMode,at:j.paidAt,note});
+  }
+  if(note)j.payNote=note;
+  j.status='completed';
+  j.completedAt=new Date().toISOString();
+  _dpStatus='';_dpMode='';
+  save();
+  closeM('deliveryPayM');closeM('jobM');
+  renderJobs();renderKanban();renderHome();
+  showToast('🚗 Delivered! Payment saved ✅');
+  if(confirm('Customer-ന് WhatsApp notification അയക്കണോ?'))sendWA(j);
 }
 function updSt(id,st){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
