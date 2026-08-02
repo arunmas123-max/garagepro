@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.1</title>
+<title>Garage Pro Kerala v10.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.1</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.2</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -910,10 +910,10 @@ textarea{resize:vertical;min-height:65px}
 
 <!-- PAY MODAL -->
 <div class="modal" id="payM" style="z-index:300">
-  <div class="mbox">
+  <div class="mbox" style="display:flex;flex-direction:column;max-height:85vh">
     <div class="mhead"><div class="mt">💰 Collect Payment</div><button class="mc" onclick="closeM('payM')">×</button></div>
-    <div class="mbody">
-      <div id="payDueInfo" style="background:#fff7ed;border-left:3px solid var(--rust);padding:8px 12px;border-radius:0 7px 7px 0;margin-bottom:12px;font-size:15px;font-weight:700;color:#92400e"></div>
+    <div class="mbody" style="flex:1;overflow-y:auto">
+      <div id="payDueInfo" style="background:#fff7ed;border-left:3px solid var(--rust);padding:8px 12px;border-radius:0 7px 7px 0;margin-bottom:12px;font-size:14px;font-weight:700;color:#92400e"></div>
       <div style="font-weight:600;font-size:13px;margin-bottom:8px">Payment Mode:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <button id="pmBtnCash" onclick="selectPayMode('cash')" style="padding:14px 4px;border-radius:10px;border:2px solid #d1d5db;background:#f9fafb;font-weight:700;font-size:13px;cursor:pointer">💵<br>Cash</button>
@@ -930,7 +930,10 @@ textarea{resize:vertical;min-height:65px}
       </div>
       <button onclick="selectPayMode('partial')" style="width:100%;padding:10px;border-radius:8px;border:1.5px dashed #d97706;background:#fffbeb;color:#92400e;font-weight:600;font-size:13px;cursor:pointer;margin-bottom:10px">⚡ Partial Payment</button>
       <div id="pmModeChosen" style="display:none;text-align:center;font-size:13px;font-weight:700;color:var(--green);margin-bottom:8px"></div>
-      <button id="pmSaveBtn" class="btn b-green" style="display:none" onclick="saveCollectPay()">✅ Confirm Payment</button>
+    </div>
+    <!-- Confirm button always at bottom, outside scroll area -->
+    <div style="padding:12px;border-top:1px solid var(--border)">
+      <button id="pmSaveBtn" class="btn b-green" style="display:none;width:100%;padding:14px;font-size:15px" onclick="saveCollectPay()">✅ Confirm Payment</button>
     </div>
   </div>
 </div>
