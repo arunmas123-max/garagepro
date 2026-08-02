@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.3</title>
+<title>Garage Pro Kerala v10.4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.3</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.4</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -2783,6 +2783,14 @@ function collectPay(id){
   const infoEl=document.getElementById('payDueInfo');
   if(isAdvance){
     infoEl.innerHTML=`<div>💰 Advance Payment<br><span style="font-size:11px;font-weight:400">Job total ₹0 — Labour/parts add ചെയ്‌തിട്ടില്ല. Advance collect ചെയ്യാം.</span></div>`;
+  } else if(paid>total&&total>0){
+    // Overpaid — show fix option prominently
+    infoEl.innerHTML=`<div style="color:#dc2626">
+      ⚠️ Overpaid! Total: ₹${total.toLocaleString('en-IN')} | Paid: ₹${paid.toLocaleString('en-IN')}
+      <br><button onclick="fixOverpay('${id}')" style="margin-top:6px;background:#dc2626;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%">✏️ Fix Paid Amount</button>
+    </div>`;
+    document.getElementById('pmSaveBtn').style.display='none';
+    return; // Don't show payment options for overpaid
   } else if(paid>0){
     infoEl.innerHTML=`Total: ₹${total.toLocaleString('en-IN')} | Paid: ₹${paid.toLocaleString('en-IN')} | <b>Due: ₹${due.toLocaleString('en-IN')}</b>`;
   } else {
