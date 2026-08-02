@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v9.6</title>
+<title>Garage Pro Kerala v9.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v9.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -526,6 +526,7 @@ textarea{resize:vertical;min-height:65px}
       <div><div style="font-size:11px;opacity:.8">Total Revenue</div><div style="font-size:22px;font-weight:800" id="rTotal">₹0</div></div>
       <div style="text-align:right"><div style="font-size:11px;opacity:.8">Jobs</div><div style="font-size:22px;font-weight:800" id="rJobs">0</div></div>
     </div>
+    <div id="rZeroNote" style="display:none;margin-top:6px;padding:7px 10px;background:#fef3c7;border-radius:7px;font-size:11px;color:#92400e;font-weight:600"></div>
   </div>
   <div class="card">
     <div class="card-t" style="margin-bottom:4px" id="chartTitle">📊 Last 7 Days Revenue</div>
@@ -1486,7 +1487,8 @@ function renderHome(){
   // ── Recent Jobs ───────────────────────────────────────────────────
   const rc=document.getElementById('recentJobs');
   if(!DB.jobs.length){rc.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs yet</div>';return;}
-  rc.innerHTML=DB.jobs.slice(0,5).map(j=>{
+  const recentSorted=[...DB.jobs].sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,5);
+  rc.innerHTML=recentSorted.map(j=>{
     const age=Math.floor((Date.now()-new Date(j.at))/864e5);
     const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
     return `<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')">
@@ -2726,28 +2728,28 @@ function renderReport(){
   document.getElementById('partsBar').style.width=Math.round(parts/max*100)+'%';
   document.getElementById('rTotal').textContent='₹'+total.toLocaleString('en-IN');
   document.getElementById('rJobs').textContent=jobs.length;
+  // Show note if jobs exist but total is 0
+  const zeroNote=document.getElementById('rZeroNote');
+  if(zeroNote){
+    const zeroJobs=jobs.filter(j=>(j.total||0)===0);
+    zeroNote.style.display=(zeroJobs.length&&total===0)?'block':'none';
+    if(zeroJobs.length&&total===0)zeroNote.textContent=`ℹ️ ${zeroJobs.length} job${zeroJobs.length>1?'s':''} ഉണ്ട് — Labour/Parts amount enter ചെയ്തിട്ടില്ല`;
+  }
   // Update chart title
-  const chartTitles={today:'📊 Today — Hourly Revenue',week:'📊 Last 7 Days Revenue',month:'📊 This Month — Daily Revenue',all:'📊 Last 7 Days Revenue',custom:'📊 Custom Range — Daily Revenue'};
+  const chartTitles={today:'📊 Last 7 Days Revenue',week:'📊 Last 7 Days Revenue',month:'📊 This Month — Daily Revenue',all:'📊 Last 7 Days Revenue',custom:'📊 Custom Range — Daily Revenue'};
   document.getElementById('chartTitle').textContent=chartTitles[rPeriod]||'📊 Revenue Chart';
   // Period-aware chart
   const now=new Date();
-  let chartDays=[];let chartLabel='';
-  if(rPeriod==='today'){
-    // Hourly breakdown for today
-    chartDays=Array.from({length:12},(_,i)=>i*2); // 0,2,4...22 hours
-    const hourRevs=chartDays.map(h=>jobs.filter(j=>{const d=new Date(j.at);return d.toDateString()===now.toDateString()&&d.getHours()>=h&&d.getHours()<h+2;}).reduce((s,j)=>s+(j.total||0),0));
-    const maxR=Math.max(...hourRevs)||1;
-    const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c','#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706'];
-    document.getElementById('chart7').innerHTML=hourRevs.map((r,i)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
-    document.getElementById('chartLbls').innerHTML=chartDays.map(h=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${h}h</div>`).join('');
-  } else if(rPeriod==='week'||rPeriod==='all'){
-    // Last 7 days
+  if(rPeriod==='today'||rPeriod==='week'||rPeriod==='all'){
+    // Last 7 days — today highlighted
     const days7=[];for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);days7.push(d);}
-    const dayRevs=days7.map(d=>jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
+    const dayRevs=days7.map(d=>DB.jobs.filter(j=>new Date(j.at).toDateString()===d.toDateString()).reduce((s,j)=>s+(j.total||0),0));
     const maxR=Math.max(...dayRevs)||1;
-    const cols=['#c2410c','#1d4ed8','#7c3aed','#15803d','#d97706','#0891b2','#be123c'];
-    document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>`<div class="cb-w"><div class="c-bar" style="height:${Math.max(3,Math.round(r/maxR*70))}px;background:${cols[i]}">${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`).join('');
-    document.getElementById('chartLbls').innerHTML=days7.map(d=>`<div style="flex:1;text-align:center;font-size:8px;color:var(--gray)">${d.toLocaleDateString('en-IN',{weekday:'short'})}</div>`).join('');
+    document.getElementById('chart7').innerHTML=dayRevs.map((r,i)=>{
+      const isToday=(i===6);
+      return `<div class="cb-w"><div class="c-bar" style="height:${Math.max(r>0?4:0,Math.round(r/maxR*70))}px;background:${isToday?'#c2410c':r>0?'#1d4ed8':'#e5e7eb'}">${r?`<div class="c-val">₹${r>=1000?Math.round(r/1000)+'K':r}</div>`:''}</div></div>`;
+    }).join('');
+    document.getElementById('chartLbls').innerHTML=days7.map((d,i)=>`<div style="flex:1;text-align:center;font-size:8px;color:${i===6?'#c2410c':'var(--gray)'};font-weight:${i===6?'700':'400'}">${i===6?'Today':d.toLocaleDateString('en-IN',{weekday:'short'})}</div>`).join('');
   } else if(rPeriod==='month'){
     // Daily for this month
     const daysInMon=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
