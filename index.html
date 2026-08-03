@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.4</title>
+<title>Garage Pro Kerala v10.5</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.4</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.5</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1444,7 +1444,10 @@ function renderHome(){
   document.getElementById('sJ').textContent=DB.jobs.length;
   document.getElementById('sP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
   const now=new Date();
-  const monthJobs=DB.jobs.filter(j=>{const d=new Date(j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const monthJobs=DB.jobs.filter(j=>{
+    const inMonth=d=>d&&new Date(d).getMonth()===now.getMonth()&&new Date(d).getFullYear()===now.getFullYear();
+    return inMonth(j.paidAt)||inMonth(j.completedAt)||inMonth(j.at);
+  });
   const monthRev=monthJobs.reduce((s,j)=>s+(j.total||0),0);
   document.getElementById('sR').textContent=monthRev.toLocaleString('en-IN');
   document.getElementById('sCu').textContent=DB.customers.length;
@@ -2836,6 +2839,7 @@ function saveCollectPay(){
     j.amtPaid=newTotal;
     j.paid=j.amtPaid;
     j.payMode=j.amtPaid>=(j.total||0)&&(j.total||0)>0?'cash':'partial';
+    j.paidAt=now; // track last payment date
     if(!j.payHistory)j.payHistory=[];
     j.payHistory.push({amt:partAmt,mode:_payMode.replace('partial-',''),at:now});
     showToast('✅ ₹'+partAmt.toLocaleString('en-IN')+' collected!');
@@ -2951,11 +2955,30 @@ function printInv(id){
 function getFiltJobs(){
   const now=new Date();
   return DB.jobs.filter(j=>{
-    const d=new Date(j.at); // job creation date
-    if(rPeriod==='today')return d.toDateString()===now.toDateString();
-    if(rPeriod==='week'){const w=new Date(now);w.setDate(w.getDate()-7);return d>=w;}
-    if(rPeriod==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-    if(rPeriod==='custom'&&rFromDate&&rToDate)return d>=rFromDate&&d<=new Date(rToDate.getTime()+86400000);
+    // Use payment date if available, otherwise job creation date
+    // A job belongs to a period if: created in period OR payment received in period
+    const createdAt=new Date(j.at);
+    const paidAt=j.paidAt?new Date(j.paidAt):null;
+    const completedAt=j.completedAt?new Date(j.completedAt):null;
+    // Use the most relevant date: paidAt > completedAt > createdAt
+    const refDate=paidAt||completedAt||createdAt;
+    if(rPeriod==='today'){
+      return refDate.toDateString()===now.toDateString()||
+             createdAt.toDateString()===now.toDateString();
+    }
+    if(rPeriod==='week'){
+      const w=new Date(now);w.setDate(w.getDate()-7);
+      return refDate>=w||createdAt>=w;
+    }
+    if(rPeriod==='month'){
+      const inMonth=d=>d&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+      return inMonth(paidAt)||inMonth(completedAt)||inMonth(createdAt);
+    }
+    if(rPeriod==='custom'&&rFromDate&&rToDate){
+      const end=new Date(rToDate.getTime()+86400000);
+      return (refDate>=rFromDate&&refDate<=end)||
+             (createdAt>=rFromDate&&createdAt<=end);
+    }
     return true;
   });
 }
