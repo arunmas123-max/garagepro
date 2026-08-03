@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.6</title>
+<title>Garage Pro Kerala v10.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1184,22 +1184,24 @@ function jobWorkerCredits(j){
     const wt=it.wtype||'mech';
     if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
   });
-  // Parts credit goes only to assigned mechanic (not body/paint workers)
   const partsSum=(j.spareItems||[]).reduce((s,it)=>s+(it.custSup?0:it.sell*(it.qty||1)),0);
-  const tinkerId=j.tinkerId||(bodySum>0&&!j.mechId?null:bodySum>0?j.mechId:null);
-  const painterId=j.painterId||(paintSum>0&&!j.mechId?null:paintSum>0?j.mechId:null);
   const credits={};
   const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
-  // mechId gets: mechanical labour + parts
-  // tinkerId gets: body labour only
-  // painterId gets: paint labour only
-  if(j.tinkerId){
-    add(j.mechId,mechSum+partsSum);
-    add(j.tinkerId,bodySum);
-    add(j.painterId||j.mechId,paintSum);
+  // Separate workers assigned
+  const hasMech=!!j.mechId;
+  const hasTinker=!!j.tinkerId;
+  const hasPainter=!!j.painterId;
+  if(hasMech||hasTinker||hasPainter){
+    // mechId → mechanical labour + parts
+    if(hasMech) add(j.mechId, mechSum+partsSum);
+    // tinkerId → body labour; if no tinker but body work exists → mechId gets it
+    if(hasTinker) add(j.tinkerId, bodySum);
+    else if(hasMech) add(j.mechId, bodySum);
+    // painterId → paint labour; if no painter but paint work exists → mechId gets it
+    if(hasPainter) add(j.painterId, paintSum);
+    else if(hasMech) add(j.mechId, paintSum);
   } else {
-    // Single mechanic — gets all
-    add(j.mechId,mechSum+bodySum+paintSum+partsSum);
+    // No one assigned — untracked
   }
   return credits;
 }
@@ -3078,7 +3080,8 @@ function renderReport(){
   const partial=jobs.filter(j=>(j.amtPaid||0)>0&&(j.amtPaid||0)<(j.total||0));
   const pending=jobs.filter(j=>!(j.amtPaid||0)&&(j.total||0)>=0);
   const totalBilled=jobs.reduce((s,j)=>s+(j.total||0),0);
-  const totalCollected=jobs.reduce((s,j)=>s+(j.amtPaid||0),0);
+  // Cap each job's collected at its total to prevent overpay distortion
+  const totalCollected=jobs.reduce((s,j)=>s+Math.min(j.amtPaid||0,j.total||0),0);
   document.getElementById('payRpt').innerHTML=`
     <div class="irow"><div><div style="font-weight:600">✅ Fully Paid</div><div style="font-size:11px;color:var(--gray)">${fullyPaid.length} jobs</div></div><div style="font-weight:700;color:var(--green)">₹${fullyPaid.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}</div></div>
     <div class="irow"><div><div style="font-weight:600">⚡ Partial</div><div style="font-size:11px;color:var(--gray)">${partial.length} jobs</div></div><div style="font-weight:700;color:var(--gold)">₹${partial.reduce((s,j)=>s+(j.amtPaid||0),0).toLocaleString('en-IN')} collected / ₹${partial.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')} billed</div></div>
