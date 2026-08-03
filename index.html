@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.5</title>
+<title>Garage Pro Kerala v10.6</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.5</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.6</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1422,7 +1422,7 @@ function renderHome(){
   else lb.innerHTML='';
 
   // ── 3. Unassigned Jobs Alert ─────────────────────────────────────
-  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId===''));
+  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId==='')&&(!j.tinkerId||j.tinkerId==='')&&(!j.painterId||j.painterId===''));
   const ub=document.getElementById('unassignBanner');
   if(unassigned.length)
     ub.innerHTML=`<div onclick="openUnassignedList()" style="background:#fff7ed;border:2px solid #f97316;border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
@@ -1479,8 +1479,16 @@ function renderHome(){
   }
   monday.setHours(0,0,0,0);
   const saturday=new Date(monday);saturday.setDate(monday.getDate()+5);saturday.setHours(23,59,59,999);
-  const weekJobs=DB.jobs.filter(j=>{const d=new Date(j.at);return d>=monday&&d<=saturday;});
-  const weekRev=weekJobs.reduce((s,j)=>s+(j.total||0),0);
+  const weekJobs=DB.jobs.filter(j=>{
+    // Include job if paid/completed/created within this Mon-Sat
+    const paidAt=j.paidAt?new Date(j.paidAt):null;
+    const completedAt=j.completedAt?new Date(j.completedAt):null;
+    const createdAt=new Date(j.at);
+    const refDate=paidAt||completedAt||createdAt;
+    return refDate>=monday&&refDate<=saturday;
+  });
+  // Count only actually received amount (amtPaid), not billed total
+  const weekRev=weekJobs.reduce((s,j)=>s+(j.amtPaid||0),0);
   const weekPct=weekTarget>0?Math.min(100,Math.round(weekRev/weekTarget*100)):0;
   const weekBarCol=weekPct>=100?'var(--green)':weekPct>=60?'var(--gold)':'var(--rust)';
   // Days remaining in this Mon–Sat week
@@ -1542,8 +1550,7 @@ function editWeeklyTarget(){
   renderHome();
 }
 function openUnassignedList(){
-  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId===''));
-  if(!unassigned.length)return;
+  const unassigned=DB.jobs.filter(j=>j.status!=='completed'&&(!j.mechId||j.mechId==='')&&(!j.tinkerId||j.tinkerId==='')&&(!j.painterId||j.painterId===''));
   const html=unassigned.map(j=>{
     const age=Math.floor((Date.now()-new Date(j.at))/864e5);
     const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
