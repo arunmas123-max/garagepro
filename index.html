@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.7</title>
+<title>Garage Pro Kerala v10.8</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.8</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -266,16 +266,47 @@ textarea{resize:vertical;min-height:65px}
   <!-- Daily Target Widget -->
   <div id="dailyTargetWidget"></div>
   <div class="sg">
-    <div class="sc"><div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div></div>
-    <div class="sc"><div class="sv" id="sP">0</div><div class="sl">Pending</div></div>
-    <div class="sc"><div class="sv money-sensitive">₹<span id="sR">0</span></div><div class="sl">This Month</div></div>
-    <div class="sc"><div class="sv" id="sCu">0</div><div class="sl">Customers</div></div>
+    <div class="sc" onclick="go('jobs')" style="cursor:pointer" title="All Jobs">
+      <div class="sv" id="sJ">0</div><div class="sl">Total Jobs</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
+    <div class="sc" onclick="filterAndGoJobs('pending')" style="cursor:pointer" title="Pending Jobs">
+      <div class="sv" id="sP">0</div><div class="sl">Pending</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
+    <div class="sc" onclick="openMonthlyIncome()" style="cursor:pointer;position:relative">
+      <div style="position:absolute;top:4px;right:6px;font-size:8px;color:var(--rust);font-weight:700">TAP ▶</div>
+      <div class="sv money-sensitive" style="font-size:13px">₹<span id="sR">0</span>
+        <div id="sRCollected" style="font-size:10px;font-weight:500;color:var(--green)"></div>
+      </div>
+      <div class="sl">This Month</div>
+    </div>
+    <div class="sc" onclick="go('customers')" style="cursor:pointer" title="Customers">
+      <div class="sv" id="sCu">0</div><div class="sl">Customers</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
   </div>
   <div class="sg4">
-    <div class="sc money-sensitive" style="border-top:3px solid var(--rust)"><div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div><div class="sl">Mechanical Labour</div></div>
-    <div class="sc money-sensitive" style="border-top:3px solid var(--blue)"><div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div><div class="sl">Body Worker</div></div>
-    <div class="sc money-sensitive" style="border-top:3px solid var(--purple)"><div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div><div class="sl">Paint</div></div>
-    <div class="sc money-sensitive" style="border-top:3px solid var(--green)"><div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div><div class="sl">Parts</div></div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--rust);cursor:pointer" onclick="goReportBreakdown('mech')">
+      <div class="sv" style="font-size:13px">₹<span id="sMech">0</span></div>
+      <div class="sl">Mechanical Labour</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--blue);cursor:pointer" onclick="goReportBreakdown('body')">
+      <div class="sv" style="font-size:13px">₹<span id="sBody">0</span></div>
+      <div class="sl">Body Worker</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--purple);cursor:pointer" onclick="goReportBreakdown('paint')">
+      <div class="sv" style="font-size:13px">₹<span id="sPaint">0</span></div>
+      <div class="sl">Paint</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
+    <div class="sc money-sensitive" style="border-top:3px solid var(--green);cursor:pointer" onclick="goReportBreakdown('parts')">
+      <div class="sv" style="font-size:13px">₹<span id="sParts">0</span></div>
+      <div class="sl">Parts</div>
+      <div style="font-size:8px;color:var(--rust);margin-top:2px">TAP ▶</div>
+    </div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1451,7 +1482,16 @@ function renderHome(){
     return inMonth(j.paidAt)||inMonth(j.completedAt)||inMonth(j.at);
   });
   const monthRev=monthJobs.reduce((s,j)=>s+(j.total||0),0);
+  const monthCollected=monthJobs.reduce((s,j)=>s+Math.min(j.amtPaid||0,j.total||0),0);
   document.getElementById('sR').textContent=monthRev.toLocaleString('en-IN');
+  const collEl=document.getElementById('sRCollected');
+  if(collEl){
+    if(monthCollected>0&&monthCollected!==monthRev)
+      collEl.textContent='✅ ₹'+monthCollected.toLocaleString('en-IN')+' collected';
+    else if(monthCollected===monthRev&&monthRev>0)
+      collEl.textContent='✅ Fully collected';
+    else collEl.textContent='';
+  }
   document.getElementById('sCu').textContent=DB.customers.length;
   let mech=0,body=0,paint=0,parts=0;
   monthJobs.forEach(j=>{
@@ -1541,6 +1581,28 @@ function renderHome(){
       <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${(j.total||0).toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
     </div>`;
   }).join('');
+}
+function filterAndGoJobs(filter){
+  // Set job filter and navigate
+  go('jobs');
+  setTimeout(()=>{
+    const chip=document.querySelector(`.chip[data-jf="${filter}"]`);
+    if(chip){chip.click();}
+  },100);
+}
+function goReportBreakdown(type){
+  // Go to report, set to Month, scroll to staff section
+  go('report');
+  setTimeout(()=>{
+    // Set to month view
+    const monthBtn=document.querySelector('.rTab[data-rp="month"]');
+    if(monthBtn)monthBtn.click();
+    // Scroll to mechanic breakdown
+    setTimeout(()=>{
+      const el=document.getElementById('mechRpt');
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    },300);
+  },100);
 }
 function editWeeklyTarget(){
   const cur=localStorage.getItem('gp_weekly_target')||'';
