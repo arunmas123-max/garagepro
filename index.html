@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v10.9</title>
+<title>Garage Pro Kerala v11.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v10.9</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.0</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -787,6 +787,21 @@ textarea{resize:vertical;min-height:65px}
       <button class="mc" onclick="closeM('incomeM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
     </div>
     <div class="mbody" id="incomeMB" style="flex:1;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- CUSTOMER EDIT MODAL -->
+<div class="modal" id="custEditM" style="z-index:300">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">✏️ Edit Customer</div><button class="mc" onclick="closeM('custEditM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Customer Name *</label><input id="ceN" placeholder="Name"></div>
+      <div class="fg"><label>Phone</label><input id="cePh" type="tel" placeholder="9876543210"></div>
+      <div class="fg"><label>Vehicle</label><input id="ceCar" placeholder="e.g. Maruti Swift"></div>
+      <div class="fg"><label>Vehicle No.</label><input id="ceVnum" placeholder="KL01AB1234" style="text-transform:uppercase"></div>
+      <input type="hidden" id="ceOldPhone">
+      <button onclick="saveCustomerEdit()" class="btn b-blue">💾 Save Changes</button>
+    </div>
   </div>
 </div>
 
@@ -3417,7 +3432,11 @@ function renderCustomers(){
           <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}${c.vnum?' • 🔢 '+c.vnum:''}</div>
           ${c.lastVisit?`<div style="font-size:11px;color:var(--gray)">📅 Last: ${new Date(c.lastVisit).toLocaleDateString('en-IN')}</div>`:''}
         </div>
-        <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button><button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;margin-left:4px">🗑️</button>
+        <div style="display:flex;gap:4px">
+          <button onclick="editCustomer('${c.phone}')" style="background:#eff6ff;color:var(--blue);border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">✏️</button>
+          <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button>
+          <button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">🗑️</button>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
         <div style="background:#f8f9fa;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--rust)">${c.jobs||1}</div><div style="font-size:9px;color:#9ca3af">JOBS</div></div>
@@ -3430,6 +3449,42 @@ function sendRemWA(phone,name,car,cars){
   const msg=`നമസ്കാരം ${name}! 🙏\n\nനിങ്ങളുടെ ${cars} periodic service due ആയിരിക്കുന്നു.\n\nAppointment book ചെയ്യാൻ reply ചെയ്യൂ.\n\nThank you! 🔧 Garage Pro Kerala`;
   const ph=phone.replace(/\D/g,'');
   window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+function editCustomer(phone){
+  const c=DB.customers.find(x=>x.phone===phone);if(!c)return;
+  document.getElementById('ceN').value=c.name||'';
+  document.getElementById('cePh').value=c.phone||'';
+  document.getElementById('ceCar').value=c.car||'';
+  document.getElementById('ceVnum').value=c.vnum||'';
+  document.getElementById('ceOldPhone').value=c.phone||'';
+  openM('custEditM');
+}
+function saveCustomerEdit(){
+  const oldPhone=document.getElementById('ceOldPhone').value;
+  const c=DB.customers.find(x=>x.phone===oldPhone);if(!c)return;
+  const newName=document.getElementById('ceN').value.trim();
+  const newPhone=document.getElementById('cePh').value.trim();
+  const newCar=document.getElementById('ceCar').value.trim();
+  const newVnum=document.getElementById('ceVnum').value.trim().toUpperCase();
+  if(!newName){alert('Name enter ചെയ്യൂ');return;}
+  // Update customer record
+  c.name=newName;
+  c.car=newCar;
+  c.vnum=newVnum;
+  // Update phone — also update all related jobs
+  if(newPhone&&newPhone!==oldPhone){
+    DB.jobs.forEach(j=>{if(j.phone===oldPhone){j.phone=newPhone;}});
+    c.phone=newPhone;
+  }
+  // Update name in all related jobs
+  DB.jobs.forEach(j=>{
+    if(j.phone===(newPhone||oldPhone)){
+      j.name=newName;
+      if(newCar&&!j.car)j.car=newCar;
+    }
+  });
+  save();closeM('custEditM');renderCustomers();
+  showToast('✅ Customer updated!');
 }
 function delCustomer(phone){
   if(!confirm('ഈ customer-നെ delete ചെയ്യണോ?\n(പഴയ job cards മാറില്ല)'))return;
