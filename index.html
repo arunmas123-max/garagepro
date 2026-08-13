@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.0</title>
+<title>Garage Pro Kerala v11.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.0</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.2</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -409,7 +409,9 @@ textarea{resize:vertical;min-height:65px}
 
   <div class="card">
     <div class="card-t">🔧 Job Details</div>
-    <textarea id="fC" placeholder="Complaint / problem description..."></textarea>
+    <textarea id="fC" placeholder="Complaint / problem description..." oninput="onComplaintChange()"></textarea>
+    <button id="aiAnalyzeBtn" onclick="analyzeComplaint()" style="display:none;width:100%;margin-top:6px;padding:9px;background:linear-gradient(135deg,#1e3a5f,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🤖 AI Analyze — Repair Suggestions</button>
+    <div id="aiAnalyzeResult" style="display:none;margin-top:8px;background:#f8f9fa;border-radius:10px;padding:10px;font-size:12px;line-height:1.6"></div>
     <div class="r2" style="margin-top:8px">
       <div class="fg"><label>Job Date</label><input id="fDate" type="date"></div>
       <div class="fg"><label>Fuel Level</label>
@@ -643,23 +645,67 @@ textarea{resize:vertical;min-height:65px}
   <div id="srchResults"><div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div></div>
 </div>
 
-<!-- AI -->
+<!-- AI / WORKSHOP AGENT -->
 <div class="pg" id="ai">
-  <div class="ai-box">
-    <div class="ai-lbl">🤖 Claude AI Assistant</div>
-    <div class="ai-out" id="aiOut">നമസ്കാരം! Estimate, repairs, WhatsApp messages — ഏതും ചോദിക്കൂ!</div>
-    <div class="ai-row">
-      <input class="ai-in" id="aiIn" placeholder="Type question..." type="text">
-      <button class="ai-go" onclick="askAI()">➤</button>
+  <!-- Agent Header -->
+  <div class="card" style="background:linear-gradient(135deg,#0f172a,#1e1b4b);border:none;padding:14px;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:22px">🤖</div>
+      <div>
+        <div style="color:#fff;font-weight:800;font-size:15px">MAS Workshop Agent</div>
+        <div style="color:#a5b4fc;font-size:10px" id="agentStatus">● Live — Firebase connected</div>
+      </div>
+    </div>
+    <!-- Chat output -->
+    <div id="aiOut" style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;min-height:80px;max-height:300px;overflow-y:auto;color:#e2e8f0;font-size:13px;line-height:1.7;white-space:pre-wrap">👋 നമസ്കാരം! MAS Car Care Workshop Agent ready.
+
+ചോദിക്കൂ — Malayalam / English രണ്ടും OK:
+• "ഇന്ന് pending jobs?"
+• "Ready for delivery ആരൊക്കെ?"
+• "Vijayan ഈ week revenue?"
+• "KL01BC8476 last service?"</div>
+    <!-- Input -->
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input id="aiIn" placeholder="ചോദ്യം type ചെയ്യൂ..." type="text"
+        style="flex:1;padding:10px 12px;border:none;border-radius:8px;font-size:13px;background:rgba(255,255,255,.1);color:#fff;outline:none"
+        onkeydown="if(event.key==='Enter')askAI()"
+        placeholder="Ask anything about your workshop...">
+      <button onclick="askAI()" style="background:#7c3aed;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:16px;cursor:pointer">➤</button>
     </div>
   </div>
-  <div class="card">
-    <div class="card-t">⚡ Quick Prompts</div>
+
+  <!-- Quick Agent Commands -->
+  <div class="card" style="padding:10px 12px">
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:8px">⚡ QUICK COMMANDS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <button onclick="agentQuery('today_brief')" style="background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        📋 Today's Briefing<br><span style="font-weight:400;font-size:10px">Jobs, revenue, pending</span>
+      </button>
+      <button onclick="agentQuery('ready_delivery')" style="background:#eff6ff;color:#1e40af;border:1.5px solid #93c5fd;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        🚗 Ready for Delivery<br><span style="font-weight:400;font-size:10px">Customer call list</span>
+      </button>
+      <button onclick="agentQuery('payment_due')" style="background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        💰 Payment Due<br><span style="font-weight:400;font-size:10px">Pending collections</span>
+      </button>
+      <button onclick="agentQuery('staff_today')" style="background:#fdf4ff;color:#6b21a8;border:1.5px solid #d8b4fe;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        👷 Staff Status<br><span style="font-weight:400;font-size:10px">Who's working on what</span>
+      </button>
+      <button onclick="agentQuery('old_jobs')" style="background:#fef2f2;color:#991b1b;border:1.5px solid #fca5a5;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        ⏰ Old Pending Jobs<br><span style="font-weight:400;font-size:10px">15+ days pending</span>
+      </button>
+      <button onclick="agentQuery('week_revenue')" style="background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        📊 This Week Revenue<br><span style="font-weight:400;font-size:10px">Staff-wise breakdown</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Prompts -->
+  <div class="card" style="padding:10px 12px">
+    <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:8px">🔧 REPAIR ASSISTANCE</div>
     <button class="qp" onclick="qAI('Maruti Swift petrol general service estimate Kerala 2026')">🚗 Swift Service Estimate</button>
     <button class="qp" onclick="qAI('Hyundai Creta brake pad replacement cost Kerala — labour and parts')">🛑 Creta Brake Cost</button>
-    <button class="qp" onclick="qAI('AC not cooling — diagnosis steps and repair estimate Kerala')">❄️ AC Diagnosis</button>
-    <button class="qp" onclick="qAI('Write WhatsApp message: car ready for pickup, total bill ₹4500')">📱 WhatsApp Message</button>
-    <button class="qp" onclick="qAI('Tips to increase workshop revenue — Kerala small garage')">💡 Business Tips</button>
+    <button class="qp" onclick="qAI('AC not cooling — diagnosis steps Kerala workshop')">❄️ AC Diagnosis</button>
+    <button class="qp" onclick="qAI('Write WhatsApp message in Malayalam: car ready for pickup, total bill ₹4500, thank you')">📱 WhatsApp Message</button>
   </div>
 </div>
 </main>
@@ -2534,7 +2580,11 @@ function openJob(id){
     </div>
     <div class="card">
       <div class="card-t">✏️ Edit Job</div>
-      <div class="fg"><label>Job Description / Complaint</label><textarea id="jdDesc" rows="3">${j.complaint?j.complaint.replace(/</g,'&lt;'):''}</textarea></div>
+      <div class="fg"><label>Job Description / Complaint</label>
+        <textarea id="jdDesc" rows="3" oninput="onEditComplaintChange('${j.id}')">${j.complaint?j.complaint.replace(/</g,'&lt;'):''}</textarea>
+        <button onclick="analyzeComplaintEdit('${j.id}')" style="width:100%;margin-top:5px;padding:8px;background:linear-gradient(135deg,#1e3a5f,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🤖 AI Analyze — Repair Suggestions</button>
+        <div id="aiEditResult" style="display:none;margin-top:6px;background:#f8f9fa;border-radius:10px;padding:10px;font-size:12px;line-height:1.6"></div>
+      </div>
       <div class="fg"><label>KM Reading</label><input id="jdKm" type="number" value="${j.km||''}"></div>
       <div class="fg"><label>Fuel Level</label><select id="jdFuel">
         <option ${j.fuel==='Empty'?'selected':''}>Empty</option>
@@ -3948,24 +3998,171 @@ function resetRateEdit(){
   alert('✅ Reset to default rate!');
 }
 
-// ====================== AI ======================
+// ====================== AI COMPLAINT ANALYSIS ======================
+function onComplaintChange(){
+  const val=document.getElementById('fC').value.trim();
+  document.getElementById('aiAnalyzeBtn').style.display=val.length>5?'block':'none';
+  document.getElementById('aiAnalyzeResult').style.display='none';
+}
+function onEditComplaintChange(jobId){
+  // Reset result when complaint changes
+  const el=document.getElementById('aiEditResult');
+  if(el)el.style.display='none';
+}
+async function analyzeComplaint(){
+  const complaint=document.getElementById('fC').value.trim();
+  const car=JOB.car||document.getElementById('fCar')?.value||'';
+  await runAIComplaintAnalysis(complaint,car,'aiAnalyzeResult');
+}
+async function analyzeComplaintEdit(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);
+  const complaint=document.getElementById('jdDesc').value.trim();
+  const car=j?.car||'';
+  await runAIComplaintAnalysis(complaint,car,'aiEditResult');
+}
+async function runAIComplaintAnalysis(complaint,car,resultDivId){
+  if(!complaint||complaint.length<3){showToast('Complaint enter ചെയ്യൂ');return;}
+  const el=document.getElementById(resultDivId);
+  if(!el)return;
+  el.style.display='block';
+  el.innerHTML='<div style="text-align:center;padding:10px;color:#7c3aed">⏳ AI analyzing...</div>';
+  try{
+    const prompt=`Kerala automotive workshop. Vehicle: ${car||'unknown'}. Customer complaint: "${complaint}"
+
+Analyze and provide in this exact format:
+
+🔍 LIKELY CAUSES:
+1. [cause] — [probability: High/Medium/Low]
+2. [cause] — [probability]
+3. [cause] — [probability]
+
+🔧 SUGGESTED REPAIRS:
+• [repair item] — ₹[min]-[max] labour
+• [repair item] — ₹[min]-[max] labour
+
+🔩 PARTS NEEDED:
+• [part name] (check stock)
+
+⚠️ URGENCY: [Immediate/This week/Routine]
+
+Keep it concise. Kerala workshop context. Prices in INR.`;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:600,
+        system:'You are an expert automotive mechanic assistant for a Kerala workshop. Give practical, accurate diagnosis. Be concise.',
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content?.[0]?.text||'Analysis failed. Try again.';
+    // Format nicely
+    el.innerHTML=`<div style="border-left:3px solid #7c3aed;padding-left:8px">
+      <div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:5px">🤖 AI ANALYSIS — ${car||'Vehicle'}</div>
+      <div style="white-space:pre-wrap;font-size:11px;color:var(--ink)">${text}</div>
+      <div style="margin-top:8px;font-size:9px;color:#9ca3af">⚠️ AI suggestion — mechanic judgment ആവശ്യം. Verify before proceeding.</div>
+    </div>`;
+  }catch(e){
+    el.innerHTML='<div style="color:#dc2626;font-size:12px">❌ Network error. Check internet connection.</div>';
+  }
+}
+
+// ====================== WORKSHOP AGENT ======================
+function buildWorkshopContext(){
+  const now=new Date();
+  const today=now.toDateString();
+  const todayJobs=DB.jobs.filter(j=>new Date(j.at).toDateString()===today);
+  const pending=DB.jobs.filter(j=>j.status!=='completed');
+  const ready=DB.jobs.filter(j=>j.status==='ready');
+  const inProgress=DB.jobs.filter(j=>j.status==='in-progress');
+  const overdue=pending.filter(j=>Math.floor((Date.now()-new Date(j.at))/864e5)>7);
+  const payDue=DB.jobs.filter(j=>(j.total||0)>(j.amtPaid||0)&&j.status==='completed');
+  const weekStart=new Date(now);weekStart.setDate(now.getDate()-(now.getDay()||7)+1);weekStart.setHours(0,0,0,0);
+  const weekJobs=DB.jobs.filter(j=>new Date(j.paidAt||j.at)>=weekStart);
+  const weekRev=weekJobs.reduce((s,j)=>s+Math.min(j.amtPaid||0,j.total||0),0);
+  const monthJobs=DB.jobs.filter(j=>{const d=new Date(j.paidAt||j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const monthRev=monthJobs.reduce((s,j)=>s+(j.total||0),0);
+
+  return `=== MAS CAR CARE WORKSHOP — LIVE DATA (${now.toLocaleDateString('en-IN')}) ===
+
+TODAY:
+- Jobs created today: ${todayJobs.length} (${todayJobs.map(j=>`${j.name}/${j.vnum||'no reg'}`).join(', ')||'none'})
+- Today revenue collected: ₹${todayJobs.reduce((s,j)=>s+(j.amtPaid||0),0).toLocaleString('en-IN')}
+
+PENDING JOBS (${pending.length} total):
+- In Progress: ${inProgress.length} jobs
+- Ready for Delivery: ${ready.length} jobs — ${ready.map(j=>`${j.name} (${j.vnum||''}) ₹${j.total||0}`).join(', ')||'none'}
+- Overdue (7+ days): ${overdue.length} jobs — ${overdue.slice(0,5).map(j=>`${j.name}/${j.car} ${Math.floor((Date.now()-new Date(j.at))/864e5)}d`).join(', ')||'none'}
+
+PAYMENTS DUE: ${payDue.length} customers — Total: ₹${payDue.reduce((s,j)=>s+((j.total||0)-(j.amtPaid||0)),0).toLocaleString('en-IN')}
+${payDue.slice(0,5).map(j=>`  • ${j.name} (${j.vnum||''}) — Due: ₹${((j.total||0)-(j.amtPaid||0)).toLocaleString('en-IN')}`).join('\n')}
+
+STAFF STATUS:
+${DB.mechanics.map(m=>{const mj=pending.filter(j=>j.mechId===m.id||j.tinkerId===m.id||j.painterId===m.id);return `  • ${m.name} (${m.spec}): ${mj.length} active — ${mj.slice(0,3).map(j=>j.vnum||j.name).join(', ')||'free'}`;}).join('\n')||'No staff data'}
+
+THIS WEEK: ${weekJobs.length} jobs, ₹${weekRev.toLocaleString('en-IN')} collected
+THIS MONTH: ${monthJobs.length} jobs, ₹${monthRev.toLocaleString('en-IN')} billed
+
+STAFF WEEKLY REVENUE:
+${DB.mechanics.map(m=>{const wj=weekJobs.filter(j=>j.mechId===m.id||j.tinkerId===m.id||j.painterId===m.id);const rev=wj.reduce((s,j)=>{const c=jobWorkerCredits(j);return s+(c[m.id]||0);},0);return rev>0?`  • ${m.name}: ₹${rev.toLocaleString('en-IN')} (${wj.length} jobs)`:null;}).filter(Boolean).join('\n')||'No data'}
+
+TOTAL JOBS: ${DB.jobs.length} | CUSTOMERS: ${DB.customers.length}`;
+}
+
+function agentQuery(type){
+  const queries={
+    today_brief:'ഇന്നത്തെ workshop briefing തരൂ — pending jobs, ready for delivery, today revenue, important things to focus on. Concise bullet points.',
+    ready_delivery:'Ready for delivery ആയ cars ഏതൊക്കെ? Customer name, vehicle number, total bill, phone number — list ചെയ്യൂ. WhatsApp call ചെയ്യേണ്ട order-ൽ.',
+    payment_due:'Payment due ആയ customers ഏതൊക്കെ? Amount, customer name, vehicle — list ചെയ്യൂ. ഏറ്റവും കൂടുതൽ amount ആദ്യം.',
+    staff_today:'ഓരോ mechanic/painter/body worker-ഉം ഇപ്പോൾ ഏതൊക്കെ cars-ൽ work ചെയ്യുന്നു? Workload balance ശരിയാണോ?',
+    old_jobs:'7 ദിവസത്തിൽ കൂടുതൽ pending ആയ jobs ഏതൊക്കെ? Customer-നെ contact ചെയ്യേണ്ടവ, delay reason possible ആയവ.',
+    week_revenue:'ഈ week-ലെ revenue breakdown — staff-wise, day-wise. Target vs actual.'
+  };
+  document.getElementById('aiIn').value=queries[type]||'';
+  askAI();
+}
+
 async function askAI(){
   const input=document.getElementById('aiIn');
   const msg=input.value.trim();if(!msg)return;
   input.value='';
   const out=document.getElementById('aiOut');
-  out.textContent='⏳ Thinking...';
+  out.style.color='#a5b4fc';
+  out.textContent='⏳ Analyzing workshop data...';
   try{
-    const ctx=`Kerala workshop. Mechanics: ${DB.mechanics.map(m=>m.name).join(', ')||'none'}. Jobs today: ${DB.jobs.filter(j=>new Date(j.at).toDateString()===new Date().toDateString()).length}. Total revenue: ₹${DB.jobs.reduce((s,j)=>s+(j.total||0),0).toLocaleString('en-IN')}. Pending: ${DB.jobs.filter(j=>j.status!=='completed').length}.`;
+    const ctx=buildWorkshopContext();
     const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
-        system:`You are a Kerala garage workshop AI assistant. Reply in Malayalam/English mix. Be practical and concise. Kerala context 2026. Workshop data: ${ctx}`,
-        messages:[{role:'user',content:msg}]})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        system:`You are the AI agent for MAS Car Care workshop, Trivandrum, Kerala. Owner: Arun. Est. 1996. Services: Mechanical, Body work, Painting.
+
+Here is the LIVE workshop data:
+${ctx}
+
+Instructions:
+- Answer in Malayalam/English mix (casual, practical)
+- Be direct and actionable
+- Use emojis sparingly
+- For lists, use bullet points
+- Always reference actual data from context
+- If vehicle search: check the job history data
+- Keep responses concise but complete`,
+        messages:[{role:'user',content:msg}]
+      })
     });
     const data=await res.json();
+    out.style.color='#e2e8f0';
     out.textContent=data.content?.[0]?.text||'Try again.';
-  }catch(e){out.textContent='Network error. Check internet.';}
+  }catch(e){
+    out.style.color='#fca5a5';
+    out.textContent='❌ Network error. Check internet.';
+  }
 }
 function qAI(msg){document.getElementById('aiIn').value=msg;go('ai');askAI();}
 document.getElementById('aiIn').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
