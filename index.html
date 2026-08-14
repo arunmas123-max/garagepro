@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.2</title>
+<title>Garage Pro Kerala v11.4</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.4</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -256,7 +256,8 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
   <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
   <div onclick="openDataHealth()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🏥 Data Health</div>
-  <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI</div>
+  <div onclick="openApiSettings()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔑 AI Settings</div>
+  <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI Agent</div>
 </div>
 
 <main>
@@ -803,6 +804,47 @@ textarea{resize:vertical;min-height:65px}
   <div class="mbox">
     <div class="mhead"><div class="mt" id="jobMT">Job</div><button class="mc" onclick="closeM('jobM')">×</button></div>
     <div class="mbody" id="jobMB"></div>
+  </div>
+</div>
+
+<!-- API SETTINGS MODAL -->
+<div class="modal" id="apiSettingsM" style="z-index:300">
+  <div class="mbox">
+    <div class="mhead" style="background:linear-gradient(135deg,#0f172a,#1e1b4b)">
+      <div class="mt" style="color:#fff">🔑 AI Settings</div>
+      <button class="mc" onclick="closeM('apiSettingsM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
+    </div>
+    <div class="mbody">
+      <!-- Status -->
+      <div id="apiStatusCard" style="border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px"></div>
+      <!-- API Key input -->
+      <div class="fg">
+        <label>Anthropic API Key</label>
+        <div style="display:flex;gap:6px">
+          <input id="apiKeyInp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-family:monospace;font-size:12px">
+          <button onclick="toggleApiKeyVisibility()" style="background:#f3f4f6;border:none;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:14px" id="apiKeyToggle">👁️</button>
+        </div>
+      </div>
+      <button onclick="saveApiKey()" class="btn b-blue" style="margin-bottom:8px">💾 Save API Key</button>
+      <button onclick="testApiKey()" style="width:100%;padding:9px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px">🧪 Test Connection</button>
+
+      <!-- How to get key -->
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;font-size:11px;color:#1e40af">
+        <div style="font-weight:700;margin-bottom:6px">🔑 API Key എങ്ങിനെ കിട്ടും?</div>
+        <div>1. <b>console.anthropic.com</b> open ചെയ്യൂ</div>
+        <div>2. Sign up / Login ചെയ്യൂ</div>
+        <div>3. "API Keys" → "Create Key"</div>
+        <div>4. Copy → ഇവിടെ paste ചെയ്യൂ</div>
+        <div style="margin-top:6px;color:#1d4ed8">💰 Cost: ~₹5-10/day (20 queries)</div>
+        <div style="color:#15803d">✅ First $5 free — try ചെയ്‌ത് നോക്കൂ!</div>
+      </div>
+
+      <!-- Usage stats -->
+      <div style="margin-top:10px;background:#f8f9fa;border-radius:8px;padding:10px 12px">
+        <div style="font-size:11px;font-weight:700;color:#9ca3af;margin-bottom:5px">📊 USAGE THIS SESSION</div>
+        <div style="font-size:12px" id="apiUsageStats">0 queries used</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2898,15 +2940,45 @@ function toggleMoreMenu(){
   m.style.display=m.style.display==='none'?'block':'none';
 }
 function fixAllMismatches(){
+  let fixed=0;
   DB.jobs.forEach(j=>{
+    // Fix calculation mismatches
     const labour=(j.labourItems||[]).reduce((s,it)=>s+it.price*(it.qty||1),0);
     const parts=(j.spareItems||[]).reduce((s,it)=>s+it.sell*(it.qty||1),0);
     const expectedTotal=labour+parts;
     if(Math.abs((j.total||0)-expectedTotal)>1){
       j.labour=labour;j.partsTotal=parts;j.sub=expectedTotal;j.gst=0;j.total=expectedTotal;
+      fixed++;
     }
+    // Fix overpaid — cap amtPaid at total
+    if((j.total||0)>0&&(j.amtPaid||0)>(j.total||0)){
+      // Check if it's exactly double — clear bug
+      if(Math.abs((j.amtPaid||0)-((j.total||0)*2))<1){
+        j.amtPaid=j.total;
+        j.paid=j.total;
+        j.payMode=j.total>0?'cash':'pending';
+        // Fix payHistory — remove duplicate entries
+        if(j.payHistory&&j.payHistory.length>1){
+          const totalAmt=j.payHistory.reduce((s,p)=>s+(p.amt||0),0);
+          if(Math.abs(totalAmt-(j.total*2))<1){
+            // Keep only first payment entry
+            j.payHistory=[j.payHistory[0]];
+            j.payHistory[0].amt=j.total;
+          }
+        }
+        fixed++;
+      } else {
+        // Non-double overpay — cap at total
+        j.amtPaid=j.total;
+        j.paid=j.total;
+        fixed++;
+      }
+    }
+    // Fix negative due
+    if((j.amtPaid||0)<0)j.amtPaid=0;
+    if((j.paid||0)<0)j.paid=0;
   });
-  save();showToast('✅ All mismatches fixed!');
+  save();showToast(`✅ ${fixed} issues fixed!`);
 }
 function runFullRecalc(){
   DB.jobs.forEach(j=>recalcJob(j));
@@ -2968,7 +3040,12 @@ function openDataHealth(){
     </div>
     <div style="font-size:11px;font-weight:700;color:${mismatchCount?'#dc2626':'var(--green)'};margin-bottom:4px">${mismatchCount?'🚨':'✅'} Calculation Mismatches: ${mismatchCount}</div>
     ${mismatchCount?`<div style="margin-bottom:8px">${issues.join('')}<button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#dc2626;color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px">🔧 Fix All Mismatches</button></div>`:''}
-    ${overpaidCount?`<div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">⚠️ Overpaid: ${overpaidCount}</div>${warnings.join('')}`:''}
+    ${overpaidCount?`<div style="background:#fef3c7;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Overpaid: ${overpaidCount} entries</div>
+      <div style="font-size:11px;color:#92400e;margin-bottom:8px">amtPaid, total-നേക്കാൾ കൂടുതൽ (double payment bug). Fix → amtPaid = total ആകും.</div>
+      ${warnings.slice(0,5).join('')}
+      <button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#d97706;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px">🔧 Fix All ${overpaidCount} Overpaid Entries NOW</button>
+    </div>`:''}
     <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>
     <div style="display:flex;flex-direction:column;gap:6px">
       <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
@@ -4027,50 +4104,98 @@ async function runAIComplaintAnalysis(complaint,car,resultDivId){
   el.style.display='block';
   el.innerHTML='<div style="text-align:center;padding:10px;color:#7c3aed">⏳ AI analyzing...</div>';
   try{
-    const prompt=`Kerala automotive workshop. Vehicle: ${car||'unknown'}. Customer complaint: "${complaint}"
-
-Analyze and provide in this exact format:
-
-🔍 LIKELY CAUSES:
-1. [cause] — [probability: High/Medium/Low]
-2. [cause] — [probability]
-3. [cause] — [probability]
-
-🔧 SUGGESTED REPAIRS:
-• [repair item] — ₹[min]-[max] labour
-• [repair item] — ₹[min]-[max] labour
-
-🔩 PARTS NEEDED:
-• [part name] (check stock)
-
-⚠️ URGENCY: [Immediate/This week/Routine]
-
-Keep it concise. Kerala workshop context. Prices in INR.`;
-
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:600,
-        system:'You are an expert automotive mechanic assistant for a Kerala workshop. Give practical, accurate diagnosis. Be concise.',
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const data=await res.json();
-    const text=data.content?.[0]?.text||'Analysis failed. Try again.';
-    // Format nicely
+    const text=await callAnthropicAPI(
+      'You are an expert automotive mechanic assistant for a Kerala workshop. Give practical, accurate diagnosis. Be concise.',
+      prompt,600
+    );
     el.innerHTML=`<div style="border-left:3px solid #7c3aed;padding-left:8px">
       <div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:5px">🤖 AI ANALYSIS — ${car||'Vehicle'}</div>
       <div style="white-space:pre-wrap;font-size:11px;color:var(--ink)">${text}</div>
-      <div style="margin-top:8px;font-size:9px;color:#9ca3af">⚠️ AI suggestion — mechanic judgment ആവശ്യം. Verify before proceeding.</div>
+      <div style="margin-top:8px;font-size:9px;color:#9ca3af">⚠️ AI suggestion — mechanic judgment ആവശ്യം.</div>
     </div>`;
   }catch(e){
-    el.innerHTML='<div style="color:#dc2626;font-size:12px">❌ Network error. Check internet connection.</div>';
+    el.innerHTML=`<div style="color:#dc2626;font-size:12px">❌ ${e.message}</div>`;
   }
 }
 
-// ====================== WORKSHOP AGENT ======================
+// ====================== API KEY MANAGEMENT ======================
+let _apiQueryCount=0;
+function getApiKey(){
+  return localStorage.getItem('gp_anthropic_key')||'';
+}
+function openApiSettings(){
+  document.getElementById('moreMenu').style.display='none';
+  const key=getApiKey();
+  document.getElementById('apiKeyInp').value=key;
+  document.getElementById('apiUsageStats').textContent=_apiQueryCount+' queries this session';
+  const statusCard=document.getElementById('apiStatusCard');
+  if(key&&key.startsWith('sk-ant')){
+    statusCard.style.background='#f0fdf4';statusCard.style.color='#166534';
+    statusCard.textContent='✅ API Key configured — AI Agent ready!';
+  } else {
+    statusCard.style.background='#fef2f2';statusCard.style.color='#991b1b';
+    statusCard.textContent='❌ API Key ഇല്ല — AI features work ആകില്ല';
+  }
+  openM('apiSettingsM');
+}
+function toggleApiKeyVisibility(){
+  const inp=document.getElementById('apiKeyInp');
+  const btn=document.getElementById('apiKeyToggle');
+  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';}
+  else{inp.type='password';btn.textContent='👁️';}
+}
+function saveApiKey(){
+  const key=document.getElementById('apiKeyInp').value.trim();
+  if(!key){alert('API Key enter ചെയ്യൂ');return;}
+  if(!key.startsWith('sk-ant')){
+    if(!confirm('ഇത് valid Anthropic API key ആണോ? (sk-ant... ആയി തുടങ്ങണം)'))return;
+  }
+  localStorage.setItem('gp_anthropic_key',key);
+  showToast('✅ API Key saved!');
+  openApiSettings(); // refresh status
+}
+async function testApiKey(){
+  const key=getApiKey();
+  if(!key){showToast('⚠️ API Key ഇല്ല — save ചെയ്യൂ');return;}
+  const el=document.getElementById('apiStatusCard');
+  el.style.background='#fef3c7';el.style.color='#92400e';
+  el.textContent='⏳ Testing connection...';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:50,messages:[{role:'user',content:'Say "OK" only.'}]})
+    });
+    const data=await res.json();
+    if(data.content?.[0]?.text){
+      el.style.background='#f0fdf4';el.style.color='#166534';
+      el.textContent='✅ Connection successful! AI Agent ready.';
+      _apiQueryCount++;
+      document.getElementById('apiUsageStats').textContent=_apiQueryCount+' queries this session';
+    } else if(data.error){
+      el.style.background='#fef2f2';el.style.color='#991b1b';
+      el.textContent='❌ Error: '+data.error.message;
+    }
+  }catch(e){
+    el.style.background='#fef2f2';el.style.color='#991b1b';
+    el.textContent='❌ Network error. Check internet.';
+  }
+}
+async function callAnthropicAPI(system,userMsg,maxTokens=1000){
+  const key=getApiKey();
+  if(!key||!key.startsWith('sk-ant')){
+    throw new Error('API Key ഇല്ല. More → 🔑 AI Settings-ൽ key add ചെയ്യൂ.');
+  }
+  _apiQueryCount++;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages:[{role:'user',content:userMsg}]})
+  });
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.content?.[0]?.text||'No response';
+}
 function buildWorkshopContext(){
   const now=new Date();
   const today=now.toDateString();
@@ -4134,13 +4259,7 @@ async function askAI(){
   out.textContent='⏳ Analyzing workshop data...';
   try{
     const ctx=buildWorkshopContext();
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        system:`You are the AI agent for MAS Car Care workshop, Trivandrum, Kerala. Owner: Arun. Est. 1996. Services: Mechanical, Body work, Painting.
+    const system=`You are the AI agent for MAS Car Care workshop, Trivandrum, Kerala. Owner: Arun. Est. 1996. Services: Mechanical, Body work, Painting.
 
 Here is the LIVE workshop data:
 ${ctx}
@@ -4152,16 +4271,13 @@ Instructions:
 - For lists, use bullet points
 - Always reference actual data from context
 - If vehicle search: check the job history data
-- Keep responses concise but complete`,
-        messages:[{role:'user',content:msg}]
-      })
-    });
-    const data=await res.json();
+- Keep responses concise but complete`;
+    const text=await callAnthropicAPI(system,msg,1000);
     out.style.color='#e2e8f0';
-    out.textContent=data.content?.[0]?.text||'Try again.';
+    out.textContent=text;
   }catch(e){
     out.style.color='#fca5a5';
-    out.textContent='❌ Network error. Check internet.';
+    out.textContent='❌ '+e.message;
   }
 }
 function qAI(msg){document.getElementById('aiIn').value=msg;go('ai');askAI();}
