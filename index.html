@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.4</title>
+<title>Garage Pro Kerala v11.5</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.4</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.5</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1542,7 +1542,7 @@ function go(name){
   const fn={home:renderHome,kanban:renderKanban,jobs:renderJobs,report:renderReport,customers:renderCustomers,manage:renderManage,stock:renderStock,rates:renderRates,search:()=>{},ai:()=>{}};
   if(fn[name])fn[name]();
 }
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>go(t.dataset.pg)));
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{if(t.dataset.pg)go(t.dataset.pg);}));
 
 // ====================== HELPERS ======================
 function getLabourPrice(rate){
@@ -3263,12 +3263,18 @@ function saveCollectPay(){
       j.payHistory.push({amt:advAmt,mode:_payMode,at:now,note:'advance'});
       showToast('✅ Advance ₹'+advAmt.toLocaleString('en-IN')+' collected!');
     } else {
+      // Full payment — set amtPaid = total (cap, don't add)
+      const prevPaid=j.amtPaid||0;
+      const remaining=Math.max(0,(j.total||0)-prevPaid);
       j.amtPaid=j.total;
       j.paid=j.total;
       j.payMode=_payMode;
       j.paidAt=now;
       if(!j.payHistory)j.payHistory=[];
-      j.payHistory.push({amt:j.total-(j.amtPaid-j.total),mode:_payMode,at:now});
+      // Only record the remaining amount, not total (prevents double)
+      if(remaining>0){
+        j.payHistory.push({amt:remaining,mode:_payMode,at:now});
+      }
       showToast('✅ Full payment collected!');
     }
   }
