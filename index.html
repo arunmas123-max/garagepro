@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.6</title>
+<title>Garage Pro Kerala v11.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -3024,7 +3024,8 @@ function openDataHealth(){
   const lastSync=typeof lastSyncTime!=='undefined'&&lastSyncTime?Math.floor((Date.now()-lastSyncTime)/60000):null;
   const score=Math.max(0,100-(mismatchCount*10)-(overpaidCount*5)-(zeroCompleted.length*2)-(bkDays>7?20:bkDays>3?10:0));
   const scoreCol=score>=90?'var(--green)':score>=70?'var(--gold)':'#dc2626';
-  document.getElementById('dataHealthMB').innerHTML=`
+  const el=document.getElementById('dataHealthMB');
+  el.innerHTML=`
     <div style="text-align:center;padding:12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px">
       <div style="font-size:40px;font-weight:900;color:${scoreCol}">${score}</div>
       <div style="font-size:11px;color:#9ca3af;font-weight:700">DATA HEALTH SCORE / 100</div>
@@ -3040,22 +3041,22 @@ function openDataHealth(){
       <span style="font-size:11px;font-weight:700;color:${lastSync!==null&&lastSync<3?'var(--green)':'#d97706'}">${lastSync===null?'Unknown':lastSync<3?'✅ Live':'⚠️ '+lastSync+'min ago'}</span>
     </div>
     <div style="font-size:11px;font-weight:700;color:${mismatchCount?'#dc2626':'var(--green)'};margin-bottom:4px">${mismatchCount?'🚨':'✅'} Calculation Mismatches: ${mismatchCount}</div>
-    ${mismatchCount?`<div style="margin-bottom:8px">${issues.join('')}<button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#dc2626;color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px">🔧 Fix All Mismatches</button></div>`:''}
+    ${mismatchCount?`<div style="margin-bottom:8px">${issues.join('')}</div>`:''}
     ${overpaidCount?`<div style="background:#fef3c7;border-radius:10px;padding:10px 12px;margin-bottom:8px">
       <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Overpaid: ${overpaidCount} entries</div>
-      <div style="font-size:11px;color:#92400e;margin-bottom:8px">amtPaid, total-നേക്കാൾ കൂടുതൽ (double payment bug). Fix → amtPaid = total ആകും.</div>
       ${warnings.slice(0,5).join('')}
-      <button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#d97706;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px">🔧 Fix All ${overpaidCount} Overpaid Entries NOW</button>
-    </div>`:''}
+    </div>`:'<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px">✅ No overpaid entries</div>'}
     <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>`;
-  document.getElementById('dataHealthMB').innerHTML=html;
-  // Sticky bottom buttons — outside scroll
+  // Remove old sticky buttons if any
+  const oldBtn=document.querySelector('#dataHealthM .mbox .sticky-btns');
+  if(oldBtn)oldBtn.remove();
   const btnDiv=document.createElement('div');
-  btnDiv.style.cssText='padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;background:#fff';
+  btnDiv.className='sticky-btns';
+  btnDiv.style.cssText='padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;background:#fff;flex-shrink:0';
   btnDiv.innerHTML=`
-    <button onclick="fixAllMismatches();openDataHealth()" style="background:#d97706;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔧 Fix All Issues</button>
-    <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
-    <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Backup Now</button>`;
+    <button onclick="fixAllMismatches();openDataHealth()" style="background:#d97706;color:#fff;border:none;padding:12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔧 Fix All Issues (Overpaid + Mismatches)</button>
+    <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
+    <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Backup Now</button>`;
   document.querySelector('#dataHealthM .mbox').appendChild(btnDiv);
   openM('dataHealthM');
 }
