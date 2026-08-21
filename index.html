@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.5</title>
+<title>Garage Pro Kerala v11.6</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.5</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.6</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -849,13 +849,13 @@ textarea{resize:vertical;min-height:65px}
 </div>
 
 <!-- DATA HEALTH MODAL -->
-<div class="modal" id="dataHealthM">
-  <div class="mbox">
+<div class="modal" id="dataHealthM" style="z-index:400">
+  <div class="mbox" style="display:flex;flex-direction:column;max-height:88vh">
     <div class="mhead" style="background:linear-gradient(135deg,#1e3a5f,#1d4ed8)">
       <div class="mt" style="color:#fff">🏥 Data Health Check</div>
       <button class="mc" onclick="closeM('dataHealthM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
     </div>
-    <div class="mbody" id="dataHealthMB"></div>
+    <div class="mbody" id="dataHealthMB" style="flex:1;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -2989,7 +2989,8 @@ function runFullRecalc(){
   save();showToast('✅ Full recalc done!');
 }
 function openDataHealth(){
-  document.getElementById('moreMenu').style.display='none';
+  const mm=document.getElementById('moreMenu');
+  if(mm)mm.style.display='none';
   const issues=[];const warnings=[];
   let mismatchCount=0;
   DB.jobs.forEach(j=>{
@@ -3046,11 +3047,16 @@ function openDataHealth(){
       ${warnings.slice(0,5).join('')}
       <button onclick="fixAllMismatches();openDataHealth()" style="width:100%;background:#d97706;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px">🔧 Fix All ${overpaidCount} Overpaid Entries NOW</button>
     </div>`:''}
-    <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
-      <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">💾 Backup Now</button>
-    </div>`;
+    <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>`;
+  document.getElementById('dataHealthMB').innerHTML=html;
+  // Sticky bottom buttons — outside scroll
+  const btnDiv=document.createElement('div');
+  btnDiv.style.cssText='padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;background:#fff';
+  btnDiv.innerHTML=`
+    <button onclick="fixAllMismatches();openDataHealth()" style="background:#d97706;color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔧 Fix All Issues</button>
+    <button onclick="runFullRecalc();openDataHealth()" style="background:var(--blue);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">🔄 Recalculate All Jobs</button>
+    <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Backup Now</button>`;
+  document.querySelector('#dataHealthM .mbox').appendChild(btnDiv);
   openM('dataHealthM');
 }
 function goMore(pg){
