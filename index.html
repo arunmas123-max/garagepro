@@ -820,9 +820,9 @@ textarea{resize:vertical;min-height:65px}
       <div id="apiStatusCard" style="border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px"></div>
       <!-- API Key input -->
       <div class="fg">
-        <label>Anthropic API Key</label>
+        <label>Groq API Key (Free)</label>
         <div style="display:flex;gap:6px">
-          <input id="apiKeyInp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-family:monospace;font-size:12px">
+          <input id="apiKeyInp" type="password" placeholder="gsk_..." style="flex:1;font-family:monospace;font-size:12px">
           <button onclick="toggleApiKeyVisibility()" style="background:#f3f4f6;border:none;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:14px" id="apiKeyToggle">👁️</button>
         </div>
       </div>
@@ -831,13 +831,13 @@ textarea{resize:vertical;min-height:65px}
 
       <!-- How to get key -->
       <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;font-size:11px;color:#1e40af">
-        <div style="font-weight:700;margin-bottom:6px">🔑 API Key എങ്ങിനെ കിട്ടും?</div>
-        <div>1. <b>console.anthropic.com</b> open ചെയ്യൂ</div>
-        <div>2. Sign up / Login ചെയ്യൂ</div>
-        <div>3. "API Keys" → "Create Key"</div>
-        <div>4. Copy → ഇവിടെ paste ചെയ്യൂ</div>
-        <div style="margin-top:6px;color:#1d4ed8">💰 Cost: ~₹5-10/day (20 queries)</div>
-        <div style="color:#15803d">✅ First $5 free — try ചെയ്‌ത് നോക്കൂ!</div>
+        <div style="font-weight:700;margin-bottom:6px">🔑 Free API Key എങ്ങിനെ കിട്ടും?</div>
+        <div>1. <b>console.groq.com/keys</b> open ചെയ്യൂ</div>
+        <div>2. Google account കൊണ്ട് Login ചെയ്യൂ</div>
+        <div>3. "Create API Key" → പേര് ഇട്ട് create ചെയ്യൂ</div>
+        <div>4. Copy → ഇവിടെ paste ചെയ്യൂ (gsk_... ആയി തുടങ്ങും)</div>
+        <div style="margin-top:6px;color:#15803d">✅ 100% Free — credit card വേണ്ട</div>
+        <div style="color:#1d4ed8">🔒 Groq നിങ്ങളുടെ data train ചെയ്യാൻ ഉപയോഗിക്കില്ല</div>
       </div>
 
       <!-- Usage stats -->
@@ -4150,18 +4150,27 @@ async function runAIComplaintAnalysis(complaint,car,resultDivId){
   }
 }
 
-// ====================== API KEY MANAGEMENT ======================
+// ====================== API KEY MANAGEMENT (GROQ) ======================
+// Groq is OpenAI-compatible and has a permanent FREE tier (no credit card).
+// Get a key at: https://console.groq.com/keys  (keys start with "gsk_")
+const GROQ_URL='https://api.groq.com/openai/v1/chat/completions';
+// Model — Groq changes its model list from time to time. If you get a
+// "model not found" / decommissioned error, open console.groq.com/docs/models
+// and paste a current model id here. (verify before relying on it)
+const GROQ_MODEL='llama-3.3-70b-versatile';
 let _apiQueryCount=0;
 function getApiKey(){
-  return localStorage.getItem('gp_anthropic_key')||'';
+  // Reads the same storage slot as before, so an already-saved key still loads.
+  return localStorage.getItem('gp_groq_key')||localStorage.getItem('gp_anthropic_key')||'';
 }
+function isValidKeyShape(key){return !!key&&key.startsWith('gsk_');}
 function openApiSettings(){
   document.getElementById('moreMenu').style.display='none';
   const key=getApiKey();
   document.getElementById('apiKeyInp').value=key;
   document.getElementById('apiUsageStats').textContent=_apiQueryCount+' queries this session';
   const statusCard=document.getElementById('apiStatusCard');
-  if(key&&key.startsWith('sk-ant')){
+  if(isValidKeyShape(key)){
     statusCard.style.background='#f0fdf4';statusCard.style.color='#166534';
     statusCard.textContent='✅ API Key configured — AI Agent ready!';
   } else {
@@ -4179,10 +4188,10 @@ function toggleApiKeyVisibility(){
 function saveApiKey(){
   const key=document.getElementById('apiKeyInp').value.trim();
   if(!key){alert('API Key enter ചെയ്യൂ');return;}
-  if(!key.startsWith('sk-ant')){
-    if(!confirm('ഇത് valid Anthropic API key ആണോ? (sk-ant... ആയി തുടങ്ങണം)'))return;
+  if(!isValidKeyShape(key)){
+    if(!confirm('ഇത് valid Groq API key ആണോ? (gsk_... ആയി തുടങ്ങണം)'))return;
   }
-  localStorage.setItem('gp_anthropic_key',key);
+  localStorage.setItem('gp_groq_key',key);
   showToast('✅ API Key saved!');
   openApiSettings(); // refresh status
 }
@@ -4193,40 +4202,41 @@ async function testApiKey(){
   el.style.background='#fef3c7';el.style.color='#92400e';
   el.textContent='⏳ Testing connection...';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(GROQ_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:50,messages:[{role:'user',content:'Say "OK" only.'}]})
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:GROQ_MODEL,max_tokens:50,messages:[{role:'user',content:'Say "OK" only.'}]})
     });
     const data=await res.json();
-    if(data.content?.[0]?.text){
+    if(data.choices?.[0]?.message?.content){
       el.style.background='#f0fdf4';el.style.color='#166534';
       el.textContent='✅ Connection successful! AI Agent ready.';
       _apiQueryCount++;
       document.getElementById('apiUsageStats').textContent=_apiQueryCount+' queries this session';
     } else if(data.error){
       el.style.background='#fef2f2';el.style.color='#991b1b';
-      el.textContent='❌ Error: '+data.error.message;
+      el.textContent='❌ Error: '+(data.error.message||data.error);
     }
   }catch(e){
     el.style.background='#fef2f2';el.style.color='#991b1b';
-    el.textContent='❌ Network error. Check internet.';
+    el.textContent='❌ Network/CORS error. Internet + Groq browser access നോക്കൂ.';
   }
 }
+// Name kept as callAnthropicAPI so existing callers work; it now calls Groq.
 async function callAnthropicAPI(system,userMsg,maxTokens=1000){
   const key=getApiKey();
-  if(!key||!key.startsWith('sk-ant')){
-    throw new Error('API Key ഇല്ല. More → 🔑 AI Settings-ൽ key add ചെയ്യൂ.');
+  if(!isValidKeyShape(key)){
+    throw new Error('API Key ഇല്ല. More → 🔑 AI Settings-ൽ Groq key (gsk_...) add ചെയ്യൂ.');
   }
   _apiQueryCount++;
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
+  const res=await fetch(GROQ_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages:[{role:'user',content:userMsg}]})
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:GROQ_MODEL,max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:userMsg}]})
   });
   const data=await res.json();
-  if(data.error)throw new Error(data.error.message);
-  return data.content?.[0]?.text||'No response';
+  if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
+  return data.choices?.[0]?.message?.content||'No response';
 }
 function buildWorkshopContext(){
   const now=new Date();
