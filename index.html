@@ -227,6 +227,7 @@ textarea{resize:vertical;min-height:65px}
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
       <button class="hbtn" onclick="doRestore()">📂 Restore</button>
+      <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" onchange="onRestore(event)">
     </div>
   </div>
   <div class="hdr-st" id="hdrSt">
@@ -1391,7 +1392,7 @@ function saveToFirebase() {
     lrDisabled: DB.lrDisabled,
     paintMaterialCosts: DB.paintMaterialCosts,
     todos: DB.todos || [],
-    partsBuy: DB.partsBuy || [],
+    partsList: DB.partsList || [],
     lastUpdated: Date.now(),
     updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
   };
@@ -1436,18 +1437,20 @@ function loadFromFirebase() {
       const fbTime = data.lastUpdated || 0;
       const localTime = parseInt(localStorage.getItem('gp_lastupdate') || '0');
       if (fbTime > localTime) {
-        DB.jobs = data.jobs || [];
-        DB.customers = data.customers || [];
-        DB.mechanics = data.mechanics || [];
-        DB.stock = data.stock || [];
-        DB.spareHistory = data.spareHistory || [];
-        DB.customRates = data.customRates || {};
-        DB.carModels = data.carModels || [];
-        DB.customLabour = data.customLabour || [];
-        DB.lrDisabled = data.lrDisabled || {};
-        DB.paintMaterialCosts = data.paintMaterialCosts || {};
-        DB.todos = data.todos || [];
-        DB.partsBuy = data.partsBuy || [];
+        if (data.jobs !== undefined) DB.jobs = data.jobs || [];
+        if (data.customers !== undefined) DB.customers = data.customers || [];
+        if (data.mechanics !== undefined) DB.mechanics = data.mechanics || [];
+        if ('stock' in data) DB.stock = data.stock;
+        if ('spareHistory' in data) DB.spareHistory = data.spareHistory;
+        if ('customRates' in data) DB.customRates = data.customRates;
+        if ('carModels' in data) DB.carModels = data.carModels;
+        if ('customLabour' in data) DB.customLabour = data.customLabour;
+        if ('lrDisabled' in data) DB.lrDisabled = data.lrDisabled;
+        if ('paintMaterialCosts' in data) DB.paintMaterialCosts = data.paintMaterialCosts;
+        if ('todos' in data) DB.todos = data.todos;
+        if ('partsList' in data || 'partsBuy' in data) {
+          DB.partsList = data.partsList || data.partsBuy || DB.partsList || [];
+        }
         localStorage.setItem('gp_kl_v5', JSON.stringify(DB));
         localStorage.setItem('gp_lastupdate', fbTime.toString());
         renderAll();
@@ -1487,6 +1490,19 @@ function showSyncNotification() {
   el.style.display = 'block';
   setTimeout(() => { el.style.display = 'none'; }, 3000);
 }
+function showToast(msg) {
+  let el = document.getElementById('gpToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gpToast';
+    el.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--ink,#111827);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:90%;text-align:center;display:none;pointer-events:none';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._hideT);
+  el._hideT = setTimeout(() => { el.style.display = 'none'; }, 2500);
+}
 
 function forcSync() {
   loadFromFirebase();
@@ -1496,7 +1512,7 @@ function doBackup(){
   const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
   const u=URL.createObjectURL(b);
   const a=document.createElement('a');
-  a.href=u;a.download=`GaragePro_v5_${new Date().toISOString().split('T')[0]}.json`;
+  a.href=u;a.download=`GaragePro_v11_${new Date().toISOString().split('T')[0]}.json`;
   a.click();URL.revokeObjectURL(u);
   localStorage.setItem('gp_lastbk',Date.now().toString());
   alert('✅ Backup downloaded!\nWhatsApp Saved Messages-ൽ send ചെയ്ത് safe ആക്കൂ 🙏');
@@ -3185,8 +3201,8 @@ function applyVnumResult(){
   document.getElementById('fAddr').value=_vnumMatch.addr||'';
   if(_vnumMatch.car){
     document.getElementById('carSrch').value=_vnumMatch.car;
-    const cm=DB.carModels.find(m=>m.model===_vnumMatch.car||m.model+' '+m.brand===_vnumMatch.car);
-    if(cm){JOB.car=cm.model;JOB.cat=cm.cat;renderCarPicker();selectCar(cm.id);}
+    const cm=DB.carModels.find(m=>m.model===_vnumMatch.car||m.brand+' '+m.model===_vnumMatch.car);
+    if(cm){renderCarPicker();selectCarModel(cm.id);}
   }
   document.getElementById('vnumResult').style.display='none';
   _vnumMatch=null;
@@ -3243,6 +3259,7 @@ function selectPayMode(mode){
 function saveCollectPay(){
   const j=DB.jobs.find(x=>x.id===_payJobId);if(!j||!_payMode)return;
   const now=new Date().toISOString();
+  let toastMsg='';
   if(_payMode.startsWith('partial')){
     const partAmt=parseFloat(document.getElementById('pmPartialAmt').value||0);
     if(!partAmt||partAmt<=0){alert('Valid amount enter ചെയ്യുക');return;}
@@ -3257,7 +3274,7 @@ function saveCollectPay(){
     j.paidAt=now; // track last payment date
     if(!j.payHistory)j.payHistory=[];
     j.payHistory.push({amt:partAmt,mode:_payMode.replace('partial-',''),at:now});
-    showToast('✅ ₹'+partAmt.toLocaleString('en-IN')+' collected!');
+    toastMsg='✅ ₹'+partAmt.toLocaleString('en-IN')+' collected!';
   } else {
     const isAdvance=(j.total||0)===0;
     if(isAdvance){
@@ -3268,7 +3285,7 @@ function saveCollectPay(){
       j.payMode='partial';
       if(!j.payHistory)j.payHistory=[];
       j.payHistory.push({amt:advAmt,mode:_payMode,at:now,note:'advance'});
-      showToast('✅ Advance ₹'+advAmt.toLocaleString('en-IN')+' collected!');
+      toastMsg='✅ Advance ₹'+advAmt.toLocaleString('en-IN')+' collected!';
     } else {
       // Full payment — set amtPaid = total (cap, don't add)
       const prevPaid=j.amtPaid||0;
@@ -3282,10 +3299,11 @@ function saveCollectPay(){
       if(remaining>0){
         j.payHistory.push({amt:remaining,mode:_payMode,at:now});
       }
-      showToast('✅ Full payment collected!');
+      toastMsg='✅ Full payment collected!';
     }
   }
   save();closeM('payM');openJob(_payJobId);
+  if(toastMsg)showToast(toastMsg);
 }
 function fixOverpay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
@@ -3944,7 +3962,7 @@ function delMechCurrent(){
   DB.mechanics=DB.mechanics.filter(m=>m.id!==editMechId);
   save();closeM('mechM');renderManage();updateMechDD();
 }
-function delMech(id){if(!confirm('Remove?'))return;DB.mechanics=DB.mechanics.filter(m=>m.id!==id);save();renderMechanics();}
+function delMech(id){if(!confirm('Remove?'))return;DB.mechanics=DB.mechanics.filter(m=>m.id!==id);save();if(document.getElementById('mechList'))renderMechanics();else renderManage();}
 function updateMechDD(){
   const s=document.getElementById('fMech');
   s.innerHTML='<option value="">-- Select Mechanic --</option>';
@@ -4116,6 +4134,7 @@ async function runAIComplaintAnalysis(complaint,car,resultDivId){
   if(!el)return;
   el.style.display='block';
   el.innerHTML='<div style="text-align:center;padding:10px;color:#7c3aed">⏳ AI analyzing...</div>';
+  const prompt=`Vehicle: ${car||'Unknown'}\nCustomer complaint: ${complaint}\n\nProvide likely causes, diagnostic steps, and recommended repairs for a Kerala garage. Keep it concise and practical.`;
   try{
     const text=await callAnthropicAPI(
       'You are an expert automotive mechanic assistant for a Kerala workshop. Give practical, accurate diagnosis. Be concise.',
@@ -4176,7 +4195,7 @@ async function testApiKey(){
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:50,messages:[{role:'user',content:'Say "OK" only.'}]})
     });
     const data=await res.json();
@@ -4202,7 +4221,7 @@ async function callAnthropicAPI(system,userMsg,maxTokens=1000){
   _apiQueryCount++;
   const res=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages:[{role:'user',content:userMsg}]})
   });
   const data=await res.json();
