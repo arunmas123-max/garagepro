@@ -4201,25 +4201,35 @@ async function testApiKey(){
   const el=document.getElementById('apiStatusCard');
   el.style.background='#fef3c7';el.style.color='#92400e';
   el.textContent='⏳ Testing connection...';
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),30000);
   try{
     const res=await fetch(GROQ_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-      body:JSON.stringify({model:GROQ_MODEL,max_tokens:50,messages:[{role:'user',content:'Say "OK" only.'}]})
+      body:JSON.stringify({model:GROQ_MODEL,max_tokens:512,messages:[{role:'user',content:'Say "OK" only.'}]}),
+      signal:ctrl.signal
     });
+    clearTimeout(timer);
     const data=await res.json();
-    if(data.choices?.[0]?.message?.content){
+    const msg=data.choices?.[0]?.message||{};
+    const content=(msg.content||msg.reasoning||'').trim();
+    if(content){
       el.style.background='#f0fdf4';el.style.color='#166534';
       el.textContent='✅ Connection successful! AI Agent ready.';
       _apiQueryCount++;
       document.getElementById('apiUsageStats').textContent=_apiQueryCount+' queries this session';
     } else if(data.error){
       el.style.background='#fef2f2';el.style.color='#991b1b';
-      el.textContent='❌ Error: '+(data.error.message||data.error);
+      el.textContent='❌ Error: '+(data.error.message||JSON.stringify(data.error));
+    } else {
+      el.style.background='#fef2f2';el.style.color='#991b1b';
+      el.textContent='⚠️ Unexpected response: '+JSON.stringify(data).slice(0,180);
     }
   }catch(e){
+    clearTimeout(timer);
     el.style.background='#fef2f2';el.style.color='#991b1b';
-    el.textContent='❌ Network/CORS error. Internet + Groq browser access നോക്കൂ.';
+    el.textContent=e.name==='AbortError'?'❌ Timeout (30s) — response വന്നില്ല. വീണ്ടും try ചെയ്യൂ.':'❌ Network/CORS error: '+e.message;
   }
 }
 // Name kept as callAnthropicAPI so existing callers work; it now calls Groq.
@@ -4229,14 +4239,27 @@ async function callAnthropicAPI(system,userMsg,maxTokens=1000){
     throw new Error('API Key ഇല്ല. More → 🔑 AI Settings-ൽ Groq key (gsk_...) add ചെയ്യൂ.');
   }
   _apiQueryCount++;
-  const res=await fetch(GROQ_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({model:GROQ_MODEL,max_tokens:maxTokens,messages:[{role:'system',content:system},{role:'user',content:userMsg}]})
-  });
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),45000);
+  let res;
+  try{
+    // gpt-oss is a reasoning model — give headroom so reasoning + answer both fit
+    res=await fetch(GROQ_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:GROQ_MODEL,max_tokens:Math.max(maxTokens,2048),messages:[{role:'system',content:system},{role:'user',content:userMsg}]}),
+      signal:ctrl.signal
+    });
+  }catch(e){
+    clearTimeout(timer);
+    throw new Error(e.name==='AbortError'?'Timeout (45s) — response വന്നില്ല. വീണ്ടും try ചെയ്യൂ.':'Network/CORS error: '+e.message);
+  }
+  clearTimeout(timer);
   const data=await res.json();
   if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
-  return data.choices?.[0]?.message?.content||'No response';
+  const msg=data.choices?.[0]?.message||{};
+  const content=(msg.content||msg.reasoning||'').trim();
+  return content||('No response (finish: '+(data.choices?.[0]?.finish_reason||'?')+')');
 }
 function buildWorkshopContext(){
   const now=new Date();
