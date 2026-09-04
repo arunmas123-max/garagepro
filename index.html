@@ -4157,7 +4157,7 @@ const GROQ_URL='https://api.groq.com/openai/v1/chat/completions';
 // Model — Groq changes its model list from time to time. If you get a
 // "model not found" / decommissioned error, open console.groq.com/docs/models
 // and paste a current model id here. (verify before relying on it)
-const GROQ_MODEL='llama-3.3-70b-versatile';
+const GROQ_MODEL='openai/gpt-oss-120b';
 let _apiQueryCount=0;
 function getApiKey(){
   // Reads the same storage slot as before, so an already-saved key still loads.
