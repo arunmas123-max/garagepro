@@ -4276,6 +4276,25 @@ function buildWorkshopContext(){
   const monthJobs=DB.jobs.filter(j=>{const d=new Date(j.paidAt||j.at);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
   const monthRev=monthJobs.reduce((s,j)=>s+(j.total||0),0);
 
+  // Daily revenue for last 14 days — same logic as app's Income → Day tab (paidAt||completedAt||at)
+  const dailyMap={};
+  DB.jobs.forEach(j=>{
+    const ref=j.paidAt||j.completedAt||j.at; if(!ref)return;
+    const dk=new Date(ref).toDateString();
+    if(!dailyMap[dk])dailyMap[dk]={billed:0,collected:0,jobs:0};
+    dailyMap[dk].billed+=(j.total||0);
+    dailyMap[dk].collected+=Math.min(j.amtPaid||0,j.total||0);
+    dailyMap[dk].jobs++;
+  });
+  const dailyLines=[];
+  for(let i=0;i<14;i++){
+    const d=new Date(now); d.setDate(now.getDate()-i); d.setHours(0,0,0,0);
+    const rec=dailyMap[d.toDateString()]||{billed:0,collected:0,jobs:0};
+    const label=d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+    const tag=i===0?' (TODAY)':i===1?' (YESTERDAY)':'';
+    dailyLines.push(`  ${label}${tag}: ₹${rec.collected.toLocaleString('en-IN')} collected / ₹${rec.billed.toLocaleString('en-IN')} billed — ${rec.jobs} jobs`);
+  }
+
   return `=== MAS CAR CARE WORKSHOP — LIVE DATA (${now.toLocaleDateString('en-IN')}) ===
 
 TODAY:
@@ -4295,6 +4314,9 @@ ${DB.mechanics.map(m=>{const mj=pending.filter(j=>j.mechId===m.id||j.tinkerId===
 
 THIS WEEK: ${weekJobs.length} jobs, ₹${weekRev.toLocaleString('en-IN')} collected
 THIS MONTH: ${monthJobs.length} jobs, ₹${monthRev.toLocaleString('en-IN')} billed
+
+DAILY REVENUE (last 14 days — "collected" = money received that day, "billed" = job value that day):
+${dailyLines.join('\n')}
 
 STAFF WEEKLY REVENUE:
 ${DB.mechanics.map(m=>{const wj=weekJobs.filter(j=>j.mechId===m.id||j.tinkerId===m.id||j.painterId===m.id);const rev=wj.reduce((s,j)=>{const c=jobWorkerCredits(j);return s+(c[m.id]||0);},0);return rev>0?`  • ${m.name}: ₹${rev.toLocaleString('en-IN')} (${wj.length} jobs)`:null;}).filter(Boolean).join('\n')||'No data'}
@@ -4333,13 +4355,14 @@ Instructions:
 - Answer in Malayalam/English mix (casual, practical)
 - Be direct and actionable
 - Use emojis sparingly
-- For lists, use bullet points
+- Plain text only — NO markdown formatting: never use ** for bold, ## for headings. Use • for bullet points.
+- For any question about a specific day/date (today, yesterday, a date), use the DAILY REVENUE section — it has per-day collected & billed figures. "Collected" is money received that day; "billed" is the job value.
 - Always reference actual data from context
 - If vehicle search: check the job history data
 - Keep responses concise but complete`;
     const text=await callAnthropicAPI(system,msg,1000);
     out.style.color='#e2e8f0';
-    out.textContent=text;
+    out.textContent=text.replace(/\*\*/g,'').replace(/^#{1,6}\s*/gm,'');
   }catch(e){
     out.style.color='#fca5a5';
     out.textContent='❌ '+e.message;
