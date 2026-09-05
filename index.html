@@ -4281,18 +4281,27 @@ function buildWorkshopContext(){
   DB.jobs.forEach(j=>{
     const ref=j.paidAt||j.completedAt||j.at; if(!ref)return;
     const dk=new Date(ref).toDateString();
-    if(!dailyMap[dk])dailyMap[dk]={billed:0,collected:0,jobs:0};
+    if(!dailyMap[dk])dailyMap[dk]={billed:0,collected:0,jobs:[]};
     dailyMap[dk].billed+=(j.total||0);
     dailyMap[dk].collected+=Math.min(j.amtPaid||0,j.total||0);
-    dailyMap[dk].jobs++;
+    dailyMap[dk].jobs.push(j);
   });
   const dailyLines=[];
   for(let i=0;i<14;i++){
     const d=new Date(now); d.setDate(now.getDate()-i); d.setHours(0,0,0,0);
-    const rec=dailyMap[d.toDateString()]||{billed:0,collected:0,jobs:0};
+    const rec=dailyMap[d.toDateString()]||{billed:0,collected:0,jobs:[]};
     const label=d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
     const tag=i===0?' (TODAY)':i===1?' (YESTERDAY)':'';
-    dailyLines.push(`  ${label}${tag}: ₹${rec.collected.toLocaleString('en-IN')} collected / ₹${rec.billed.toLocaleString('en-IN')} billed — ${rec.jobs} jobs`);
+    dailyLines.push(`  ${label}${tag}: ₹${rec.collected.toLocaleString('en-IN')} collected / ₹${rec.billed.toLocaleString('en-IN')} billed — ${rec.jobs.length} jobs`);
+    // Per-job split for the last 7 days (older days: totals only, to save space)
+    if(i<7 && rec.jobs.length){
+      rec.jobs.forEach(j=>{
+        const coll=Math.min(j.amtPaid||0,j.total||0);
+        const due=(j.total||0)-coll;
+        const mode=j.payMode?j.payMode.toUpperCase():'';
+        dailyLines.push(`      - ${j.name||'?'}${j.vnum?'/'+j.vnum:''}${j.car?' ('+j.car+')':''}: ₹${coll.toLocaleString('en-IN')} collected${mode?' '+mode:''}${due>0?' • ₹'+due.toLocaleString('en-IN')+' DUE':''} [bill ₹${(j.total||0).toLocaleString('en-IN')}]`);
+      });
+    }
   }
 
   return `=== MAS CAR CARE WORKSHOP — LIVE DATA (${now.toLocaleDateString('en-IN')}) ===
@@ -4315,7 +4324,7 @@ ${DB.mechanics.map(m=>{const mj=pending.filter(j=>j.mechId===m.id||j.tinkerId===
 THIS WEEK: ${weekJobs.length} jobs, ₹${weekRev.toLocaleString('en-IN')} collected
 THIS MONTH: ${monthJobs.length} jobs, ₹${monthRev.toLocaleString('en-IN')} billed
 
-DAILY REVENUE (last 14 days — "collected" = money received that day, "billed" = job value that day):
+DAILY REVENUE (last 14 days — "collected" = money received that day, "billed" = job value that day; last 7 days include per-job split with customer/vehicle/amount/pay-mode):
 ${dailyLines.join('\n')}
 
 STAFF WEEKLY REVENUE:
@@ -4356,7 +4365,7 @@ Instructions:
 - Be direct and actionable
 - Use emojis sparingly
 - Plain text only — NO markdown formatting: never use ** for bold, ## for headings. Use • for bullet points.
-- For any question about a specific day/date (today, yesterday, a date), use the DAILY REVENUE section — it has per-day collected & billed figures. "Collected" is money received that day; "billed" is the job value.
+- For any question about a specific day/date (today, yesterday, a date), use the DAILY REVENUE section — it has per-day collected & billed figures, and for the last 7 days a per-job split (each customer, vehicle, amount, pay-mode). When asked for a day's split/breakdown, list those individual jobs. If a day is older than 7 days, only the day total is available — say so and suggest the app's Income → Day screen.
 - Always reference actual data from context
 - If vehicle search: check the job history data
 - Keep responses concise but complete`;
