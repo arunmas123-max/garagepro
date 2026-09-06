@@ -256,6 +256,7 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('stock')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">📦 Stock</div>
   <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
   <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
+  <div onclick="openStaffPay()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">💰 Staff Pay</div>
   <div onclick="openDataHealth()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🏥 Data Health</div>
   <div onclick="openApiSettings()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔑 AI Settings</div>
   <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI Agent</div>
@@ -908,7 +909,7 @@ textarea{resize:vertical;min-height:65px}
 <!-- MECHANIC MODAL -->
 <div class="modal" id="mechM">
   <div class="mbox">
-    <div class="mhead"><div class="mt" id="mechMT">Add Mechanic</div><button class="mc" onclick="closeM('mechM')">×</button></div>
+    <div class="mhead"><div class="mt" id="mechMT">Add Staff</div><button class="mc" onclick="closeM('mechM')">×</button></div>
     <div class="mbody">
       <div class="fg"><label>Name *</label><input id="mName" placeholder="Mechanic name"></div>
       <div class="fg"><label>Phone</label><input id="mPhone" type="tel" placeholder="9876543210"></div>
@@ -921,8 +922,52 @@ textarea{resize:vertical;min-height:65px}
           <option value="all">🔀 All Round</option>
         </select>
       </div>
+      <div style="background:#f8f9fa;border-radius:10px;padding:10px;margin-bottom:10px">
+        <div style="font-weight:700;font-size:12px;color:var(--gray);margin-bottom:8px">💰 SALARY / PAY</div>
+        <div class="fg"><label>Salary type</label>
+          <select id="mSalType">
+            <option value="daily">📅 Daily wage</option>
+            <option value="weekly">🗓️ Weekly</option>
+            <option value="monthly">📆 Monthly</option>
+          </select>
+        </div>
+        <div class="fg"><label>Per-day amount ₹ (ഒരു ദിവസത്തെ തുക — absent ആയാൽ ഇത് കുറയും)</label><input id="mPerDay" type="number" inputmode="numeric" placeholder="ഉദാ: 900"></div>
+        <div class="fg"><label>Full salary ₹ (optional — monthly/weekly total, reference-ന്)</label><input id="mFullPay" type="number" inputmode="numeric" placeholder="ഉദാ: 23400"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input id="mOffice" type="checkbox" style="width:auto"> 🏢 Office staff (labour ഉണ്ടാക്കില്ല — performance ratio-ൽ നിന്ന് ഒഴിവാക്കും)</label>
+      </div>
       <button class="btn b-rust" onclick="saveMech()">✅ Save</button>
       <button class="btn b-red" id="delMechBtn" style="display:none" onclick="delMechCurrent()">🗑️ Remove Mechanic</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF PAY MODAL -->
+<div class="modal" id="staffPayM">
+  <div class="mbox">
+    <div class="mhead"><div class="mt">💰 Staff Pay & Advances</div><button class="mc" onclick="closeM('staffPayM')">×</button></div>
+    <div class="mbody" id="payMB" style="max-height:72vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- PAY ENTRY MODAL -->
+<div class="modal" id="payEntryM" style="z-index:320">
+  <div class="mbox">
+    <div class="mhead"><div class="mt" id="payEntryTitle">💰 Payment</div><button class="mc" onclick="closeM('payEntryM')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label>Date</label><input id="peDate" type="date"></div>
+      <div class="fg"><label>Type</label>
+        <select id="peType">
+          <option value="advance">💸 Advance (നേരത്തേ കൈപ്പറ്റി)</option>
+          <option value="salary">💰 Salary paid</option>
+          <option value="settlement">🧾 Settlement (ബാക്കി തീർത്തു)</option>
+          <option value="draw">📅 Daily draw</option>
+          <option value="bonus">🎁 Bonus</option>
+          <option value="deduction">➖ Deduction (കുറയ്ക്കൽ)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Amount ₹</label><input id="peAmount" type="number" inputmode="numeric" placeholder="ഉദാ: 500"></div>
+      <div class="fg"><label>Note (optional)</label><input id="peNote" placeholder="ഉദാ: വീട്ടാവശ്യം"></div>
+      <button class="btn b-rust" onclick="savePayEntry()">✅ Save</button>
     </div>
   </div>
 </div>
@@ -1269,7 +1314,7 @@ const CARS={
 };
 
 // ====================== STATE ======================
-let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{}};
+let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{},payLedger:[],attendance:{}};
 let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
 let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
 let rFromDate=null,rToDate=null;
@@ -1393,6 +1438,8 @@ function saveToFirebase() {
     paintMaterialCosts: DB.paintMaterialCosts,
     todos: DB.todos || [],
     partsList: DB.partsList || [],
+    payLedger: DB.payLedger || [],
+    attendance: DB.attendance || {},
     lastUpdated: Date.now(),
     updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
   };
@@ -1419,6 +1466,8 @@ function load() {
     if (!DB.customLabour) DB.customLabour = [];
     if (!DB.lrDisabled) DB.lrDisabled = {};
     if (!DB.paintMaterialCosts) DB.paintMaterialCosts = {};
+    if (!DB.payLedger) DB.payLedger = [];
+    if (!DB.attendance) DB.attendance = {};
     DB.spareHistory.forEach((s,i)=>{ if(!s.id) s.id='SP'+Date.now()+'_'+i; });
   } catch(e) {}
   // Then load from Firebase (latest data)
@@ -1448,6 +1497,8 @@ function loadFromFirebase() {
         if ('lrDisabled' in data) DB.lrDisabled = data.lrDisabled;
         if ('paintMaterialCosts' in data) DB.paintMaterialCosts = data.paintMaterialCosts;
         if ('todos' in data) DB.todos = data.todos;
+        if ('payLedger' in data) DB.payLedger = data.payLedger || [];
+        if ('attendance' in data) DB.attendance = data.attendance || {};
         if ('partsList' in data || 'partsBuy' in data) {
           DB.partsList = data.partsList || data.partsBuy || DB.partsList || [];
         }
@@ -2748,7 +2799,7 @@ function updateJobDetails(id){
 function openQuickCash(){
   const sel=document.getElementById('qcMech');
   sel.innerHTML='<option value="">-- Mechanic select ചെയ്യുക --</option>';
-  DB.mechanics.filter(m=>m.active!==false).forEach(m=>{
+  DB.mechanics.filter(m=>m.active!==false&&!m.isOffice).forEach(m=>{
     const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.spec+')';sel.appendChild(o);
   });
   ['qcDesc','qcName','qcPhone','qcVnum'].forEach(id=>document.getElementById(id).value='');
@@ -3668,7 +3719,7 @@ function setMgTab(t){
   renderManage();
 }
 function renderManage(){
-  const labels={staff:'➕ Add Mechanic',parts:'➕ Add Part',labour:'➕ Add Labour Charge',cars:'➕ Add Car Model'};
+  const labels={staff:'➕ Add Staff',parts:'➕ Add Part',labour:'➕ Add Labour Charge',cars:'➕ Add Car Model'};
   const btn=document.getElementById('mgAddBtn');
   if(btn)btn.textContent=labels[mgTab];
   const fns={staff:renderMgStaff,parts:renderMgParts,labour:renderMgLabour,cars:renderMgCars};
@@ -3687,7 +3738,7 @@ function mgToggle(active,fn){
 // --- Staff ---
 function renderMgStaff(){
   const el=document.getElementById('manageBody');
-  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
+  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No staff added</div>';return;}
   el.innerHTML=DB.mechanics.map(m=>{
     const act=m.active!==false;
     return `<div class="card" style="cursor:pointer;${act?'':'opacity:.55'}" onclick="editMech('${m.id}')">
@@ -3908,7 +3959,7 @@ function clearAllData(){
 // ====================== MECHANICS ======================
 function renderMechanics(){
   const el=document.getElementById('mechList');
-  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No mechanics added</div>';return;}
+  if(!DB.mechanics.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>No staff added</div>';return;}
   el.innerHTML=DB.mechanics.map(m=>`
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -3929,10 +3980,14 @@ function renderMechanics(){
 let editMechId=null;
 function openAddMech(){
   editMechId=null;
-  document.getElementById('mechMT').textContent='Add Mechanic';
+  document.getElementById('mechMT').textContent='Add Staff';
   document.getElementById('mName').value='';
   document.getElementById('mPhone').value='';
   document.getElementById('mSpec').value='mechanical';
+  document.getElementById('mSalType').value='daily';
+  document.getElementById('mPerDay').value='';
+  document.getElementById('mFullPay').value='';
+  document.getElementById('mOffice').checked=false;
   document.getElementById('delMechBtn').style.display='none';
   openM('mechM');
 }
@@ -3943,19 +3998,27 @@ function editMech(id){
   document.getElementById('mName').value=m.name||'';
   document.getElementById('mPhone').value=m.phone||'';
   document.getElementById('mSpec').value=m.spec||'mechanical';
+  document.getElementById('mSalType').value=m.salaryType||'daily';
+  document.getElementById('mPerDay').value=m.perDay||'';
+  document.getElementById('mFullPay').value=m.fullPay||'';
+  document.getElementById('mOffice').checked=!!m.isOffice;
   document.getElementById('delMechBtn').style.display='block';
   openM('mechM');
 }
 function saveMech(){
   const name=document.getElementById('mName').value.trim();
   if(!name){alert('Name required');return;}
-  const data={name,phone:document.getElementById('mPhone').value.trim(),spec:document.getElementById('mSpec').value};
+  const data={name,phone:document.getElementById('mPhone').value.trim(),spec:document.getElementById('mSpec').value,
+    salaryType:document.getElementById('mSalType').value,
+    perDay:parseFloat(document.getElementById('mPerDay').value)||0,
+    fullPay:parseFloat(document.getElementById('mFullPay').value)||0,
+    isOffice:document.getElementById('mOffice').checked};
   if(editMechId){Object.assign(DB.mechanics.find(m=>m.id===editMechId),data);}
   else DB.mechanics.push({id:'M'+Date.now(),...data,jobs:0,revenue:0});
   localStorage.setItem('gp_lastupdate', Date.now().toString());
   const wasEdit=!!editMechId;
   save();closeM('mechM');renderManage();updateMechDD();
-  alert(wasEdit?'✅ Updated!':'✅ Mechanic added!');
+  alert(wasEdit?'✅ Updated!':'✅ Staff added!');
 }
 function delMechCurrent(){
   if(!editMechId||!confirm('Remove mechanic?'))return;
@@ -3966,7 +4029,72 @@ function delMech(id){if(!confirm('Remove?'))return;DB.mechanics=DB.mechanics.fil
 function updateMechDD(){
   const s=document.getElementById('fMech');
   s.innerHTML='<option value="">-- Select Mechanic --</option>';
-  DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.name} (${m.spec})`;s.appendChild(o);});
+  DB.mechanics.filter(m=>m.active!==false&&!m.isOffice).forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=`${m.name} (${m.spec})`;s.appendChild(o);});
+}
+
+// ====================== STAFF PAY & ADVANCES (Phase 1) ======================
+const PAY_TYPE_LABEL={monthly:'Monthly',weekly:'Weekly',daily:'Daily'};
+const PAY_ENTRY_LABEL={advance:'Advance',salary:'Salary',settlement:'Settlement',draw:'Daily draw',bonus:'Bonus',deduction:'Deduction'};
+let _payMechId=null;
+function paySignedAmount(e){return e.type==='deduction'?-(e.amount||0):(e.amount||0);}
+function openStaffPay(){
+  const mm=document.getElementById('moreMenu'); if(mm)mm.style.display='none';
+  renderStaffPay();
+  openM('staffPayM');
+}
+function renderStaffPay(){
+  const el=document.getElementById('payMB');
+  const now=new Date();
+  const thisMonth=e=>{const d=new Date(e.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();};
+  const staff=DB.mechanics.filter(m=>m.active!==false);
+  if(!staff.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>Staff ചേർക്കൂ (Manage → Staff → Add Staff)</div>';return;}
+  const led=DB.payLedger||[];
+  const monthLabel=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--gray);margin-bottom:8px">📆 ${monthLabel} — ഈ മാസം കൊടുത്തത്</div>`+staff.map(m=>{
+    const entries=led.filter(e=>e.mechId===m.id&&thisMonth(e)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const paid=entries.reduce((s,e)=>s+paySignedAmount(e),0);
+    const adv=entries.filter(e=>e.type==='advance').reduce((s,e)=>s+(e.amount||0),0);
+    const cfg=m.perDay?`₹${m.perDay.toLocaleString('en-IN')}/day · ${PAY_TYPE_LABEL[m.salaryType]||'—'}`:'⚠️ pay set ചെയ്തിട്ടില്ല';
+    return `<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="min-width:0"><div style="font-weight:700">${m.name} ${m.isOffice?'<span style="font-size:9px;background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:8px">OFFICE</span>':''}</div>
+        <div style="font-size:11px;color:${m.perDay?'var(--gray)':'#dc2626'}">${cfg}</div></div>
+        <button onclick="openPayEntry('${m.id}')" style="background:var(--rust);color:#fff;border:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">+ Pay/Advance</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
+        <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--green);font-size:13px">₹${paid.toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">PAID (ഈ മാസം)</div></div>
+        <div style="background:#fef3c7;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:#b45309;font-size:13px">₹${adv.toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">ADVANCE</div></div>
+      </div>
+      ${entries.length?`<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:5px">${entries.slice(0,8).map(e=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0">
+          <span style="color:var(--gray);min-width:0;overflow:hidden;text-overflow:ellipsis">${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} · ${PAY_ENTRY_LABEL[e.type]||e.type}${e.note?' · '+e.note:''}</span>
+          <span style="font-weight:700;white-space:nowrap;color:${e.type==='deduction'?'#dc2626':'var(--ink)'}">${e.type==='deduction'?'−':''}₹${(e.amount||0).toLocaleString('en-IN')} <span onclick="delPayEntry('${e.id}')" style="color:#dc2626;cursor:pointer;margin-left:6px">✕</span></span>
+        </div>`).join('')}</div>`:'<div style="font-size:10px;color:#9ca3af;margin-top:5px">ഈ മാസം entry ഇല്ല</div>'}
+    </div>`;
+  }).join('');
+}
+function openPayEntry(mid){
+  _payMechId=mid;
+  const m=DB.mechanics.find(x=>x.id===mid);
+  document.getElementById('payEntryTitle').textContent='💰 '+(m?m.name:'');
+  document.getElementById('peDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('peType').value='advance';
+  document.getElementById('peAmount').value='';
+  document.getElementById('peNote').value='';
+  openM('payEntryM');
+}
+function savePayEntry(){
+  const amount=parseFloat(document.getElementById('peAmount').value);
+  if(!amount||amount<=0){alert('തുക enter ചെയ്യൂ');return;}
+  if(!_payMechId){alert('Staff select ആയില്ല');return;}
+  if(!DB.payLedger)DB.payLedger=[];
+  DB.payLedger.push({id:'PL'+Date.now(),mechId:_payMechId,date:document.getElementById('peDate').value||new Date().toISOString().slice(0,10),amount,type:document.getElementById('peType').value,note:document.getElementById('peNote').value.trim()});
+  save();closeM('payEntryM');renderStaffPay();
+}
+function delPayEntry(id){
+  if(!confirm('ഈ entry മായ്ക്കണോ?'))return;
+  DB.payLedger=(DB.payLedger||[]).filter(e=>e.id!==id);
+  save();renderStaffPay();
 }
 
 // ====================== STOCK ======================
@@ -4304,6 +4432,23 @@ function buildWorkshopContext(){
     }
   }
 
+  // Weekly staff revenue grouped by role — computed in code so the AI needs no arithmetic
+  const roleLabels={mechanical:'Mechanical',body:'Body/Tinker',painting:'Painting',electrical:'Electrical',all:'All-round'};
+  const roleGroups={};
+  let staffWeekTotal=0;
+  DB.mechanics.forEach(m=>{
+    const wj=weekJobs.filter(j=>j.mechId===m.id||j.tinkerId===m.id||j.painterId===m.id);
+    const rev=wj.reduce((s,j)=>{const c=jobWorkerCredits(j);return s+(c[m.id]||0);},0);
+    if(rev<=0)return;
+    const role=roleLabels[m.spec]||'Other';
+    if(!roleGroups[role])roleGroups[role]={total:0,people:[]};
+    roleGroups[role].total+=rev;
+    roleGroups[role].people.push(`${m.name} ₹${rev.toLocaleString('en-IN')} (${wj.length}j)`);
+    staffWeekTotal+=rev;
+  });
+  const staffWeekLines=Object.entries(roleGroups).sort((a,b)=>b[1].total-a[1].total)
+    .map(([role,d])=>`  ${role}: ₹${d.total.toLocaleString('en-IN')} — ${d.people.join(', ')}`);
+
   return `=== MAS CAR CARE WORKSHOP — LIVE DATA (${now.toLocaleDateString('en-IN')}) ===
 
 TODAY:
@@ -4327,8 +4472,9 @@ THIS MONTH: ${monthJobs.length} jobs, ₹${monthRev.toLocaleString('en-IN')} bil
 DAILY REVENUE (last 14 days — "collected" = money received that day, "billed" = job value that day; last 7 days include per-job split with customer/vehicle/amount/pay-mode):
 ${dailyLines.join('\n')}
 
-STAFF WEEKLY REVENUE:
-${DB.mechanics.map(m=>{const wj=weekJobs.filter(j=>j.mechId===m.id||j.tinkerId===m.id||j.painterId===m.id);const rev=wj.reduce((s,j)=>{const c=jobWorkerCredits(j);return s+(c[m.id]||0);},0);return rev>0?`  • ${m.name}: ₹${rev.toLocaleString('en-IN')} (${wj.length} jobs)`:null;}).filter(Boolean).join('\n')||'No data'}
+STAFF WEEKLY REVENUE (role subtotals below are ALREADY CALCULATED — read them out, do NOT re-add. "credit" = billed value of labour+parts split among assigned workers, NOT collected cash, so this total differs from money collected):
+${staffWeekLines.join('\n')||'  No data'}
+  → Staff credit total this week: ₹${staffWeekTotal.toLocaleString('en-IN')} (billed-value credit; differs from collected cash by design)
 
 TOTAL JOBS: ${DB.jobs.length} | CUSTOMERS: ${DB.customers.length}`;
 }
