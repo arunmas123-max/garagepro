@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v11.7</title>
+<title>Garage Pro Kerala v12.0</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v11.7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.0</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -258,6 +258,7 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
   <div onclick="openStaffPay()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">💰 Staff Pay</div>
   <div onclick="openDataHealth()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🏥 Data Health</div>
+  <div onclick="openCloudSettings()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">☁️ Cloud Login</div>
   <div onclick="openApiSettings()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔑 AI Settings</div>
   <div onclick="goMore('ai')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600">🤖 AI Agent</div>
 </div>
@@ -265,7 +266,7 @@ textarea{resize:vertical;min-height:65px}
 <main>
 <!-- HOME -->
 <div class="pg on" id="home">
-  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div>
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="svcReminderCard"></div>
   <!-- Daily Target Widget -->
   <div id="dailyTargetWidget"></div>
   <div class="sg">
@@ -810,6 +811,36 @@ textarea{resize:vertical;min-height:65px}
 </div>
 
 <!-- API SETTINGS MODAL -->
+<div class="modal" id="cloudM" style="z-index:300">
+  <div class="mbox">
+    <div class="mhead" style="background:linear-gradient(135deg,#0f172a,#164e63)">
+      <div class="mt" style="color:#fff">☁️ Cloud Login</div>
+      <button class="mc" onclick="closeM('cloudM')" style="color:#fff;background:rgba(255,255,255,.2)">×</button>
+    </div>
+    <div class="mbody">
+      <div id="cloudStatusCard" style="border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px"></div>
+      <div class="fg"><label>Email</label><input id="cloudEmail" type="email" autocomplete="username" placeholder="workshop@gmail.com"></div>
+      <div class="fg"><label>Password</label><input id="cloudPw" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <div id="cloudMsg" style="font-size:12px;color:#991b1b;margin-bottom:8px;min-height:16px"></div>
+      <button onclick="doCloudLogin()" class="btn b-blue">🔐 Login</button>
+      <button id="cloudLogoutBtn" onclick="fbLogout()" class="btn b-gray" style="display:none">Logout (this device)</button>
+      <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;font-size:11px;color:#1e40af;margin-top:12px;line-height:1.6">
+        <div style="font-weight:700;margin-bottom:4px">🔒 ഒറ്റത്തവണ setup (Firebase console)</div>
+        <div>1. <b>Authentication → Sign-in method → Email/Password</b> enable ചെയ്യൂ</div>
+        <div>2. <b>Authentication → Users → Add user</b> — workshop email + strong password</div>
+        <div>3. <b>Project settings → General → Web API Key</b> copy → index.html-ൽ <code>FB_API_KEY</code>-ൽ paste</div>
+        <div>4. <b>Realtime Database → Rules</b>-ൽ ഇത് paste ചെയ്യൂ (email മാറ്റുക):</div>
+        <pre style="background:#1e293b;color:#e2e8f0;padding:8px;border-radius:6px;font-size:10px;overflow-x:auto;margin:4px 0">{
+  "rules": {
+    ".read":  "auth != null && auth.token.email == 'workshop@gmail.com'",
+    ".write": "auth != null && auth.token.email == 'workshop@gmail.com'"
+  }
+}</pre>
+        <div>5. Deploy → രണ്ട് device-ലും ഇവിടെ login ചെയ്യൂ (ഒരു തവണ മതി)</div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal" id="apiSettingsM" style="z-index:300">
   <div class="mbox">
     <div class="mhead" style="background:linear-gradient(135deg,#0f172a,#1e1b4b)">
@@ -1314,7 +1345,9 @@ const CARS={
 };
 
 // ====================== STATE ======================
-let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{},payLedger:[],attendance:{}};
+let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{},payLedger:[],attendance:{},settings:{},reminders:{}};
+// HTML-escape user-entered text before putting it in innerHTML (XSS guard)
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
 let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
 let rFromDate=null,rToDate=null;
@@ -1330,7 +1363,9 @@ let editStockId=null,rateEditName=null,photoType='';
 
 // ====================== FIREBASE CONFIG ======================
 const FB_URL = "https://garagepro-48415-default-rtdb.asia-southeast1.firebasedatabase.app";
-let fbSyncing = false;
+// v12 SECURITY: paste your Firebase project's Web API Key here (Firebase console → Project settings → General → "Web API Key").
+// Leave blank ("") to keep the old open/no-login mode.
+const FB_API_KEY = "";
 let fbListener = null;
 let lastSyncTime = null;
 
@@ -1342,6 +1377,8 @@ function setSyncStatus(status) {
     el.innerHTML = '<span style="color:#22c55e">🟢 Live Sync</span>';
   } else if (status === 'syncing') {
     el.innerHTML = '<span style="color:#f59e0b">🔄 Syncing...</span>';
+  } else if (status === 'auth') {
+    el.innerHTML = '<span style="color:#f87171;cursor:pointer" onclick="openCloudSettings(true)">🔒 Login needed</span>';
   } else {
     el.innerHTML = '<span style="color:#ef4444">🔴 Offline</span>';
   }
@@ -1414,133 +1451,389 @@ function recomputeWorkerStats(){
     });
   });
 }
-function save() {
-  recomputeWorkerStats();
-  // Always save to localStorage first (backup)
-  localStorage.setItem('gp_lastupdate', Date.now().toString());
-  try { localStorage.setItem('gp_kl_v5', JSON.stringify(DB)); } catch(e) {}
-  // Then sync to Firebase
-  saveToFirebase();
+// ====================== v12: SYNC ENGINE ======================
+// Firebase layout (v12):
+//   /garagepro/jobsMap/{jobId}   – one node per job (PATCHed individually → no whole-DB overwrite)
+//   /garagepro/deletedJobs/{id}  – tombstones so deletes reach the other device
+//   /garagepro/meta              – {lastUpdated, by}  (polled every 8 s)
+//   /garagepro/<other keys>      – customers, mechanics, stock … (small, PATCHed only when changed)
+//   /garagepro_photos/{photoId}  – photo JPEG data URLs, separate from job data
+// Local: job/customer data in localStorage (no photo bytes); photos in IndexedDB.
+
+const DEVICE_ID=(()=>{let d=localStorage.getItem('gp_device');if(!d){d='D'+Math.random().toString(36).slice(2,8);localStorage.setItem('gp_device',d);}return d;})();
+const REST_KEYS=['customers','mechanics','stock','spareHistory','customRates','carModels','customLabour','lrDisabled','paintMaterialCosts','todos','partsList','payLedger','attendance','settings','reminders'];
+
+// ---------- Auth (Firebase email/password via REST) ----------
+function fbAuth(){try{return JSON.parse(localStorage.getItem('gp_fb_auth')||'null');}catch(e){return null;}}
+function fbAuthSet(a){if(a)localStorage.setItem('gp_fb_auth',JSON.stringify(a));else localStorage.removeItem('gp_fb_auth');}
+async function fbLogin(email,password){
+  if(!FB_API_KEY)throw new Error('FB_API_KEY ഇല്ല — index.html-ൽ FB_API_KEY set ചെയ്യൂ');
+  const r=await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_API_KEY}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email,password,returnSecureToken:true})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message||'Login failed');
+  fbAuthSet({idToken:d.idToken,refreshToken:d.refreshToken,uid:d.localId,email:d.email,exp:Date.now()+(parseInt(d.expiresIn)||3600)*1000});
+  return d;
+}
+async function fbToken(){
+  const a=fbAuth();if(!a)return '';
+  if(Date.now()<a.exp-60000)return a.idToken;
+  try{
+    const r=await fetch(`https://securetoken.googleapis.com/v1/token?key=${FB_API_KEY}`,{
+      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(a.refreshToken)});
+    const d=await r.json();
+    if(d.error){fbAuthSet(null);return '';}
+    fbAuthSet({...a,idToken:d.id_token,refreshToken:d.refresh_token||a.refreshToken,exp:Date.now()+(parseInt(d.expires_in)||3600)*1000});
+    return d.id_token;
+  }catch(e){return a.idToken;}
+}
+function fbLogout(){fbAuthSet(null);renderCloudStatus();}
+// path like '/garagepro/meta' → full REST URL with auth
+async function fbUrl(path,extra){
+  const t=await fbToken();
+  return FB_URL+path+'.json'+(t?'?auth='+t+(extra?'&'+extra:''):(extra?'?'+extra:''));
+}
+async function fbReq(path,opts={},extra){
+  const r=await fetch(await fbUrl(path,extra),opts);
+  if(r.status===401||r.status===403){
+    setSyncStatus('auth');
+    if(!window._authPrompted){window._authPrompted=true;openCloudSettings(true);}
+    throw new Error('AUTH');
+  }
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
 }
 
-function saveToFirebase() {
-  setSyncStatus('syncing');
-  const data = {
-    jobs: DB.jobs,
-    customers: DB.customers,
-    mechanics: DB.mechanics,
-    stock: DB.stock,
-    spareHistory: DB.spareHistory.slice(0, 200),
-    customRates: DB.customRates,
-    carModels: DB.carModels,
-    customLabour: DB.customLabour,
-    lrDisabled: DB.lrDisabled,
-    paintMaterialCosts: DB.paintMaterialCosts,
-    todos: DB.todos || [],
-    partsList: DB.partsList || [],
-    payLedger: DB.payLedger || [],
-    attendance: DB.attendance || {},
-    lastUpdated: Date.now(),
-    updatedBy: navigator.userAgent.includes('Mobile') ? 'mobile' : 'tab'
-  };
-  fetch(FB_URL + '/garagepro.json', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(r => r.json())
-  .then(() => { setSyncStatus('live'); lastSyncTime = Date.now(); })
-  .catch(() => { setSyncStatus('off'); });
+// ---------- IndexedDB photo store ----------
+const PHOTO_MEM={};   // pid → dataURL (in-memory cache)
+let _idb=null;
+function idb(){
+  if(_idb)return Promise.resolve(_idb);
+  return new Promise((res,rej)=>{
+    const q=indexedDB.open('garagepro',1);
+    q.onupgradeneeded=()=>q.result.createObjectStore('photos');
+    q.onsuccess=()=>{_idb=q.result;res(_idb);};
+    q.onerror=()=>rej(q.error);
+  });
 }
+async function idbPut(pid,rec){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('photos','readwrite');t.objectStore('photos').put(rec,pid);t.oncomplete=res;t.onerror=()=>rej(t.error);});}
+async function idbGet(pid){const d=await idb();return new Promise((res,rej)=>{const q=d.transaction('photos').objectStore('photos').get(pid);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error);});}
+async function idbDel(pid){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('photos','readwrite');t.objectStore('photos').delete(pid);t.oncomplete=res;t.onerror=()=>rej(t.error);});}
+async function idbAllKeys(){const d=await idb();return new Promise((res,rej)=>{const q=d.transaction('photos').objectStore('photos').getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}
 
-function load() {
-  // Load from localStorage first (instant)
-  try {
-    const d = localStorage.getItem('gp_kl_v5');
-    if (d) { const p = JSON.parse(d); DB = {...DB, ...p}; }
-    if (!DB.mechanics) DB.mechanics = [];
-    if (!DB.stock) DB.stock = [];
-    if (!DB.spareHistory) DB.spareHistory = [];
-    if (!DB.customRates) DB.customRates = {};
-    if (!DB.carModels) DB.carModels = [];
-    if (!DB.customLabour) DB.customLabour = [];
-    if (!DB.lrDisabled) DB.lrDisabled = {};
-    if (!DB.paintMaterialCosts) DB.paintMaterialCosts = {};
-    if (!DB.payLedger) DB.payLedger = [];
-    if (!DB.attendance) DB.attendance = {};
-    DB.spareHistory.forEach((s,i)=>{ if(!s.id) s.id='SP'+Date.now()+'_'+i; });
-  } catch(e) {}
-  // Then load from Firebase (latest data)
-  loadFromFirebase();
-  // Start live listener
-  startLiveListener();
+function photoUpQueue(){try{return JSON.parse(localStorage.getItem('gp_photo_up')||'[]');}catch(e){return [];}}
+function photoUpQueueSet(a){localStorage.setItem('gp_photo_up',JSON.stringify([...new Set(a)]));}
+// Store a new photo locally + queue cloud upload. Returns the photo ref {id,type}.
+async function storePhoto(type,dataUrl,jobId){
+  const id='P'+Date.now()+Math.random().toString(36).slice(2,6);
+  PHOTO_MEM[id]=dataUrl;
+  try{await idbPut(id,{type,data:dataUrl,jobId:jobId||'',at:Date.now()});}catch(e){console.warn('IDB put failed',e);}
+  photoUpQueueSet([...photoUpQueue(),id]);
+  pushPhotos();
+  return {id,type};
 }
-
-function loadFromFirebase() {
-  setSyncStatus('syncing');
-  fetch(FB_URL + '/garagepro.json')
-  .then(r => r.json())
-  .then(data => {
-    if (data && data.lastUpdated) {
-      // Check if Firebase has newer data
-      const fbTime = data.lastUpdated || 0;
-      const localTime = parseInt(localStorage.getItem('gp_lastupdate') || '0');
-      if (fbTime > localTime) {
-        if (data.jobs !== undefined) DB.jobs = data.jobs || [];
-        if (data.customers !== undefined) DB.customers = data.customers || [];
-        if (data.mechanics !== undefined) DB.mechanics = data.mechanics || [];
-        if ('stock' in data) DB.stock = data.stock;
-        if ('spareHistory' in data) DB.spareHistory = data.spareHistory;
-        if ('customRates' in data) DB.customRates = data.customRates;
-        if ('carModels' in data) DB.carModels = data.carModels;
-        if ('customLabour' in data) DB.customLabour = data.customLabour;
-        if ('lrDisabled' in data) DB.lrDisabled = data.lrDisabled;
-        if ('paintMaterialCosts' in data) DB.paintMaterialCosts = data.paintMaterialCosts;
-        if ('todos' in data) DB.todos = data.todos;
-        if ('payLedger' in data) DB.payLedger = data.payLedger || [];
-        if ('attendance' in data) DB.attendance = data.attendance || {};
-        if ('partsList' in data || 'partsBuy' in data) {
-          DB.partsList = data.partsList || data.partsBuy || DB.partsList || [];
-        }
-        localStorage.setItem('gp_kl_v5', JSON.stringify(DB));
-        localStorage.setItem('gp_lastupdate', fbTime.toString());
-        renderAll();
-      }
-      setSyncStatus('live');
-    } else {
-      setSyncStatus('live');
+async function photoSrc(p){
+  if(!p)return '';
+  if(p.data)return p.data;                       // legacy inline photo
+  if(PHOTO_MEM[p.id])return PHOTO_MEM[p.id];
+  try{const r=await idbGet(p.id);if(r&&r.data){PHOTO_MEM[p.id]=r.data;return r.data;}}catch(e){}
+  try{
+    const r=await fbReq('/garagepro_photos/'+p.id);
+    if(r&&r.data){PHOTO_MEM[p.id]=r.data;idbPut(p.id,r).catch(()=>{});return r.data;}
+  }catch(e){}
+  return '';
+}
+// Fill <img data-pid="..."> elements inside root
+function hydratePhotos(root){
+  (root||document).querySelectorAll('img[data-pid]').forEach(async img=>{
+    const pid=img.dataset.pid;
+    const src=await photoSrc({id:pid});
+    if(src)img.src=src;else img.alt='⏳';
+  });
+}
+async function deletePhoto(p){
+  if(!p||!p.id)return;
+  delete PHOTO_MEM[p.id];
+  try{await idbDel(p.id);}catch(e){}
+  photoUpQueueSet(photoUpQueue().filter(x=>x!==p.id));
+  try{await fbReq('/garagepro_photos/'+p.id,{method:'DELETE'});}catch(e){}
+}
+let _photoPushing=false;
+async function pushPhotos(){
+  if(_photoPushing||!navigator.onLine)return;
+  _photoPushing=true;
+  try{
+    for(const pid of photoUpQueue()){
+      const rec=await idbGet(pid).catch(()=>null);
+      if(!rec){photoUpQueueSet(photoUpQueue().filter(x=>x!==pid));continue;}
+      try{
+        await fbReq('/garagepro_photos/'+pid,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+        photoUpQueueSet(photoUpQueue().filter(x=>x!==pid));
+      }catch(e){if(e.message==='AUTH')break;}
     }
-    ensureCarSeed();
-  })
-  .catch(() => { setSyncStatus('off'); ensureCarSeed(); });
+  }finally{_photoPushing=false;}
 }
-
-// Live listener — polls every 5 seconds for changes
-function startLiveListener() {
-  if (fbListener) clearInterval(fbListener);
-  fbListener = setInterval(() => {
-    fetch(FB_URL + '/garagepro/lastUpdated.json')
-    .then(r => r.json())
-    .then(fbTime => {
-      if (!fbTime) return;
-      const localTime = parseInt(localStorage.getItem('gp_lastupdate') || '0');
-      if (fbTime > localTime + 500) {
-        // Other device updated — reload data
-        loadFromFirebase();
-        showSyncNotification();
+// Move legacy inline photo data (job.photos[].data) into IDB + upload queue
+async function migrateInlinePhotos(){
+  let moved=0;
+  for(const j of DB.jobs){
+    if(!j.photos||!j.photos.length)continue;
+    for(let i=0;i<j.photos.length;i++){
+      const p=j.photos[i];
+      if(p.data&&p.data.startsWith('data:')){
+        const ref=await storePhoto(p.type||'Other',p.data,j.id);
+        j.photos[i]=ref;moved++;
       }
-      setSyncStatus('live');
-    })
-    .catch(() => setSyncStatus('off'));
-  }, 5000); // check every 5 seconds
+    }
+  }
+  return moved;
+}
+function stripPhotos(j){return {...j,photos:(j.photos||[]).map(p=>({id:p.id,type:p.type}))};}
+
+// ---------- Local persistence ----------
+function dirtyJobs(){try{return new Set(JSON.parse(localStorage.getItem('gp_dirty')||'[]'));}catch(e){return new Set();}}
+function dirtyJobsSet(s){localStorage.setItem('gp_dirty',JSON.stringify([...s]));}
+let _pushedJson={};        // jobId → JSON of last version successfully pushed (or seen from cloud)
+let _pushedRest='';        // JSON of last pushed REST_KEYS payload
+let _pushTimer=null,_pushing=false,_pushAgain=false;
+
+function saveLocal(){
+  localStorage.setItem('gp_lastupdate',Date.now().toString());
+  try{
+    const snap={...DB,jobs:DB.jobs.map(stripPhotos)};
+    localStorage.setItem('gp_kl_v5',JSON.stringify(snap));
+  }catch(e){
+    console.warn('localStorage full',e);
+    showToast('⚠️ Phone storage full — cloud sync മാത്രം. Backup എടുക്കൂ!');
+  }
+}
+function save(){
+  recomputeWorkerStats();
+  // mark changed / deleted jobs
+  const dirty=dirtyJobs();
+  const seen=new Set();
+  DB.jobs.forEach(j=>{
+    seen.add(j.id);
+    const js=JSON.stringify(stripPhotos({...j,updatedAt:0}));
+    if(_pushedJson[j.id]!==js){j.updatedAt=Date.now();dirty.add(j.id);}
+  });
+  Object.keys(_pushedJson).forEach(id=>{if(!seen.has(id))dirty.add('DEL:'+id);});
+  dirtyJobsSet(dirty);
+  saveLocal();
+  schedulePush();
+}
+function schedulePush(){
+  clearTimeout(_pushTimer);
+  _pushTimer=setTimeout(pushNow,400);
+}
+function restPayload(){const o={};REST_KEYS.forEach(k=>{if(DB[k]!==undefined)o[k]=DB[k];});return o;}
+async function pushNow(){
+  if(_pushing){_pushAgain=true;return;}
+  if(!navigator.onLine){setSyncStatus('off');return;}
+  _pushing=true;setSyncStatus('syncing');
+  try{
+    const dirty=dirtyJobs();
+    const body={};let n=0;
+    const jobIndex={};DB.jobs.forEach(j=>jobIndex[j.id]=j);
+    dirty.forEach(id=>{
+      if(id.startsWith('DEL:')){
+        const jid=id.slice(4);
+        if(jobIndex[jid])return;             // resurrected — skip tombstone
+        body['jobsMap/'+jid]=null;body['deletedJobs/'+jid]=Date.now();n++;
+      }else if(jobIndex[id]){
+        body['jobsMap/'+id]=stripPhotos(jobIndex[id]);n++;
+      }
+    });
+    const rest=restPayload();const restJs=JSON.stringify(rest);
+    if(restJs!==_pushedRest){Object.assign(body,rest);n++;}
+    if(n){
+      const now=Date.now();
+      body.meta={lastUpdated:now,by:DEVICE_ID};
+      body.lastUpdated=now;                                   // legacy field
+      await fbReq('/garagepro',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      dirty.forEach(id=>{
+        if(id.startsWith('DEL:'))delete _pushedJson[id.slice(4)];
+        else if(jobIndex[id])_pushedJson[id]=JSON.stringify(stripPhotos({...jobIndex[id],updatedAt:0}));
+      });
+      dirtyJobsSet(new Set());
+      _pushedRest=restJs;
+      localStorage.setItem('gp_remote_seen',now.toString());
+      lastSyncTime=now;
+    }
+    setSyncStatus('live');
+    pushPhotos();
+  }catch(e){
+    if(e.message!=='AUTH')setSyncStatus('off');
+  }finally{
+    _pushing=false;
+    if(_pushAgain){_pushAgain=false;schedulePush();}
+  }
 }
 
-function showSyncNotification() {
-  const el = document.getElementById('syncNotif');
-  if (!el) return;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 3000);
+function ensureDBShape(){
+  ['jobs','customers','mechanics','stock','spareHistory','carModels','customLabour','todos','partsList','payLedger'].forEach(k=>{if(!Array.isArray(DB[k]))DB[k]=[];});
+  ['customRates','lrDisabled','paintMaterialCosts','attendance','settings','reminders'].forEach(k=>{if(!DB[k]||typeof DB[k]!=='object')DB[k]={};});
+  DB.spareHistory.forEach((s,i)=>{if(!s.id)s.id='SP'+Date.now()+'_'+i;});
 }
+function load(){
+  try{
+    const d=localStorage.getItem('gp_kl_v5');
+    if(d){const p=JSON.parse(d);DB={...DB,...p};}
+  }catch(e){}
+  ensureDBShape();
+  // baseline: everything local that is not dirty counts as already pushed
+  const dirty=dirtyJobs();
+  DB.jobs.forEach(j=>{if(!dirty.has(j.id))_pushedJson[j.id]=JSON.stringify(stripPhotos({...j,updatedAt:0}));});
+  _pushedRest=JSON.stringify(restPayload());
+  (async()=>{
+    try{const n=await migrateInlinePhotos();if(n){saveLocal();renderAll();}}catch(e){}
+    await loadFromFirebase();
+    startLiveListener();
+  })();
+  window.addEventListener('online',()=>{showToast('🟢 Online — syncing…');pushNow();pushPhotos();loadFromFirebase();});
+  window.addEventListener('offline',()=>setSyncStatus('off'));
+}
+
+function mapToJobs(map){
+  return Object.values(map||{}).filter(Boolean).sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+}
+let _loading=false;
+async function loadFromFirebase(){
+  if(_loading)return;_loading=true;
+  setSyncStatus('syncing');
+  try{
+    const data=await fbReq('/garagepro');
+    if(data){
+      // ---- one-time migration from v11 layout (jobs array) ----
+      if(data.jobs&&!data.jobsMap){
+        const arr=Array.isArray(data.jobs)?data.jobs:Object.values(data.jobs||{});
+        const body={};
+        for(const j of arr){
+          if(!j||!j.id)continue;
+          // photos with inline data → photo store (upload from this device)
+          const ljm=DB.jobs.find(x=>x.id===j.id);
+          if(ljm&&ljm.photos&&j.photos&&ljm.photos.length===j.photos.length&&ljm.photos.every(p=>p.id))j.photos=ljm.photos.map(p=>({id:p.id,type:p.type}));
+          if(j.photos&&j.photos.length){
+            for(let i=0;i<j.photos.length;i++){
+              const p=j.photos[i];
+              if(p&&p.data&&p.data.startsWith('data:')){j.photos[i]=await storePhoto(p.type||'Other',p.data,j.id);}
+            }
+          }
+          j.updatedAt=j.updatedAt||Date.parse(j.at)||Date.now();
+          body['jobsMap/'+j.id]=stripPhotos(j);
+        }
+        body.jobs=null;
+        body.meta={lastUpdated:Date.now(),by:DEVICE_ID};
+        await fbReq('/garagepro',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        data.jobsMap={};arr.forEach(j=>{if(j&&j.id)data.jobsMap[j.id]=j;});
+        showToast('☁️ Cloud data v12 format-ലേക്ക് migrate ചെയ്തു');
+      }
+      // ---- merge jobs (per job, newest updatedAt wins; dirty local edits kept) ----
+      const dirty=dirtyJobs();
+      const remote=data.jobsMap||{};
+      const tomb=data.deletedJobs||{};
+      const local={};DB.jobs.forEach(j=>local[j.id]=j);
+      let changed=false;
+      Object.keys(remote).forEach(id=>{
+        const rj=remote[id];if(!rj)return;
+        const lj=local[id];
+        if(!lj){
+          if(dirty.has('DEL:'+id))return;             // we deleted it locally, push pending
+          local[id]=rj;changed=true;
+        }else if((rj.updatedAt||0)>(lj.updatedAt||0)){
+          if(dirty.has(id)&&(lj.updatedAt||0)>=(rj.updatedAt||0))return;
+          local[id]=rj;changed=true;dirty.delete(id);
+        }
+        _pushedJson[id]=JSON.stringify(stripPhotos({...local[id],updatedAt:0}));
+      });
+      Object.keys(local).forEach(id=>{
+        if(!remote[id]){
+          if(tomb[id]&&!(dirty.has(id)&&(local[id].updatedAt||0)>tomb[id])){delete local[id];delete _pushedJson[id];changed=true;}
+        }
+      });
+      dirtyJobsSet(dirty);
+      DB.jobs=Object.values(local).sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+      // ---- other collections: remote newer than our last local edit → take remote ----
+      const fbTime=(data.meta&&data.meta.lastUpdated)||data.lastUpdated||0;
+      const localTime=parseInt(localStorage.getItem('gp_lastupdate')||'0');
+      const remoteSeen=parseInt(localStorage.getItem('gp_remote_seen')||'0');
+      if(fbTime>localTime||fbTime>remoteSeen){
+        REST_KEYS.forEach(k=>{if(k in data){DB[k]=data[k]||(Array.isArray(DB[k])?[]:{});}});
+        if('partsBuy' in data&&!('partsList' in data))DB.partsList=data.partsBuy||[];
+        _pushedRest=JSON.stringify(restPayload());
+        changed=true;
+      }
+      if(fbTime)localStorage.setItem('gp_remote_seen',fbTime.toString());
+      ensureDBShape();
+      if(changed){saveLocal();renderAll();}
+    }
+    setSyncStatus('live');
+    ensureCarSeed();
+  }catch(e){
+    if(e.message!=='AUTH')setSyncStatus('off');
+    ensureCarSeed();
+  }finally{_loading=false;}
+  if(dirtyJobs().size)schedulePush();
+}
+
+// Live listener — polls /garagepro/meta every 8 s (tiny payload)
+function startLiveListener(){
+  if(fbListener)clearInterval(fbListener);
+  fbListener=setInterval(async()=>{
+    if(!navigator.onLine||_pushing||_loading)return;
+    try{
+      const meta=await fbReq('/garagepro/meta');
+      if(!meta||!meta.lastUpdated)return;
+      const seen=parseInt(localStorage.getItem('gp_remote_seen')||'0');
+      if(meta.lastUpdated>seen&&meta.by!==DEVICE_ID){
+        await loadFromFirebase();
+        showSyncNotification();
+      }else setSyncStatus('live');
+    }catch(e){if(e.message!=='AUTH')setSyncStatus('off');}
+  },8000);
+}
+
+function showSyncNotification(){
+  const el=document.getElementById('syncNotif');
+  if(!el)return;
+  el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},3000);
+}
+
+// ---------- Cloud login UI ----------
+function renderCloudStatus(){
+  const el=document.getElementById('cloudStatusCard');if(!el)return;
+  const a=fbAuth();
+  if(!FB_API_KEY){el.style.background='#fef3c7';el.style.color='#92400e';el.innerHTML='⚠️ <b>Open mode</b> — FB_API_KEY set ചെയ്തിട്ടില്ല. Database login ഇല്ലാതെ ആണ് (ആർക്കും വായിക്കാം/മാറ്റാം). താഴെ setup steps കാണൂ.';}
+  else if(a){el.style.background='#f0fdf4';el.style.color='#166534';el.innerHTML='✅ Logged in: <b>'+esc(a.email)+'</b>';}
+  else{el.style.background='#fef2f2';el.style.color='#991b1b';el.textContent='❌ Login ചെയ്തിട്ടില്ല — cloud sync work ആകില്ല';}
+  const lo=document.getElementById('cloudLogoutBtn');if(lo)lo.style.display=a?'block':'none';
+}
+function openCloudSettings(auto){
+  const mm=document.getElementById('moreMenu');if(mm)mm.style.display='none';
+  renderCloudStatus();
+  const msg=document.getElementById('cloudMsg');if(msg)msg.textContent=auto?'⚠️ Cloud access denied — login ചെയ്യൂ':'';
+  openM('cloudM');
+}
+async function doCloudLogin(){
+  const email=document.getElementById('cloudEmail').value.trim();
+  const pw=document.getElementById('cloudPw').value;
+  const msg=document.getElementById('cloudMsg');
+  if(!email||!pw){msg.textContent='Email & password വേണം';return;}
+  msg.textContent='⏳ Logging in…';
+  try{
+    await fbLogin(email,pw);
+    document.getElementById('cloudPw').value='';
+    window._authPrompted=false;
+    msg.textContent='✅ Login OK — syncing…';
+    renderCloudStatus();
+    await loadFromFirebase();pushNow();pushPhotos();
+    setTimeout(()=>closeM('cloudM'),800);
+  }catch(e){msg.textContent='❌ '+e.message;}
+}
+
 function showToast(msg) {
   let el = document.getElementById('gpToast');
   if (!el) {
@@ -1559,11 +1852,13 @@ function forcSync() {
   loadFromFirebase();
   alert('🔄 Syncing latest data from cloud...');
 }
-function doBackup(){
-  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+async function doBackup(){
+  const _photos={};
+  try{for(const k of await idbAllKeys()){const r=await idbGet(k);if(r)_photos[k]=r;}}catch(e){}
+  const b=new Blob([JSON.stringify({...DB,jobs:DB.jobs.map(stripPhotos),_photos},null,2)],{type:'application/json'});
   const u=URL.createObjectURL(b);
   const a=document.createElement('a');
-  a.href=u;a.download=`GaragePro_v11_${new Date().toISOString().split('T')[0]}.json`;
+  a.href=u;a.download=`GaragePro_v12_${new Date().toISOString().split('T')[0]}.json`;
   a.click();URL.revokeObjectURL(u);
   localStorage.setItem('gp_lastbk',Date.now().toString());
   alert('✅ Backup downloaded!\nWhatsApp Saved Messages-ൽ send ചെയ്ത് safe ആക്കൂ 🙏');
@@ -1575,7 +1870,11 @@ function onRestore(e){
   r.onload=ev=>{
     try{
       const p=JSON.parse(ev.target.result);
+      const _photos=p._photos||{};delete p._photos;
+      Object.keys(_photos).forEach(pid=>{PHOTO_MEM[pid]=_photos[pid].data;idbPut(pid,_photos[pid]).catch(()=>{});photoUpQueueSet([...photoUpQueue(),pid]);});
       DB={...DB,...p};
+      _pushedJson={};                 // force full re-push of restored jobs
+      ensureDBShape();
       if(!DB.mechanics)DB.mechanics=[];
       if(!DB.stock)DB.stock=[];
       if(!DB.spareHistory)DB.spareHistory=[];
@@ -1627,6 +1926,7 @@ function catBadgeHtml(cat){
 // ====================== HOME ======================
 function renderHome(){
   renderInstall();
+  renderServiceReminders();
   // ── 1. Backup Warning (aggressive) ──────────────────────────────
   const last=localStorage.getItem('gp_lastbk');
   const days=last?Math.floor((Date.now()-parseInt(last))/864e5):999;
@@ -1764,7 +2064,7 @@ function renderHome(){
     const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
     return `<div style="padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')">
       <div style="display:flex;justify-content:space-between">
-        <div style="font-weight:700;font-size:13px">${j.name} — ${j.car||''}</div>
+        <div style="font-weight:700;font-size:13px">${esc(j.name)} — ${esc(j.car)||''}</div>
         <span style="font-size:9px;font-weight:700;color:${ageCol};background:${ageCol}18;padding:2px 6px;border-radius:10px">${age}d</span>
       </div>
       <div style="font-size:11px;color:var(--gray)">${new Date(j.at).toLocaleDateString('en-IN')} • ₹${(j.total||0).toLocaleString('en-IN')} • <span style="color:${j.status==='completed'?'var(--green)':j.status==='ready'?'var(--blue)':j.status==='in-progress'?'var(--rust)':'var(--gold)'}">${j.status}</span></div>
@@ -1866,7 +2166,7 @@ function renderIncomeDay(el,mJobs){
       </div>
       <div style="display:none;border-top:1px solid var(--border)">
         ${jobs.map(j=>`<div onclick="closeM('incomeM');openJob('${j.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #f3f4f6;cursor:pointer">
-          <div><div style="font-size:12px;font-weight:600">${j.name} ${j.vnum?'• '+j.vnum:''}</div>
+          <div><div style="font-size:12px;font-weight:600">${esc(j.name)} ${esc(j.vnum)?'• '+esc(j.vnum):''}</div>
           <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.complaint?'• '+j.complaint.slice(0,25):''}</div></div>
           <div style="text-align:right">
             <div style="font-size:12px;font-weight:700;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</div>
@@ -1938,7 +2238,7 @@ function renderIncomeMech(el,mJobs){
         <div style="font-weight:800;font-size:16px;color:${col}">₹${data.revenue.toLocaleString('en-IN')}</div>
       </div>
       ${recentV.map(j=>`<div onclick="closeM('incomeM');openJob('${j.id}')" style="font-size:11px;padding:4px 0;border-bottom:1px solid #f3f4f6;cursor:pointer;display:flex;justify-content:space-between">
-        <span>${j.name} ${j.vnum?'• '+j.vnum:''}</span>
+        <span>${esc(j.name)} ${esc(j.vnum)?'• '+esc(j.vnum):''}</span>
         <span style="color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</span>
       </div>`).join('')}
     </div>`;
@@ -1955,7 +2255,7 @@ function renderIncomeJobs(el,mJobs){
     const due=Math.max(0,(j.total||0)-(j.amtPaid||0));
     return `<div onclick="closeM('incomeM');openJob('${j.id}')" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:5px;cursor:pointer">
       <div style="flex:1">
-        <div style="font-size:12px;font-weight:700">${j.name} ${j.vnum?'<span style="color:var(--blue)">• '+j.vnum+'</span>':''}</div>
+        <div style="font-size:12px;font-weight:700">${esc(j.name)} ${esc(j.vnum)?'<span style="color:var(--blue)">• '+esc(j.vnum)+'</span>':''}</div>
         <div style="font-size:10px;color:var(--gray)">${j.car||''} ${j.complaint?'• '+j.complaint.slice(0,25):''}</div>
         <div style="font-size:9px;color:#9ca3af">${new Date(j.paidAt||j.completedAt||j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} ${m?'• '+m.name:''}</div>
       </div>
@@ -1985,7 +2285,7 @@ function openUnassignedList(){
     const ageCol=age>14?'#dc2626':age>7?'#d97706':'#16a34a';
     return `<div onclick="closeM('unassignM');openJob('${j.id}')" style="border:1px solid #fed7aa;border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer;background:#fff7ed">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="flex:1"><div style="font-weight:700;font-size:13px">${j.name} ${j.vnum?'• '+j.vnum:''}</div>
+        <div style="flex:1"><div style="font-weight:700;font-size:13px">${esc(j.name)} ${esc(j.vnum)?'• '+esc(j.vnum):''}</div>
         <div style="font-size:10px;color:var(--gray)">${j.car||''} • ${new Date(j.at).toLocaleDateString('en-IN')}</div>
         ${j.complaint?`<div style="font-size:10px;color:#374151;margin-top:2px">${j.complaint.slice(0,40)}</div>`:''}
         </div>
@@ -2033,7 +2333,7 @@ function renderTeamCards(){
         <div style="font-size:9px;color:${ST_CLR[j.status]||'var(--gray)'}">${j.status}${j.urgent?' 🚨':''}</div>
       </div>`).join('');
     return `<div style="min-width:130px;max-width:150px;flex-shrink:0;border:1.5px solid var(--border);border-top:3px solid ${clr};border-radius:10px;padding:8px 10px;background:#fff">
-      <div style="font-weight:700;font-size:12px;margin-bottom:1px">${icon} ${m.name}</div>
+      <div style="font-weight:700;font-size:12px;margin-bottom:1px">${icon} ${esc(m.name)}</div>
       <div style="font-size:9px;color:var(--gray);margin-bottom:5px">${myJobs.length} active job${myJobs.length!==1?'s':''}</div>
       ${rows||'<div style="font-size:10px;color:#9ca3af;padding:4px 0">Free ✅</div>'}
       ${myJobs.length>4?`<div style="font-size:9px;color:var(--blue);padding-top:3px">+${myJobs.length-4} more</div>`:''}
@@ -2057,7 +2357,7 @@ function renderTodos(){
         ${t.done?'<span style="color:#fff;font-size:13px">✓</span>':''}
       </div>
       <div style="flex:1">
-        <div style="font-size:13px;${t.done?'text-decoration:line-through;color:#9ca3af':'font-weight:500'}">${t.text}</div>
+        <div style="font-size:13px;${t.done?'text-decoration:line-through;color:#9ca3af':'font-weight:500'}">${esc(t.text)}</div>
         <div style="font-size:10px;color:#d1d5db;margin-top:1px">${t.date}</div>
       </div>
       <span onclick="deleteTodo('${t.id}')" style="font-size:16px;color:#e5e7eb;cursor:pointer;padding:0 2px">🗑️</span>
@@ -2123,7 +2423,7 @@ function renderPartsBuy(){
         ${p.bought?'<span style="color:#fff;font-size:13px">✓</span>':''}
       </div>
       <div style="flex:1">
-        <div style="font-size:13px;${p.bought?'text-decoration:line-through;color:#9ca3af':'font-weight:600'}">${p.name}</div>
+        <div style="font-size:13px;${p.bought?'text-decoration:line-through;color:#9ca3af':'font-weight:600'}">${esc(p.name)}</div>
         <div style="display:flex;gap:8px;margin-top:2px">
           ${p.qty&&p.qty!=='—'?`<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:5px;font-weight:600">Qty: ${p.qty}</span>`:''}
           ${p.ref?`<span style="font-size:11px;color:#1d4ed8">🚗 ${p.ref}</span>`:''}
@@ -2149,17 +2449,17 @@ function renderBriefing(low){
   let html='';
   if(urgentJ.length){
     html+=`<div style="font-weight:700;font-size:12px;margin-bottom:5px;color:#dc2626">🚨 URGENT (${urgentJ.length})</div>`;
-    html+=urgentJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car}<br><span style="font-size:10px;color:var(--gray)">${j.complaint?j.complaint.slice(0,50):''} • <span class="badge ${j.status==='in-progress'?'b-prog':'b-pend'}">${j.status}</span></span></div>`).join('');
+    html+=urgentJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${esc(j.name)}</b> — ${esc(j.car)}<br><span style="font-size:10px;color:var(--gray)">${esc(j.complaint)?j.complaint.slice(0,50):''} • <span class="badge ${j.status==='in-progress'?'b-prog':'b-pend'}">${j.status}</span></span></div>`).join('');
   }
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:var(--gold)">⏳ PENDING (${pendingJ.length})</div>`;
-  html+=pendingJ.length?pendingJ.slice(0,8).map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car}<br><span style="font-size:10px;color:var(--gray)">${j.complaint?j.complaint.slice(0,50):'No description'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Pending jobs ഇല്ല</div>';
+  html+=pendingJ.length?pendingJ.slice(0,8).map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${esc(j.name)}</b> — ${esc(j.car)}<br><span style="font-size:10px;color:var(--gray)">${esc(j.complaint)?j.complaint.slice(0,50):'No description'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Pending jobs ഇല്ല</div>';
   if(pendingJ.length>8)html+=`<div style="font-size:11px;color:var(--blue);margin-top:4px;cursor:pointer" onclick="go('kanban')">+${pendingJ.length-8} more → Board കാണുക</div>`;
   // Parts awaited section
   const partsWaitJ=DB.jobs.filter(j=>j.partsAwaited&&j.status!=='completed');
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#1d4ed8">🔩 PARTS AWAITED (${partsWaitJ.length})</div>`;
-  html+=partsWaitJ.length?partsWaitJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${j.name}</b> — ${j.car} (${j.vnum})<br><span style="font-size:10px;color:#1d4ed8;font-weight:600">${j.partsAwaitedList||'Parts list ഇല്ല'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Parts wait ഇല്ല ✅</div>';
+  html+=partsWaitJ.length?partsWaitJ.map(j=>`<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer" onclick="openJob('${j.id}')"><b style="font-size:12px">${esc(j.name)}</b> — ${esc(j.car)} (${esc(j.vnum)})<br><span style="font-size:10px;color:#1d4ed8;font-weight:600">${esc(j.partsAwaitedList)||'Parts list ഇല്ല'}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Parts wait ഇല്ല ✅</div>';
   html+=`<div style="font-weight:700;font-size:12px;margin:10px 0 5px;color:#991b1b">📦 SPARES NEEDED (${low.length})</div>`;
-  html+=low.length?low.slice(0,8).map(s=>`<div class="irow"><span style="font-size:12px">${s.name}</span><span style="font-size:11px;font-weight:700;color:#991b1b">${s.qty} ${s.qty<=0?'(OUT)':'left'} / min ${s.min}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Stock OK ✅</div>';
+  html+=low.length?low.slice(0,8).map(s=>`<div class="irow"><span style="font-size:12px">${esc(s.name)}</span><span style="font-size:11px;font-weight:700;color:#991b1b">${s.qty} ${s.qty<=0?'(OUT)':'left'} / min ${s.min}</span></div>`).join(''):'<div style="font-size:11px;color:var(--gray)">Stock OK ✅</div>';
   el.innerHTML=html;
 }
 
@@ -2174,11 +2474,11 @@ function renderKanban(){
       ${jobs.length?jobs.map(j=>`
         <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8;':j.urgent?'border-left:3px solid #dc2626;':''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${j.name}</div>
+            <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${esc(j.name)}</div>
             ${(()=>{const age=Math.floor((Date.now()-new Date(j.at))/864e5);const c=age>14?'#dc2626':age>7?'#d97706':'#16a34a';return `<span style="font-size:8px;font-weight:700;color:${c};background:${c}20;padding:1px 5px;border-radius:8px;white-space:nowrap;margin-left:4px">${age===0?'Today':age+'d'}</span>`;})()}
           </div>
           <div class="kb-sub">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
-          ${j.mechName?`<div style="font-size:9px;color:var(--blue);margin-top:2px">👷 ${j.mechName}</div>`:'<div style="font-size:9px;color:#f59e0b;margin-top:2px">⚠️ No mechanic</div>'}
+          ${esc(j.mechName)?`<div style="font-size:9px;color:var(--blue);margin-top:2px">👷 ${esc(j.mechName)}</div>`:'<div style="font-size:9px;color:#f59e0b;margin-top:2px">⚠️ No mechanic</div>'}
           ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
           <div class="kb-amt">₹${(j.total||0).toLocaleString('en-IN')}</div>
         </div>`).join(''):'<div style="font-size:10px;color:#9ca3af;text-align:center;padding:8px">Empty</div>'}
@@ -2287,19 +2587,21 @@ function onPhoto(e){
     const img=new Image();
     img.onload=()=>{
       const canvas=document.createElement('canvas');
-      const scale=Math.min(1,800/img.width);
+      const scale=Math.min(1,1024/Math.max(img.width,img.height));
       canvas.width=img.width*scale;canvas.height=img.height*scale;
       canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-      const dataUrl=canvas.toDataURL('image/jpeg',.7);
-      if(jobPhotoTargetId){
-        const j=DB.jobs.find(x=>x.id===jobPhotoTargetId);
-        if(j){(j.photos=j.photos||[]).push({type:photoType,data:dataUrl});save();}
-        const tid=jobPhotoTargetId;jobPhotoTargetId=null;
-        openJob(tid);
-      }else{
-        JOB.photos.push({type:photoType,data:dataUrl});
-        renderPhotoGrid();
-      }
+      const dataUrl=canvas.toDataURL('image/jpeg',.65);
+      storePhoto(photoType,dataUrl,jobPhotoTargetId||'').then(ref=>{
+        if(jobPhotoTargetId){
+          const j=DB.jobs.find(x=>x.id===jobPhotoTargetId);
+          if(j){(j.photos=j.photos||[]).push(ref);save();}
+          const tid=jobPhotoTargetId;jobPhotoTargetId=null;
+          openJob(tid);
+        }else{
+          JOB.photos.push(ref);
+          renderPhotoGrid();
+        }
+      });
     };
     img.src=ev.target.result;
   };
@@ -2312,12 +2614,14 @@ function renderPhotoGrid(){
     <div class="photo-add" onclick="addPhoto('After')"><span>📷</span>After</div>
     <div class="photo-add" onclick="addPhoto('Damage')"><span>📷</span>Damage</div>
     <div class="photo-add" onclick="addPhoto('Other')"><span>📷</span>Other</div>
-    ${JOB.photos.map((p,i)=>`<div class="photo-item" onclick="viewPhoto(${i})"><img src="${p.data}"><div class="photo-lbl">${p.type}</div></div>`).join('')}`;
+    ${JOB.photos.map((p,i)=>`<div class="photo-item" onclick="viewPhoto(${i})"><img data-pid="${esc(p.id||'')}" src="${p.data||''}" alt=""><div class="photo-lbl">${esc(p.type)}</div></div>`).join('')}`;
+  hydratePhotos(g);
 }
-function viewPhoto(i){
-  document.getElementById('photoMImg').src=JOB.photos[i].data;
-  document.getElementById('photoMT').textContent=JOB.photos[i].type+' Photo';
-  document.getElementById('delPhotoBtn').onclick=()=>{JOB.photos.splice(i,1);renderPhotoGrid();closeM('photoM');};
+async function viewPhoto(i){
+  const p=JOB.photos[i];
+  document.getElementById('photoMImg').src=await photoSrc(p);
+  document.getElementById('photoMT').textContent=p.type+' Photo';
+  document.getElementById('delPhotoBtn').onclick=()=>{JOB.photos.splice(i,1);deletePhoto(p);renderPhotoGrid();closeM('photoM');};
   openM('photoM');
 }
 
@@ -2420,7 +2724,7 @@ function onSpareSearch(){
   sl.style.display='block';
   sl.innerHTML=matches.map(s=>`
     <div class="sug-item" onclick="selectSpare('${s.name.replace(/'/g,"\\'")}',${s.cost},${s.sell},'${(s.brand||'').replace(/'/g,"\\'")}')">
-      <div><div class="sug-name">${s.name}</div><div class="sug-meta">${s.brand||''}</div></div>
+      <div><div class="sug-name">${esc(s.name)}</div><div class="sug-meta">${esc(s.brand)||''}</div></div>
       <div class="sug-price">₹${s.sell}</div>
     </div>`).join('');
 }
@@ -2485,7 +2789,7 @@ function renderJobItems(){
   lc.innerHTML=JOB.labourItems.length?JOB.labourItems.map((it,i)=>`
     <div class="si">
       <div class="si-info">
-        <div class="si-name">👷 ${it.name}</div>
+        <div class="si-name">👷 ${esc(it.name)}</div>
         <div class="si-pr">₹${it.price} × ${it.qty} = ₹${it.price*(it.qty||1)} ${it.cat?'('+CAT_NAMES[it.cat]+')':''}</div>
       </div>
       <div class="qc">
@@ -2500,7 +2804,7 @@ function renderJobItems(){
   sc.innerHTML=JOB.spareItems.length?JOB.spareItems.map((it,i)=>`
     <div class="si">
       <div class="si-info">
-        <div class="si-name">🔩 ${it.name}${it.brand?' ('+it.brand+')':''}${it.custSup?' 👤 Customer part':''}</div>
+        <div class="si-name">🔩 ${esc(it.name)}${esc(it.brand)?' ('+esc(it.brand)+')':''}${it.custSup?' 👤 Customer part':''}</div>
         <div class="si-pr">${it.custSup?'Labour only (₹0)':'Cost ₹'+it.cost+' → Sell ₹'+it.sell+' × '+it.qty+' = ₹'+(it.sell*(it.qty||1))}</div>
       </div>
       <div class="qc">
@@ -2634,13 +2938,13 @@ function renderJobs(){
     const pl=j.payMode==='cash'||j.payMode==='upi'||j.payMode==='card'?'Paid':j.payMode==='partial'?'Partial':'Unpaid';
     return `<div class="jcard ${j.status}" onclick="openJob('${j.id}')">
       <div class="jh">
-        <div><div class="jname">${j.name}</div><div class="jid">${j.id} • ${new Date(j.at).toLocaleDateString('en-IN')}</div></div>
+        <div><div class="jname">${esc(j.name)}</div><div class="jid">${j.id} • ${new Date(j.at).toLocaleDateString('en-IN')}</div></div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
           <span class="badge ${bc}">${j.status}</span>
           <span class="pay-badge ${pc}">${pl}</span>
         </div>
       </div>
-      <div class="jd">🚗 ${j.car} • ${j.vnum}${j.mechName?' • 👷 '+j.mechName:''}</div>
+      <div class="jd">🚗 ${esc(j.car)} • ${esc(j.vnum)}${esc(j.mechName)?' • 👷 '+esc(j.mechName):''}</div>
       <div class="jd">₹${j.total?.toLocaleString('en-IN')}${j.photos?.length?' • 📸'+j.photos.length:''}${j.cat?' • '+catBadgeHtml(j.cat):''}</div>
     </div>`;
   }).join('');
@@ -2656,22 +2960,22 @@ function openJob(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   const bc=j.status==='completed'?'b-done':j.status==='ready'?'b-rdy':j.status==='in-progress'?'b-prog':'b-pend';
   const WT_ICON={mech:'🔧',body:'🚗',paint:'🎨'};
-  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${WT_ICON[i.wtype||'mech']} ${i.name}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
-  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
-  const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden"><img src="${p.data}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
+  const labourHtml=j.labourItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">👷 LABOUR</div>${j.labourItems.map((i,idx)=>`<div class="irow"><span>${WT_ICON[i.wtype||'mech']} ${esc(i.name)}${i.qty!==1?' ×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--rust)">₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeLabourItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
+  const sparesHtml=j.spareItems?.length?`<div style="font-weight:700;font-size:12px;margin:8px 0 4px;color:var(--gray)">🔩 SPARE PARTS</div>${j.spareItems.map((i,idx)=>`<div class="irow"><span>${esc(i.name)}${esc(i.brand)?' ('+esc(i.brand)+')':''}${i.custSup?' 👤':''} ${i.qty!==1?'×'+i.qty:''}</span><span style="display:flex;align-items:center;gap:8px"><b style="color:var(--blue)">₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</b><span onclick="removeSpareItem('${j.id}',${idx})" style="cursor:pointer;color:#dc2626">🗑️</span></span></div>`).join('')}`:'';
+  const photosHtml=j.photos?.length?`<div style="margin-top:8px"><div style="font-weight:700;font-size:12px;margin-bottom:5px">📸 Photos (${j.photos.length})</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">${j.photos.map(p=>`<div style="aspect-ratio:1;border-radius:6px;overflow:hidden;background:#f3f4f6"><img data-pid="${esc(p.id||'')}" src="${p.data||''}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}</div></div>`:'';
   document.getElementById('jobMT').innerHTML=j.id+(j.urgent?' <span style="background:#dc2626;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🚨 URGENT</span>':'')+(j.partsAwaited?' <span style="background:#1d4ed8;color:#fff;font-size:11px;padding:2px 8px;border-radius:6px;vertical-align:middle">🔩 PARTS AWAITED</span>':'');
   document.getElementById('jobMB').innerHTML=`
     <div class="card">
       <div style="font-size:13px;line-height:2">
-        <div>👤 <b>${j.name}</b> | 📞 <a href="tel:${j.phone}" style="color:var(--blue)">${j.phone}</a></div>
-        <div>🚗 ${j.car} (${j.vnum})${j.km?' | 🔢 '+j.km+' km':''}</div>
-        ${j.addr?`<div>📍 ${j.addr}</div>`:''}
+        <div>👤 <b>${esc(j.name)}</b> | 📞 <a href="tel:${esc(j.phone)}" style="color:var(--blue)">${esc(j.phone)}</a></div>
+        <div>🚗 ${esc(j.car)} (${esc(j.vnum)})${j.km?' | 🔢 '+j.km+' km':''}</div>
+        ${esc(j.addr)?`<div>📍 ${esc(j.addr)}</div>`:''}
         ${j.fuel?`<div>⛽ Fuel: ${j.fuel}</div>`:''}
         ${j.cat?`<div>${catBadgeHtml(j.cat)}</div>`:''}
         <div>📅 ${new Date(j.at).toLocaleString('en-IN')}</div>
         <div>Status: <span class="badge ${bc}">${j.status}</span></div>
-        ${j.mechName?`<div>👷 ${j.mechName}</div>`:''}
-        ${j.complaint?`<div>🔧 ${j.complaint}</div>`:''}
+        ${esc(j.mechName)?`<div>👷 ${esc(j.mechName)}</div>`:''}
+        ${esc(j.complaint)?`<div>🔧 ${esc(j.complaint)}</div>`:''}
         ${j.nextSvc?`<div>📅 Next: ${new Date(j.nextSvc).toLocaleDateString('en-IN')}</div>`:''}
       </div>
       ${photosHtml}
@@ -2855,7 +3159,7 @@ function openDeliveryPayment(id){
   document.getElementById('deliveryPayMB').innerHTML=`
     <!-- Job Summary -->
     <div style="background:#f0fdf4;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-      <div style="font-weight:700;font-size:14px">${j.name} — ${j.car||''}</div>
+      <div style="font-weight:700;font-size:14px">${esc(j.name)} — ${esc(j.car)||''}</div>
       <div style="font-size:11px;color:var(--gray)">${j.vnum||''} ${j.complaint?'• '+j.complaint.slice(0,40):''}</div>
     </div>
     <!-- Amount Summary -->
@@ -3067,7 +3371,7 @@ function openDataHealth(){
     if(Math.abs((j.total||0)-expectedTotal)>1){
       mismatchCount++;
       issues.push(`<div style="padding:6px 8px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:0 6px 6px 0;margin-bottom:4px;cursor:pointer;font-size:11px" onclick="closeM('dataHealthM');openJob('${j.id}')">
-        <b>${j.name} — ${j.vnum||''}</b><br>
+        <b>${esc(j.name)} — ${esc(j.vnum)||''}</b><br>
         Stored: ₹${(j.total||0).toLocaleString('en-IN')} | Expected: ₹${expectedTotal.toLocaleString('en-IN')}
         <span style="color:var(--blue);font-size:10px"> → tap to open</span>
       </div>`);
@@ -3078,7 +3382,7 @@ function openDataHealth(){
     if((j.amtPaid||0)>(j.total||0)+1){
       overpaidCount++;
       warnings.push(`<div style="padding:6px 8px;background:#fef3c7;border-left:3px solid #d97706;border-radius:0 6px 6px 0;margin-bottom:4px;font-size:11px">
-        <b>${j.name}</b> — Paid ₹${(j.amtPaid||0).toLocaleString('en-IN')} / Total ₹${(j.total||0).toLocaleString('en-IN')}
+        <b>${esc(j.name)}</b> — Paid ₹${(j.amtPaid||0).toLocaleString('en-IN')} / Total ₹${(j.total||0).toLocaleString('en-IN')}
       </div>`);
     }
   });
@@ -3383,7 +3687,7 @@ function showPayHistory(id){
   </div>`).join('');
   const total=hist.reduce((s,p)=>s+(p.amt||0),0);
   document.getElementById('unassignMB').innerHTML=`
-    <div style="font-size:12px;font-weight:700;margin-bottom:8px">Payment History — ${j.name}</div>
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px">Payment History — ${esc(j.name)}</div>
     ${rows}
     <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:13px">
       <span>Total Paid</span><span style="color:var(--green)">₹${total.toLocaleString('en-IN')}</span>
@@ -3404,14 +3708,16 @@ function removePayEntry(jobId,idx){
 }
 function delJob(id){
   if(!confirm('Delete job?'))return;
+  const dj=DB.jobs.find(x=>x.id===id);(dj?.photos||[]).forEach(p=>deletePhoto(p));
   DB.jobs=DB.jobs.filter(x=>x.id!==id);save();closeM('jobM');renderJobs();
 }
-function printInv(id){
+async function printInv(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   const w=window.open('','_blank');
-  const labourRows=j.labourItems?.map(i=>`<tr><td>${i.name}</td><td>Labour</td><td>${i.qty}</td><td>₹${i.price.toLocaleString('en-IN')}</td><td>₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
-  const spareRows=j.spareItems?.map(i=>`<tr><td>${i.name}${i.brand?' ('+i.brand+')':''}</td><td>Part${i.custSup?' (Cust)':''}</td><td>${i.qty}</td><td>₹${i.sell?.toLocaleString('en-IN')}</td><td>₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
-  const photos=j.photos?.length?`<div><h3>Photos</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${j.photos.map(p=>`<div><img src="${p.data}" style="height:100px;border-radius:5px"><br><small>${p.type}</small></div>`).join('')}</div></div>`:'';
+  const photoSrcs=await Promise.all((j.photos||[]).map(p=>photoSrc(p)));
+  const labourRows=j.labourItems?.map(i=>`<tr><td>${esc(i.name)}</td><td>Labour</td><td>${i.qty}</td><td>₹${i.price.toLocaleString('en-IN')}</td><td>₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
+  const spareRows=j.spareItems?.map(i=>`<tr><td>${esc(i.name)}${esc(i.brand)?' ('+esc(i.brand)+')':''}</td><td>Part${i.custSup?' (Cust)':''}</td><td>${i.qty}</td><td>₹${i.sell?.toLocaleString('en-IN')}</td><td>₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}</td></tr>`).join('')||'';
+  const photos=j.photos?.length?`<div><h3>Photos</h3><div style="display:flex;gap:6px;flex-wrap:wrap">${j.photos.map((p,i)=>photoSrcs[i]?`<div><img src="${photoSrcs[i]}" style="height:100px;border-radius:5px"><br><small>${esc(p.type)}</small></div>`:'').join('')}</div></div>`:'';
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bill of Supply</title>
   <style>body{font-family:Arial;max-width:600px;margin:20px auto;padding:20px}
   h2{color:#c2410c;border-bottom:3px solid #c2410c;padding-bottom:8px}
@@ -3423,11 +3729,11 @@ function printInv(id){
   <h3 style="text-align:center;margin:4px 0">BILL OF SUPPLY</h3>
   <p style="text-align:center;font-size:11px;color:#555;margin:2px 0">Composition taxable person, not eligible to collect tax on supplies</p>
   <p><b>Job:</b> ${j.id} | <b>Date:</b> ${new Date(j.at).toLocaleDateString('en-IN')}</p>
-  <p><b>Customer:</b> ${j.name} | <b>Phone:</b> ${j.phone}</p>
-  <p><b>Vehicle:</b> ${j.car} — ${j.vnum}${j.km?' | KM: '+j.km:''}${j.cat?' | Category: '+CAT_NAMES[j.cat]:''}</p>
-  ${j.addr?`<p><b>Address:</b> ${j.addr}</p>`:''}${j.fuel?`<p><b>Fuel Level:</b> ${j.fuel}</p>`:''}
-  ${j.mechName?`<p><b>Mechanic:</b> ${j.mechName}</p>`:''}
-  ${j.complaint?`<p><b>Complaint:</b> ${j.complaint}</p>`:''}
+  <p><b>Customer:</b> ${esc(j.name)} | <b>Phone:</b> ${esc(j.phone)}</p>
+  <p><b>Vehicle:</b> ${esc(j.car)} — ${esc(j.vnum)}${j.km?' | KM: '+j.km:''}${j.cat?' | Category: '+CAT_NAMES[j.cat]:''}</p>
+  ${esc(j.addr)?`<p><b>Address:</b> ${esc(j.addr)}</p>`:''}${j.fuel?`<p><b>Fuel Level:</b> ${j.fuel}</p>`:''}
+  ${esc(j.mechName)?`<p><b>Mechanic:</b> ${esc(j.mechName)}</p>`:''}
+  ${esc(j.complaint)?`<p><b>Complaint:</b> ${esc(j.complaint)}</p>`:''}
   <table><tr><th>Item</th><th>Type</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
   ${labourRows}${spareRows}
   <tr><td colspan="4" align="right">Subtotal</td><td>₹${j.sub?.toLocaleString('en-IN')}</td></tr>
@@ -3588,7 +3894,7 @@ function renderReport(){
     return `<div class="irow">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px">${m.name[0]}</div>
-        <div><div style="font-weight:600">${m.name} <span style="font-size:9px;color:var(--gray);font-weight:400">(${m.spec})</span></div><div style="font-size:10px;color:var(--gray)">${s.jobs} jobs</div></div>
+        <div><div style="font-weight:600">${esc(m.name)} <span style="font-size:9px;color:var(--gray);font-weight:400">(${m.spec})</span></div><div style="font-size:10px;color:var(--gray)">${s.jobs} jobs</div></div>
       </div>
       <div style="font-weight:700;color:var(--rust)" class="money-sensitive">₹${s.revenue.toLocaleString('en-IN')}</div>
     </div>`;
@@ -3611,7 +3917,7 @@ function renderReport(){
       return `<div style="border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
         <div onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.wjlArrow').textContent=b.style.display==='none'?'▶':'▼'"
           style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f8f9fa;cursor:pointer">
-          <span style="font-weight:700;font-size:13px">👤 ${m.name} <span style="font-size:10px;color:var(--gray);font-weight:400">(${mJobs.length} vehicles)</span></span>
+          <span style="font-weight:700;font-size:13px">👤 ${esc(m.name)} <span style="font-size:10px;color:var(--gray);font-weight:400">(${mJobs.length} vehicles)</span></span>
           <span class="wjlArrow" style="font-size:11px;color:var(--gray)">▼</span>
         </div>
         <div style="padding:6px 12px">${rows}</div>
@@ -3636,15 +3942,15 @@ function renderCustomers(){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
-          <div style="font-weight:700;font-size:14px">${c.name}</div>
-          <div style="font-size:11px;color:var(--gray)">📞 <a href="tel:${c.phone}" style="color:var(--blue)">${c.phone}</a></div>
+          <div style="font-weight:700;font-size:14px">${esc(c.name)}</div>
+          <div style="font-size:11px;color:var(--gray)">📞 <a href="tel:${esc(c.phone)}" style="color:var(--blue)">${esc(c.phone)}</a></div>
           <div style="font-size:11px;color:var(--gray)">🚗 ${(c.cars||[c.car]).join(', ')}${c.vnum?' • 🔢 '+c.vnum:''}</div>
           ${c.lastVisit?`<div style="font-size:11px;color:var(--gray)">📅 Last: ${new Date(c.lastVisit).toLocaleDateString('en-IN')}</div>`:''}
         </div>
         <div style="display:flex;gap:4px">
-          <button onclick="editCustomer('${c.phone}')" style="background:#eff6ff;color:var(--blue);border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">✏️</button>
+          <button onclick="editCustomer('${esc(c.phone)}')" style="background:#eff6ff;color:var(--blue);border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">✏️</button>
           <button onclick="sendRemWA('${c.phone}','${c.name.replace(/'/g,"\\'")}','${(c.car||'').replace(/'/g,"\\'")}','${(c.cars||[c.car]).join(',').replace(/'/g,"\\'")}');" style="background:#25d366;color:#fff;border:none;padding:7px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">📱 WA</button>
-          <button onclick="delCustomer('${c.phone}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">🗑️</button>
+          <button onclick="delCustomer('${esc(c.phone)}')" style="background:#fee2e2;color:#991b1b;border:none;padding:7px 9px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">🗑️</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px">
@@ -3745,7 +4051,7 @@ function renderMgStaff(){
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${m.name[0]}</div>
-          <div style="min-width:0"><div style="font-weight:700">${m.name} <span style="color:var(--blue);font-size:11px">✏️</span></div>
+          <div style="min-width:0"><div style="font-weight:700">${esc(m.name)} <span style="color:var(--blue);font-size:11px">✏️</span></div>
           <div style="font-size:11px;color:var(--gray)">${m.spec}${m.phone?' • 📞 '+m.phone:''}</div></div>
         </div>
         ${mgToggle(act,`toggleMech('${m.id}')`)}
@@ -3774,7 +4080,7 @@ function renderMgParts(){
     return `<div class="card" style="cursor:pointer;padding:10px 12px;${act?'':'opacity:.55'}" onclick="editPartHist('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:13px">${p.name} <span style="color:var(--blue);font-size:11px">✏️</span></div>
+          <div style="font-weight:700;font-size:13px">${esc(p.name)} <span style="color:var(--blue);font-size:11px">✏️</span></div>
           <div style="font-size:11px;color:var(--gray)">${p.brand||''}${p.cost?' • Cost ₹'+p.cost:''} • Sell <b style="color:var(--rust)">₹${p.sell||0}</b></div>
         </div>
         ${mgToggle(act,`togglePartHist('${p.id}')`)}
@@ -3965,7 +4271,7 @@ function renderMechanics(){
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px">${m.name[0]}</div>
-          <div><div style="font-weight:700">${m.name}</div><div style="font-size:11px;color:var(--gray)">${m.spec} ${m.phone?'• '+m.phone:''}</div></div>
+          <div><div style="font-weight:700">${esc(m.name)}</div><div style="font-size:11px;color:var(--gray)">${m.spec} ${esc(m.phone)?'• '+esc(m.phone):''}</div></div>
         </div>
         <span onclick="editMech('${m.id}')" style="color:var(--blue);font-size:12px;font-weight:700;cursor:pointer">✏️ Edit</span>
       </div>
@@ -4057,7 +4363,7 @@ function renderStaffPay(){
     const cfg=m.perDay?`₹${m.perDay.toLocaleString('en-IN')}/day · ${PAY_TYPE_LABEL[m.salaryType]||'—'}`:'⚠️ pay set ചെയ്തിട്ടില്ല';
     return `<div class="card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <div style="min-width:0"><div style="font-weight:700">${m.name} ${m.isOffice?'<span style="font-size:9px;background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:8px">OFFICE</span>':''}</div>
+        <div style="min-width:0"><div style="font-weight:700">${esc(m.name)} ${m.isOffice?'<span style="font-size:9px;background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:8px">OFFICE</span>':''}</div>
         <div style="font-size:11px;color:${m.perDay?'var(--gray)':'#dc2626'}">${cfg}</div></div>
         <button onclick="openPayEntry('${m.id}')" style="background:var(--rust);color:#fff;border:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">+ Pay/Advance</button>
       </div>
@@ -4105,7 +4411,7 @@ function renderStock(){
   const la=document.getElementById('lowAlerts');
   la.innerHTML=low.length?`<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:9px;padding:10px;margin-bottom:6px">
     <div style="font-weight:700;font-size:13px;color:#991b1b;margin-bottom:5px">⚠️ Low Stock — ${low.length} items</div>
-    ${low.map(s=>`<div style="font-size:12px;padding:2px 0;color:#991b1b">• ${s.name} — <b>${s.qty}</b> left (min: ${s.min})</div>`).join('')}
+    ${low.map(s=>`<div style="font-size:12px;padding:2px 0;color:#991b1b">• ${esc(s.name)} — <b>${s.qty}</b> left (min: ${s.min})</div>`).join('')}
   </div>`:'';
   const el=document.getElementById('stockList');
   if(!items.length){el.innerHTML='<div class="empty"><div class="empty-i">📦</div>No stock items</div>';return;}
@@ -4116,7 +4422,7 @@ function renderStock(){
     return `<div class="st-item ${cls}" onclick="editStock('${s.id}')">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div style="flex:1">
-          <div style="font-weight:700;font-size:13px">${s.name}</div>
+          <div style="font-weight:700;font-size:13px">${esc(s.name)}</div>
           ${s.pn?`<div style="font-size:10px;color:var(--blue);font-family:monospace">${s.pn}</div>`:''}
           <div style="font-size:11px;color:var(--gray)">Min: ${s.min}${s.cost?' | Cost: ₹'+s.cost:''}${s.supp?' | '+s.supp:''}</div>
           <div class="st-bar"><div class="st-fill" style="width:${pct}%;background:${isLow?'var(--red)':'var(--green)'}"></div></div>
@@ -4526,6 +4832,75 @@ Instructions:
 function qAI(msg){document.getElementById('aiIn').value=msg;go('ai');askAI();}
 document.getElementById('aiIn').addEventListener('keydown',e=>{if(e.key==='Enter')askAI();});
 
+
+// ====================== v12: SERVICE REMINDERS ======================
+function normV(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function svcIntervalMonths(){return parseInt(DB.settings?.svcMonths)||6;}
+// Returns vehicles whose next service is due within 14 days or overdue (max 120 days overdue)
+function computeServiceDue(){
+  const byV={};
+  DB.jobs.forEach(j=>{
+    const v=normV(j.vnum);if(!v)return;
+    const d=new Date(j.paidAt||j.completedAt||j.at);
+    if(!byV[v]||d>byV[v].date)byV[v]={date:d,job:j};
+  });
+  const now=Date.now(),out=[];
+  Object.keys(byV).forEach(v=>{
+    const {date,job}=byV[v];
+    if(job.status!=='completed')return;            // still in workshop
+    let due=job.nextSvc?new Date(job.nextSvc):new Date(date);
+    if(!job.nextSvc)due.setMonth(due.getMonth()+svcIntervalMonths());
+    const days=Math.round((due-now)/864e5);
+    if(days>14||days<-120)return;
+    const r=DB.reminders?.[v];
+    if(r&&r.doneAt&&r.doneAt>due.getTime()-15*864e5)return;   // marked done for this cycle
+    out.push({v,job,due,days,sentAt:r?.sentAt||0});
+  });
+  return out.sort((a,b)=>a.days-b.days);
+}
+function renderServiceReminders(){
+  const el=document.getElementById('svcReminderCard');if(!el)return;
+  const list=computeServiceDue();
+  if(!list.length){el.innerHTML='';return;}
+  const overdue=list.filter(x=>x.days<0).length;
+  el.innerHTML=`<div class="card" style="border-left:4px solid var(--purple)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div class="card-t" style="margin:0">🔔 Service Due <span style="font-size:11px;color:var(--gray);font-weight:600">${list.length} vehicles${overdue?' • '+overdue+' overdue':''}</span></div>
+      <select onchange="setSvcInterval(this.value)" style="width:auto;padding:4px 8px;font-size:11px">
+        ${[3,4,6,12].map(m=>`<option value="${m}" ${svcIntervalMonths()===m?'selected':''}>every ${m} mo</option>`).join('')}
+      </select>
+    </div>
+    ${list.slice(0,8).map(x=>`<div class="irow">
+      <div style="flex:1;min-width:0">
+        <div class="i-name">${esc(x.job.name)} <span style="font-weight:500;color:var(--gray)">${esc(x.job.vnum)}</span></div>
+        <div class="i-meta">${esc(x.job.car)} • ${x.days<0?`<span style="color:var(--red);font-weight:700">${-x.days}d overdue</span>`:x.days===0?'<b>today</b>':'in '+x.days+'d'} (${x.due.toLocaleDateString('en-IN')})${x.sentAt?' • sent '+new Date(x.sentAt).toLocaleDateString('en-IN'):''}</div>
+      </div>
+      <button class="btn b-wa b-sm" onclick="sendSvcReminder('${x.job.id}')">💬</button>
+      <button class="btn b-gray b-sm" style="margin-left:4px" onclick="markSvcDone('${x.job.id}')" title="Done / skip">✓</button>
+    </div>`).join('')}
+    ${list.length>8?`<div style="font-size:11px;color:var(--gray);text-align:center;margin-top:4px">+${list.length-8} more</div>`:''}
+  </div>`;
+}
+function setSvcInterval(m){DB.settings=DB.settings||{};DB.settings.svcMonths=parseInt(m)||6;save();renderServiceReminders();}
+function sendSvcReminder(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);if(!j)return;
+  const x=computeServiceDue().find(r=>r.job.id===jobId);
+  const dueTxt=x?x.due.toLocaleDateString('en-IN'):'';
+  const msg=`🔧 *Garage Pro Kerala — Service Reminder*\n\nNamaskaaram ${j.name}!\n\n🚗 *${j.car}* (${j.vnum})\nLast service: ${new Date(j.paidAt||j.completedAt||j.at).toLocaleDateString('en-IN')}\n📅 Next service due: *${dueTxt}*\n\nSlot book ചെയ്യാൻ ഈ number-ൽ reply ചെയ്യൂ. 🙏`;
+  const ph=String(j.phone||'').replace(/\D/g,'');
+  if(!ph){alert('Phone number ഇല്ല');return;}
+  window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
+  DB.reminders=DB.reminders||{};
+  DB.reminders[normV(j.vnum)]={...(DB.reminders[normV(j.vnum)]||{}),sentAt:Date.now()};
+  save();renderServiceReminders();
+}
+function markSvcDone(jobId){
+  const j=DB.jobs.find(x=>x.id===jobId);if(!j)return;
+  DB.reminders=DB.reminders||{};
+  DB.reminders[normV(j.vnum)]={...(DB.reminders[normV(j.vnum)]||{}),doneAt:Date.now()};
+  save();renderServiceReminders();
+}
+
 // ====================== MODAL ======================
 function openM(id){document.getElementById(id).classList.add('on');}
 function closeM(id){document.getElementById(id).classList.remove('on');}
@@ -4538,6 +4913,11 @@ function renderAll(){
   renderHome();updateMechDD();renderPhotoGrid();
 }
 load();renderAll();setTimeout(ensureCarSeed,4000);
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    reg.addEventListener('updatefound',()=>{const nw=reg.installing;nw&&nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller)showToast('🆕 New version ready — app reopen ചെയ്യൂ');});});
+  }).catch(()=>{});
+}
 </script>
 </body>
 </html>
