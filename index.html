@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.0</title>
+<title>Garage Pro Kerala v12.1</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.0</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.1</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -266,7 +266,7 @@ textarea{resize:vertical;min-height:65px}
 <main>
 <!-- HOME -->
 <div class="pg on" id="home">
-  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="svcReminderCard"></div>
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="attTodayCard"></div><div id="svcReminderCard"></div>
   <!-- Daily Target Widget -->
   <div id="dailyTargetWidget"></div>
   <div class="sg">
@@ -1926,6 +1926,7 @@ function catBadgeHtml(cat){
 // ====================== HOME ======================
 function renderHome(){
   renderInstall();
+  renderAttendanceToday();
   renderServiceReminders();
   // ── 1. Backup Warning (aggressive) ──────────────────────────────
   const last=localStorage.getItem('gp_lastbk');
@@ -4348,18 +4349,144 @@ function openStaffPay(){
   renderStaffPay();
   openM('staffPayM');
 }
+// ====================== v12.1: ATTENDANCE · SALARY · PERFORMANCE ======================
+// DB.attendance[YYYY-MM-DD][mechId] = {s:'P'|'H'|'A', ot:<hours>}
+// Standard day = 8 h; OT paid at (perDay/8)×1.5 per hour; Sunday work = normal daily rate.
+const ATT_HOURS_PER_DAY=8, ATT_OT_MULT=1.5;
+const ATT_CYCLE={'':'P','P':'H','H':'A','A':''};
+const ATT_STYLE={P:{bg:'#dcfce7',fg:'#166534',t:'P'},H:{bg:'#fef3c7',fg:'#92400e',t:'½'},A:{bg:'#fee2e2',fg:'#991b1b',t:'A'},'':{bg:'#f3f4f6',fg:'#9ca3af',t:'–'}};
+function dstr(d){const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+function todayStr(){return dstr(new Date());}
+function attGet(date,mid){return (DB.attendance?.[date]?.[mid])||{s:'',ot:0};}
+function attSet(date,mid,val){
+  DB.attendance=DB.attendance||{};
+  DB.attendance[date]=DB.attendance[date]||{};
+  if(!val.s&&!val.ot){delete DB.attendance[date][mid];if(!Object.keys(DB.attendance[date]).length)delete DB.attendance[date];}
+  else DB.attendance[date][mid]={s:val.s||'',ot:+val.ot||0};
+  DB.settings=DB.settings||{};
+  if(!DB.settings.payStartDate)DB.settings.payStartDate=date;   // salary tracking starts from first attendance entry
+  save();
+}
+function attCycle(date,mid){const a=attGet(date,mid);attSet(date,mid,{s:ATT_CYCLE[a.s]||'P',ot:a.ot});renderAttendanceToday();renderStaffPay();}
+function attOT(date,mid){
+  const a=attGet(date,mid);
+  const v=prompt('Overtime hours ('+date+'):',a.ot||'');
+  if(v===null)return;
+  attSet(date,mid,{s:a.s||'P',ot:parseFloat(v)||0});renderAttendanceToday();renderStaffPay();
+}
+// staff who have a job credited on that date (hint for marking P)
+function attWorkedHint(date){
+  const set=new Set();
+  DB.jobs.forEach(j=>{if(dstr(j.at)!==date)return;Object.keys(jobWorkerCredits(j)).forEach(id=>set.add(id));[j.mechId,j.tinkerId,j.painterId].forEach(id=>id&&set.add(id));});
+  return set;
+}
+function renderAttendanceToday(){
+  const el=document.getElementById('attTodayCard');if(!el)return;
+  const staff=DB.mechanics.filter(m=>m.active!==false);
+  if(!staff.length){el.innerHTML='';return;}
+  const date=todayStr(),hint=attWorkedHint(date);
+  const d=new Date();const isSun=d.getDay()===0;
+  const marked=staff.filter(m=>attGet(date,m.id).s).length;
+  el.innerHTML=`<div class="card" style="border-left:4px solid var(--green)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div class="card-t" style="margin:0">📋 Attendance <span style="font-size:11px;color:var(--gray);font-weight:600">${d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}${isSun?' · Sunday':''} · ${marked}/${staff.length}</span></div>
+      <button class="btn b-gray b-sm" onclick="attMarkAllP()">All P</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${staff.map(m=>{
+      const a=attGet(date,m.id),st=ATT_STYLE[a.s]||ATT_STYLE[''];
+      const dash=!a.s&&hint.has(m.id)?'border:2px dashed #16a34a;':'border:2px solid transparent;';
+      return `<div style="display:flex;align-items:center;background:${st.bg};color:${st.fg};${dash}border-radius:20px;padding:5px 4px 5px 10px;font-size:12px;font-weight:700">
+        <span onclick="attCycle('${date}','${m.id}')" style="cursor:pointer">${esc(m.name.split(' ')[0])} <span style="display:inline-block;min-width:16px;text-align:center">${st.t}</span></span>
+        <span onclick="attOT('${date}','${m.id}')" title="Overtime" style="cursor:pointer;margin-left:4px;background:rgba(0,0,0,.08);border-radius:12px;padding:1px 6px;font-size:10px">${a.ot?'⏱'+a.ot+'h':'⏱'}</span>
+      </div>`;}).join('')}</div>
+    <div style="font-size:10px;color:var(--gray);margin-top:6px">Tap = P → ½ → A → blank · ⏱ = OT hours · dotted = ഇന്ന് job ഉള്ളവർ</div>
+  </div>`;
+}
+function attMarkAllP(){
+  const date=todayStr();
+  DB.mechanics.filter(m=>m.active!==false).forEach(m=>{const a=attGet(date,m.id);if(!a.s)attSet(date,m.id,{s:'P',ot:a.ot});});
+  renderAttendanceToday();renderStaffPay();
+}
+
+// ---- pay period per staff ----
+function payPeriod(m,ref){
+  const d=new Date(ref||Date.now());d.setHours(0,0,0,0);
+  const t=m.salaryType||'daily';
+  if(t==='daily')return {start:dstr(d),end:dstr(d),label:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),type:t};
+  if(t==='weekly'){const s=new Date(d);s.setDate(d.getDate()-((d.getDay()+6)%7));const e=new Date(s);e.setDate(s.getDate()+6);
+    return {start:dstr(s),end:dstr(e),label:s.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+' – '+e.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),type:t};}
+  const s=new Date(d.getFullYear(),d.getMonth(),1),e=new Date(d.getFullYear(),d.getMonth()+1,0);
+  return {start:dstr(s),end:dstr(e),label:s.toLocaleDateString('en-IN',{month:'long',year:'numeric'}),type:t};
+}
+// earned/paid/balance for one staff between dates (inclusive)
+function salaryCalc(m,start,end){
+  const att=DB.attendance||{};
+  let P=0,H=0,A=0,ot=0;
+  Object.keys(att).forEach(date=>{
+    if(date<start||date>end)return;
+    const a=att[date][m.id];if(!a)return;
+    if(a.s==='P')P++;else if(a.s==='H')H++;else if(a.s==='A')A++;
+    ot+=+a.ot||0;
+  });
+  const rate=m.perDay||0;
+  const otPay=Math.round(ot*(rate/ATT_HOURS_PER_DAY)*ATT_OT_MULT);
+  const earned=Math.round((P+0.5*H)*rate)+otPay;
+  const led=(DB.payLedger||[]).filter(e=>e.mechId===m.id&&e.date>=start&&e.date<=end);
+  const sum=t=>led.filter(e=>e.type===t).reduce((s,e)=>s+(e.amount||0),0);
+  const advance=sum('advance'),deduction=sum('deduction'),bonus=sum('bonus');
+  const paid=sum('salary')+sum('settlement')+sum('draw');
+  return {P,H,A,ot,otPay,earned,advance,paid,bonus,deduction,balance:earned-deduction-advance-paid,entries:led};
+}
+// carry-forward: net position from tracking start up to (but excluding) start
+function salaryOpening(m,start){
+  const s0=DB.settings?.payStartDate;if(!s0||s0>=start)return 0;
+  const prev=new Date(start);prev.setDate(prev.getDate()-1);
+  return salaryCalc(m,s0,dstr(prev)).balance;
+}
+function monthRange(offset){const n=new Date();const s=new Date(n.getFullYear(),n.getMonth()+offset,1),e=new Date(n.getFullYear(),n.getMonth()+offset+1,0);return {start:dstr(s),end:dstr(e),s,e};}
+// performance for the month
+function staffPerf(m,r){
+  let rev=0,jobs=0;
+  DB.jobs.forEach(j=>{const d=dstr(j.at);if(d<r.start||d>r.end)return;const c=jobWorkerCredits(j)[m.id];if(c){rev+=c;jobs++;}});
+  const sc=salaryCalc(m,r.start,r.end);
+  const today=todayStr();const last=r.end<today?r.e:new Date();
+  let wd=0;for(let d=new Date(r.s);d<=last;d.setDate(d.getDate()+1))if(d.getDay()!==0)wd++;
+  const present=sc.P+0.5*sc.H;
+  return {rev,jobs,perDay:present?Math.round(rev/present):0,mult:sc.earned?(rev/sc.earned):0,attPct:wd?Math.round(present/wd*100):0,workDays:wd,present};
+}
+function settleBalance(mid,start,end){
+  const m=DB.mechanics.find(x=>x.id===mid);if(!m)return;
+  const bal=salaryCalc(m,start,end).balance+salaryOpening(m,start);
+  if(bal<=0){alert('ബാക്കി കൊടുക്കാൻ ഇല്ല');return;}
+  if(!confirm(`${m.name} — ₹${bal.toLocaleString('en-IN')} settle ചെയ്യണോ?`))return;
+  DB.payLedger.push({id:'PL'+Date.now(),mechId:mid,date:todayStr(),amount:bal,type:'settlement',note:'Auto settle'});
+  save();renderStaffPay();
+}
+let _payMonthOff=0;
+function payMonthNav(n){_payMonthOff+=n;renderStaffPay();}
+function attStrip(m,r){
+  const today=todayStr();let h='';
+  for(let d=new Date(r.s);d<=r.e;d.setDate(d.getDate()+1)){
+    const ds=dstr(d),a=attGet(ds,m.id),st=ATT_STYLE[a.s]||ATT_STYLE[''];
+    const sun=d.getDay()===0,fut=ds>today;
+    h+=`<div onclick="${fut?'':`attCycle('${ds}','${m.id}')`}" title="${ds}" style="width:18px;height:22px;border-radius:4px;background:${fut?'#fafafa':sun&&!a.s?'#eef2ff':st.bg};color:${st.fg};font-size:9px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;${ds===today?'outline:2px solid var(--rust);':''}cursor:${fut?'default':'pointer'}"><span style="font-size:7px;color:#9ca3af">${d.getDate()}</span>${fut?'':st.t}${a.ot?'<span style="font-size:6px">⏱</span>':''}</div>`;
+  }
+  return `<div style="display:flex;gap:2px;overflow-x:auto;padding:4px 0">${h}</div>`;
+}
 function renderStaffPay(){
-  const el=document.getElementById('payMB');
-  const now=new Date();
-  const thisMonth=e=>{const d=new Date(e.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();};
+  const el=document.getElementById('payMB');if(!el)return;
   const staff=DB.mechanics.filter(m=>m.active!==false);
   if(!staff.length){el.innerHTML='<div class="empty"><div class="empty-i">👷</div>Staff ചേർക്കൂ (Manage → Staff → Add Staff)</div>';return;}
-  const led=DB.payLedger||[];
-  const monthLabel=now.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
-  el.innerHTML=`<div style="font-size:12px;font-weight:700;color:var(--gray);margin-bottom:8px">📆 ${monthLabel} — ഈ മാസം കൊടുത്തത്</div>`+staff.map(m=>{
-    const entries=led.filter(e=>e.mechId===m.id&&thisMonth(e)).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    const paid=entries.reduce((s,e)=>s+paySignedAmount(e),0);
-    const adv=entries.filter(e=>e.type==='advance').reduce((s,e)=>s+(e.amount||0),0);
+  const r=monthRange(_payMonthOff);
+  const monthLabel=r.s.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  const fmt=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+  let totEarned=0,totPaid=0,totRev=0;
+  const cards=staff.map(m=>{
+    const per=_payMonthOff===0?payPeriod(m):{start:r.start,end:r.end,label:monthLabel,type:'monthly'};
+    const sc=salaryCalc(m,per.start,per.end),mo=salaryCalc(m,r.start,r.end),open=salaryOpening(m,per.start),pf=staffPerf(m,r);
+    const bal=sc.balance+open;
+    totEarned+=mo.earned;totPaid+=mo.advance+mo.paid+mo.bonus;totRev+=pf.rev;
+    const entries=mo.entries.sort((a,b)=>b.date.localeCompare(a.date));
     const cfg=m.perDay?`₹${m.perDay.toLocaleString('en-IN')}/day · ${PAY_TYPE_LABEL[m.salaryType]||'—'}`:'⚠️ pay set ചെയ്തിട്ടില്ല';
     return `<div class="card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -4367,17 +4494,33 @@ function renderStaffPay(){
         <div style="font-size:11px;color:${m.perDay?'var(--gray)':'#dc2626'}">${cfg}</div></div>
         <button onclick="openPayEntry('${m.id}')" style="background:var(--rust);color:#fff;border:none;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">+ Pay/Advance</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px">
-        <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--green);font-size:13px">₹${paid.toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">PAID (ഈ മാസം)</div></div>
-        <div style="background:#fef3c7;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:#b45309;font-size:13px">₹${adv.toLocaleString('en-IN')}</div><div style="font-size:9px;color:#9ca3af">ADVANCE</div></div>
+      ${attStrip(m,r)}
+      <div style="font-size:10px;color:var(--gray);margin-bottom:6px">${monthLabel}: <b style="color:#166534">${mo.P}P</b> · <b style="color:#92400e">${mo.H}½</b> · <b style="color:#991b1b">${mo.A}A</b>${mo.ot?` · ⏱${mo.ot}h OT (${fmt(mo.otPay)})`:''} · ${pf.attPct}% attendance</div>
+      <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:4px">🧾 ${per.type==='monthly'?'This month':per.type==='weekly'?'This week':'Today'} <span style="font-weight:500;color:var(--gray)">${per.label}</span>${open?`<span style="font-weight:500;color:${open>0?'#b45309':'#dc2626'}"> · carry ${open>0?'+':''}${fmt(open)}</span>`:''}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+        <div style="background:#eff6ff;border-radius:7px;padding:6px 2px;text-align:center"><div style="font-weight:700;color:#1d4ed8;font-size:12px">${fmt(sc.earned)}</div><div style="font-size:8px;color:#9ca3af">EARNED</div></div>
+        <div style="background:#fef3c7;border-radius:7px;padding:6px 2px;text-align:center"><div style="font-weight:700;color:#b45309;font-size:12px">${fmt(sc.advance)}</div><div style="font-size:8px;color:#9ca3af">ADVANCE</div></div>
+        <div style="background:#f0fdf4;border-radius:7px;padding:6px 2px;text-align:center"><div style="font-weight:700;color:var(--green);font-size:12px">${fmt(sc.paid+sc.bonus)}</div><div style="font-size:8px;color:#9ca3af">PAID</div></div>
+        <div onclick="settleBalance('${m.id}','${per.start}','${per.end}')" style="background:${bal>0?'#fee2e2':bal<0?'#fef2f2':'#f3f4f6'};border-radius:7px;padding:6px 2px;text-align:center;cursor:pointer"><div style="font-weight:700;color:${bal>0?'#dc2626':bal<0?'#7c2d12':'var(--gray)'};font-size:12px">${fmt(bal)}</div><div style="font-size:8px;color:#9ca3af">${bal>0?'DUE · SETTLE':bal<0?'OVERPAID':'SETTLED'}</div></div>
       </div>
+      <div style="background:#faf5ff;border-radius:7px;padding:6px 8px;margin-top:6px;font-size:11px;color:#6b21a8">📈 ${fmt(pf.rev)} revenue · ${pf.jobs} jobs · ${fmt(pf.perDay)}/present day${sc.earned||mo.earned?` · <b>${pf.mult.toFixed(1)}×</b> wages`:''}</div>
       ${entries.length?`<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:5px">${entries.slice(0,8).map(e=>`
         <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:3px 0">
-          <span style="color:var(--gray);min-width:0;overflow:hidden;text-overflow:ellipsis">${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} · ${PAY_ENTRY_LABEL[e.type]||e.type}${e.note?' · '+e.note:''}</span>
+          <span style="color:var(--gray);min-width:0;overflow:hidden;text-overflow:ellipsis">${new Date(e.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})} · ${PAY_ENTRY_LABEL[e.type]||e.type}${e.note?' · '+esc(e.note):''}</span>
           <span style="font-weight:700;white-space:nowrap;color:${e.type==='deduction'?'#dc2626':'var(--ink)'}">${e.type==='deduction'?'−':''}₹${(e.amount||0).toLocaleString('en-IN')} <span onclick="delPayEntry('${e.id}')" style="color:#dc2626;cursor:pointer;margin-left:6px">✕</span></span>
-        </div>`).join('')}</div>`:'<div style="font-size:10px;color:#9ca3af;margin-top:5px">ഈ മാസം entry ഇല്ല</div>'}
+        </div>`).join('')}</div>`:''}
     </div>`;
   }).join('');
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <button class="btn b-gray b-sm" onclick="payMonthNav(-1)">‹</button>
+      <div style="font-size:12px;font-weight:700;color:var(--gray)">📆 ${monthLabel}</div>
+      <button class="btn b-gray b-sm" onclick="payMonthNav(1)" ${_payMonthOff>=0?'disabled style="opacity:.3"':''}>›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px">
+      <div style="background:#eff6ff;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:#1d4ed8;font-size:13px">${fmt(totEarned)}</div><div style="font-size:9px;color:#9ca3af">WAGES EARNED</div></div>
+      <div style="background:#f0fdf4;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:var(--green);font-size:13px">${fmt(totPaid)}</div><div style="font-size:9px;color:#9ca3af">PAID OUT</div></div>
+      <div style="background:#faf5ff;border-radius:7px;padding:7px;text-align:center"><div style="font-weight:700;color:#6b21a8;font-size:13px">${totEarned?(totRev/totEarned).toFixed(1)+'×':'—'}</div><div style="font-size:9px;color:#9ca3af">REVENUE ÷ WAGES</div></div>
+    </div>`+cards+(DB.settings?.payStartDate?`<div style="font-size:10px;color:#9ca3af;text-align:center;margin-top:6px">Salary tracking since ${DB.settings.payStartDate}</div>`:'');
 }
 function openPayEntry(mid){
   _payMechId=mid;
