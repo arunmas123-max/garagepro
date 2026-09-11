@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.1</title>
+<title>Garage Pro Kerala v12.2</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.1</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.2</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -1374,6 +1374,7 @@ function setSyncStatus(status) {
   const el = document.getElementById('syncStatus');
   if (!el) return;
   if (status === 'live') {
+    lastSyncTime = Date.now();   // v12.2: any successful cloud contact counts as a sync
     el.innerHTML = '<span style="color:#22c55e">🟢 Live Sync</span>';
   } else if (status === 'syncing') {
     el.innerHTML = '<span style="color:#f59e0b">🔄 Syncing...</span>';
@@ -3387,7 +3388,11 @@ function openDataHealth(){
       </div>`);
     }
   });
-  const zeroCompleted=DB.jobs.filter(j=>j.status==='completed'&&(j.total||0)===0);
+  const zeroCompleted=DB.jobs.filter(j=>j.status==='completed'&&(j.total||0)===0&&!j.freeJob);
+  const zeroRows=zeroCompleted.slice(0,15).map(j=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fef3c7;border-left:3px solid #d97706;border-radius:0 6px 6px 0;margin-bottom:4px;font-size:11px">
+        <div style="flex:1;cursor:pointer" onclick="closeM('dataHealthM');openJob('${j.id}')"><b>${esc(j.name||'')}</b> — ${esc(j.vnum||'')}<br><span style="color:#6b7280">${(j.at||'').slice(0,10)} · Labour/Parts ഒന്നും ചേർത്തിട്ടില്ല · tap to open</span></div>
+        <button onclick="markFreeJob('${j.id}')" style="background:#fff;border:1px solid #d97706;color:#92400e;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">Free ✓</button>
+      </div>`).join('');
   const allJobsTotal=DB.jobs.reduce((s,j)=>s+(j.total||0),0);
   const allJobsCollected=DB.jobs.reduce((s,j)=>s+(j.amtPaid||0),0);
   const allDue=allJobsTotal-allJobsCollected;
@@ -3418,7 +3423,8 @@ function openDataHealth(){
       <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:4px">⚠️ Overpaid: ${overpaidCount} entries</div>
       ${warnings.slice(0,5).join('')}
     </div>`:'<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px">✅ No overpaid entries</div>'}
-    <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>`;
+    <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:4px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>
+    ${zeroCompleted.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:6px">Job open ചെയ്ത് labour/parts ചേർക്കുക, അല്ലെങ്കിൽ warranty/goodwill ആണെങ്കിൽ <b>Free ✓</b> tap ചെയ്യുക.</div><div style="margin-bottom:8px">${zeroRows}</div>`:''}`;
   // Remove old sticky buttons if any
   const oldBtn=document.querySelector('#dataHealthM .mbox .sticky-btns');
   if(oldBtn)oldBtn.remove();
@@ -3431,6 +3437,12 @@ function openDataHealth(){
     <button onclick="doBackup()" style="background:var(--rust);color:#fff;border:none;padding:12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Backup Now</button>`;
   document.querySelector('#dataHealthM .mbox').appendChild(btnDiv);
   openM('dataHealthM');
+}
+function markFreeJob(id){
+  const j=DB.jobs.find(x=>x.id===id);if(!j)return;
+  if(!confirm(`${j.name||''} ${j.vnum||''}\nഈ job ₹0 (free / warranty / goodwill) ആയി mark ചെയ്യണോ?`))return;
+  j.freeJob=true;j.total=0;j.amtPaid=0;j.paid=0;j.payMode='cash';
+  save();showToast('✅ Free job ആയി mark ചെയ്തു');openDataHealth();
 }
 function goMore(pg){
   document.getElementById('moreMenu').style.display='none';
