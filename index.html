@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.2</title>
+<title>Garage Pro Kerala v12.3</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.2</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.3</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -699,6 +699,12 @@ textarea{resize:vertical;min-height:65px}
       </button>
       <button onclick="agentQuery('week_revenue')" style="background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
         📊 This Week Revenue<br><span style="font-weight:400;font-size:10px">Staff-wise breakdown</span>
+      </button>
+      <button onclick="agentQuery('salary_status')" style="background:#ecfeff;color:#155e75;border:1.5px solid #67e8f9;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        💵 Salary &amp; Balance<br><span style="font-weight:400;font-size:10px">Earned, advance, ബാക്കി</span>
+      </button>
+      <button onclick="agentQuery('labour_vs_pay')" style="background:#fff7ed;color:#9a3412;border:1.5px solid #fdba74;border-radius:8px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;text-align:left">
+        ⚖️ Labour vs Wages<br><span style="font-weight:400;font-size:10px">ആര് ലാഭം തരുന്നു</span>
       </button>
     </div>
   </div>
@@ -1439,6 +1445,24 @@ function jobWorkerCredits(j){
     else if(hasMech) add(j.mechId, paintSum);
   } else {
     // No one assigned — untracked
+  }
+  return credits;
+}
+// v12.3: labour-only credit (parts excluded) — needed for salary vs labour-income comparison
+function jobWorkerLabourCredits(j){
+  let mechSum=0,bodySum=0,paintSum=0;
+  (j.labourItems||[]).forEach(it=>{
+    const amt=it.price*(it.qty||1);
+    const wt=it.wtype||'mech';
+    if(wt==='body')bodySum+=amt;else if(wt==='paint')paintSum+=amt;else mechSum+=amt;
+  });
+  const credits={};
+  const add=(id,amt)=>{if(!id||amt<=0)return;credits[id]=(credits[id]||0)+amt;};
+  const hasMech=!!j.mechId,hasTinker=!!j.tinkerId,hasPainter=!!j.painterId;
+  if(hasMech||hasTinker||hasPainter){
+    if(hasMech)add(j.mechId,mechSum);
+    if(hasTinker)add(j.tinkerId,bodySum);else if(hasMech)add(j.mechId,bodySum);
+    if(hasPainter)add(j.painterId,paintSum);else if(hasMech)add(j.mechId,paintSum);
   }
   return credits;
 }
@@ -3393,13 +3417,49 @@ function openDataHealth(){
         <div style="flex:1;cursor:pointer" onclick="closeM('dataHealthM');openJob('${j.id}')"><b>${esc(j.name||'')}</b> — ${esc(j.vnum||'')}<br><span style="color:#6b7280">${(j.at||'').slice(0,10)} · Labour/Parts ഒന്നും ചേർത്തിട്ടില്ല · tap to open</span></div>
         <button onclick="markFreeJob('${j.id}')" style="background:#fff;border:1px solid #d97706;color:#92400e;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap">Free ✓</button>
       </div>`).join('');
+  // ---- v12.3 extra checks ----
+  const row=(bg,bd,html)=>`<div style="padding:6px 8px;background:${bg};border-left:3px solid ${bd};border-radius:0 6px 6px 0;margin-bottom:4px;font-size:11px">${html}</div>`;
+  // (a) completed jobs with money but no worker assigned → revenue untracked
+  const unassigned=DB.jobs.filter(j=>j.status==='completed'&&(j.total||0)>0&&!j.mechId&&!j.tinkerId&&!j.painterId);
+  const unassignedRows=unassigned.slice(0,10).map(j=>row('#eff6ff','#2563eb',
+    `<div style="cursor:pointer" onclick="closeM('dataHealthM');openJob('${j.id}')"><b>${esc(j.name||'')}</b> — ${esc(j.vnum||'')} · ₹${(j.total||0).toLocaleString('en-IN')}<br><span style="color:#6b7280">Worker assign ചെയ്തിട്ടില്ല · tap to open</span></div>`)).join('');
+  // (b) staff without a per-day rate → salary cannot be computed
+  const noRate=DB.mechanics.filter(m=>m.active!==false&&!m.perDay);
+  const noRateRows=noRate.map(m=>row('#fef3c7','#d97706',
+    `<div style="display:flex;align-items:center;gap:6px"><div style="flex:1"><b>${esc(m.name)}</b> — per-day rate set ചെയ്തിട്ടില്ല</div><button onclick="closeM('dataHealthM');editMech('${m.id}')" style="background:#fff;border:1px solid #d97706;color:#92400e;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer">Set rate</button></div>`)).join('');
+  // (c) attendance gaps in the last 7 working days
+  let attGaps=[];
+  try{
+    const act=DB.mechanics.filter(m=>m.active!==false);
+    for(let i=0;i<7;i++){
+      const d=new Date();d.setDate(d.getDate()-i);
+      if(d.getDay()===0)continue;
+      const ds=dstr(d);
+      if(act.length&&!act.some(m=>attGet(ds,m.id).s))attGaps.push(ds);
+    }
+  }catch(e){}
+  // (d) very old pending jobs (30+ days)
+  const stale=DB.jobs.filter(j=>j.status!=='completed'&&Math.floor((Date.now()-new Date(j.at))/864e5)>30);
+  const staleRows=stale.slice(0,10).map(j=>row('#fef2f2','#dc2626',
+    `<div style="cursor:pointer" onclick="closeM('dataHealthM');openJob('${j.id}')"><b>${esc(j.name||'')}</b> — ${esc(j.vnum||'')} · ${Math.floor((Date.now()-new Date(j.at))/864e5)} ദിവസം pending<br><span style="color:#6b7280">tap to open</span></div>`)).join('');
+  // (e) customers without a phone number
+  const noPhone=DB.jobs.filter(j=>!j.phone||String(j.phone).replace(/\D/g,'').length<10);
   const allJobsTotal=DB.jobs.reduce((s,j)=>s+(j.total||0),0);
   const allJobsCollected=DB.jobs.reduce((s,j)=>s+(j.amtPaid||0),0);
   const allDue=allJobsTotal-allJobsCollected;
   const lastBk=localStorage.getItem('gp_lastbk');
   const bkDays=lastBk?Math.floor((Date.now()-parseInt(lastBk))/864e5):999;
   const lastSync=typeof lastSyncTime!=='undefined'&&lastSyncTime?Math.floor((Date.now()-lastSyncTime)/60000):null;
-  const score=Math.max(0,100-(mismatchCount*10)-(overpaidCount*5)-(zeroCompleted.length*2)-(bkDays>7?20:bkDays>3?10:0));
+  const cap=(n,mx)=>Math.min(n,mx);
+  const score=Math.max(0,100
+    -cap(mismatchCount*10,30)
+    -cap(overpaidCount*5,20)
+    -cap(zeroCompleted.length*2,10)
+    -cap(unassigned.length*2,10)
+    -cap(noRate.length*3,9)
+    -cap(attGaps.length*2,10)
+    -cap(stale.length*1,8)
+    -(bkDays>7?20:bkDays>3?10:0));
   const scoreCol=score>=90?'var(--green)':score>=70?'var(--gold)':'#dc2626';
   const el=document.getElementById('dataHealthMB');
   el.innerHTML=`
@@ -3424,7 +3484,16 @@ function openDataHealth(){
       ${warnings.slice(0,5).join('')}
     </div>`:'<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px">✅ No overpaid entries</div>'}
     <div style="font-size:11px;font-weight:700;color:${zeroCompleted.length?'var(--gold)':'var(--green)'};margin-bottom:4px">${zeroCompleted.length?'⚠️':'✅'} Completed with ₹0: ${zeroCompleted.length}</div>
-    ${zeroCompleted.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:6px">Job open ചെയ്ത് labour/parts ചേർക്കുക, അല്ലെങ്കിൽ warranty/goodwill ആണെങ്കിൽ <b>Free ✓</b> tap ചെയ്യുക.</div><div style="margin-bottom:8px">${zeroRows}</div>`:''}`;
+    ${zeroCompleted.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:6px">Job open ചെയ്ത് labour/parts ചേർക്കുക, അല്ലെങ്കിൽ warranty/goodwill ആണെങ്കിൽ <b>Free ✓</b> tap ചെയ്യുക.</div><div style="margin-bottom:8px">${zeroRows}</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:${noRate.length?'var(--gold)':'var(--green)'};margin-bottom:4px">${noRate.length?'⚠️':'✅'} Salary rate set ചെയ്യാത്ത staff: ${noRate.length}</div>
+    ${noRate.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:6px">Rate ഇല്ലെങ്കിൽ salary-യും AI agent-ന്റെ ശമ്പള കണക്കും വരില്ല.</div><div style="margin-bottom:8px">${noRateRows}</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:${attGaps.length?'var(--gold)':'var(--green)'};margin-bottom:4px">${attGaps.length?'⚠️':'✅'} Attendance mark ചെയ്യാത്ത ദിവസം (കഴിഞ്ഞ 7): ${attGaps.length}</div>
+    ${attGaps.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:8px">${attGaps.join(', ')} — Home-ലെ Attendance card-ൽ mark ചെയ്യൂ.</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:${unassigned.length?'#1d4ed8':'var(--green)'};margin-bottom:4px">${unassigned.length?'ℹ️':'✅'} Worker assign ചെയ്യാത്ത completed jobs: ${unassigned.length}</div>
+    ${unassigned.length?`<div style="font-size:10px;color:#6b7280;margin-bottom:6px">ഇവയുടെ revenue ആരുടെയും performance-ൽ വരില്ല.</div><div style="margin-bottom:8px">${unassignedRows}</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:${stale.length?'#dc2626':'var(--green)'};margin-bottom:4px">${stale.length?'🚨':'✅'} 30+ ദിവസം pending jobs: ${stale.length}</div>
+    ${stale.length?`<div style="margin-bottom:8px">${staleRows}</div>`:''}
+    <div style="font-size:11px;font-weight:700;color:${noPhone.length?'var(--gold)':'var(--green)'};margin-bottom:8px">${noPhone.length?'⚠️':'✅'} Phone number ഇല്ലാത്ത jobs: ${noPhone.length}</div>`;
   // Remove old sticky buttons if any
   const oldBtn=document.querySelector('#dataHealthM .mbox .sticky-btns');
   if(oldBtn)oldBtn.remove();
@@ -4937,7 +5006,85 @@ STAFF WEEKLY REVENUE (role subtotals below are ALREADY CALCULATED — read them 
 ${staffWeekLines.join('\n')||'  No data'}
   → Staff credit total this week: ₹${staffWeekTotal.toLocaleString('en-IN')} (billed-value credit; differs from collected cash by design)
 
-TOTAL JOBS: ${DB.jobs.length} | CUSTOMERS: ${DB.customers.length}`;
+TOTAL JOBS: ${DB.jobs.length} | CUSTOMERS: ${DB.customers.length}
+
+${buildStaffPayContext()}`;
+}
+
+// v12.3: attendance + salary + labour-income block for the AI agent
+function buildStaffPayContext(){
+  const staff=DB.mechanics.filter(m=>m.active!==false);
+  if(!staff.length)return 'ATTENDANCE & SALARY: No staff records.';
+  const r=monthRange(0);
+  const rPrev=monthRange(-1);
+  const today=todayStr();
+  const fmtR=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
+
+  // labour-only + total credit for a date range
+  const creditsIn=(m,start,end)=>{
+    let lab=0,tot=0,jobs=0;
+    DB.jobs.forEach(j=>{
+      const d=dstr(j.paidAt||j.completedAt||j.at);
+      if(d<start||d>end)return;
+      const c=jobWorkerCredits(j)[m.id]||0;
+      const l=jobWorkerLabourCredits(j)[m.id]||0;
+      if(c||l){tot+=c;lab+=l;jobs++;}
+    });
+    return {lab,tot,parts:tot-lab,jobs};
+  };
+
+  // today's attendance
+  const todayMarks=staff.map(m=>{
+    const a=attGet(today,m.id);
+    return `${m.name}: ${a.s==='P'?'Present':a.s==='H'?'Half day':a.s==='A'?'Absent':'NOT MARKED'}${a.ot?' +'+a.ot+'h OT':''}`;
+  }).join('; ');
+
+  // unmarked days in last 7
+  let unmarked=0;
+  for(let i=0;i<7;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    if(d.getDay()===0)continue;
+    const ds=dstr(d);
+    if(!staff.some(m=>attGet(ds,m.id).s))unmarked++;
+  }
+
+  let tEarned=0,tPaidOut=0,tBal=0,tLab=0,tTot=0;
+  const lines=staff.map(m=>{
+    const sc=salaryCalc(m,r.start,r.end);
+    const open=salaryOpening(m,r.start);
+    const cr=creditsIn(m,r.start,r.end);
+    const present=sc.P+0.5*sc.H;
+    const paidOut=sc.advance+sc.paid;
+    const bal=sc.balance+open;
+    tEarned+=sc.earned;tPaidOut+=paidOut;tBal+=bal;tLab+=cr.lab;tTot+=cr.tot;
+    const rate=m.perDay?`${fmtR(m.perDay)}/day (${PAY_TYPE_LABEL[m.salaryType]||'daily'})`:'RATE NOT SET — salary cannot be computed, owner must set it in Staff → Edit';
+    const perDayLab=present?fmtR(cr.lab/present):'—';
+    const mult=sc.earned?(cr.lab/sc.earned).toFixed(2):'n/a';
+    return `  • ${m.name} (${m.spec||'-'}) — Rate: ${rate}
+      Attendance: ${sc.P} present, ${sc.H} half, ${sc.A} absent, ${sc.ot}h OT (${present} paid days)
+      Salary earned: ${fmtR(sc.earned)} (incl. OT ${fmtR(sc.otPay)})${open?` | carry-forward from before this month: ${fmtR(open)}`:''}
+      Advance taken: ${fmtR(sc.advance)} | Salary/settlement paid: ${fmtR(sc.paid)}${sc.bonus?' | Bonus '+fmtR(sc.bonus):''}${sc.deduction?' | Deduction '+fmtR(sc.deduction):''}
+      BALANCE STILL TO PAY: ${fmtR(bal)}
+      Labour income generated: ${fmtR(cr.lab)} from ${cr.jobs} jobs (parts credited separately ${fmtR(cr.parts)}, total credit ${fmtR(cr.tot)})
+      Labour income per present day: ${perDayLab} | Labour income ÷ salary earned = ${mult}×`;
+  }).join('\n');
+
+  const prevTot=staff.reduce((a,m)=>a+salaryCalc(m,rPrev.start,rPrev.end).earned,0);
+
+  return `=== ATTENDANCE · SALARY · LABOUR INCOME (${r.start} to ${r.end}) ===
+Rules used by the app (do NOT invent other rules): standard day = ${ATT_HOURS_PER_DAY}h; OT paid at (per-day rate ÷ ${ATT_HOURS_PER_DAY}) × ${ATT_OT_MULT}; half day = 0.5 × per-day rate; Sunday is not a working day for attendance-% purposes. "Labour income" = labour lines of a job credited to the worker assigned to that trade (mechanical/body/paint). Parts are credited to the mechanic separately and are NOT labour income.
+ALL FIGURES BELOW ARE ALREADY CALCULATED — read them out, do NOT re-add or re-derive them.
+
+TODAY'S ATTENDANCE (${today}): ${todayMarks}
+Days in the last 7 with NO attendance marked for anyone: ${unmarked}
+
+PER-STAFF THIS MONTH:
+${lines}
+
+MONTH TOTALS: Salary earned ${fmtR(tEarned)} | Already paid out (advance+salary) ${fmtR(tPaidOut)} | Balance still to pay ${fmtR(tBal)}
+Labour income (all staff) ${fmtR(tLab)} | Total credit incl. parts ${fmtR(tTot)} | Wage-to-labour ratio ${tLab?((tEarned/tLab)*100).toFixed(1)+'% of labour income goes to wages':'n/a'}
+LAST MONTH salary earned (all staff): ${fmtR(prevTot)}
+Staff with no pay rate set: ${staff.filter(m=>!m.perDay).map(m=>m.name).join(', ')||'none'}`;
 }
 
 function agentQuery(type){
@@ -4947,7 +5094,9 @@ function agentQuery(type){
     payment_due:'Payment due ആയ customers ഏതൊക്കെ? Amount, customer name, vehicle — list ചെയ്യൂ. ഏറ്റവും കൂടുതൽ amount ആദ്യം.',
     staff_today:'ഓരോ mechanic/painter/body worker-ഉം ഇപ്പോൾ ഏതൊക്കെ cars-ൽ work ചെയ്യുന്നു? Workload balance ശരിയാണോ?',
     old_jobs:'7 ദിവസത്തിൽ കൂടുതൽ pending ആയ jobs ഏതൊക്കെ? Customer-നെ contact ചെയ്യേണ്ടവ, delay reason possible ആയവ.',
-    week_revenue:'ഈ week-ലെ revenue breakdown — staff-wise, day-wise. Target vs actual.'
+    week_revenue:'ഈ week-ലെ revenue breakdown — staff-wise, day-wise. Target vs actual.',
+    salary_status:'ഈ മാസത്തെ ഓരോ staff-ന്റെയും attendance (P/half/absent/OT), salary earned, advance എടുത്തത്, ഇതുവരെ കൊടുത്തത്, ഇനി കൊടുക്കാൻ ബാക്കി — table പോലെ list ചെയ്യൂ. അവസാനം ആകെ എത്ര കൊടുക്കാൻ ബാക്കി എന്ന് പറയൂ. Rate set ചെയ്യാത്തവരെ പ്രത്യേകം പറയൂ.',
+    labour_vs_pay:'ഓരോ staff-ഉം ഈ മാസം എത്ര labour income ഉണ്ടാക്കി, അവർക്ക് എത്ര salary earned — രണ്ടും compare ചെയ്ത് ratio സഹിതം പറയൂ. ആരാണ് ഏറ്റവും productive, ആരാണ് wages-നേക്കാൾ കുറവ് ഉണ്ടാക്കുന്നത്? Present day ഒന്നിന് എത്ര labour income എന്നും പറയൂ.'
   };
   document.getElementById('aiIn').value=queries[type]||'';
   askAI();
@@ -4973,6 +5122,8 @@ Instructions:
 - Use emojis sparingly
 - Plain text only — NO markdown formatting: never use ** for bold, ## for headings. Use • for bullet points.
 - For any question about a specific day/date (today, yesterday, a date), use the DAILY REVENUE section — it has per-day collected & billed figures, and for the last 7 days a per-job split (each customer, vehicle, amount, pay-mode). When asked for a day's split/breakdown, list those individual jobs. If a day is older than 7 days, only the day total is available — say so and suggest the app's Income → Day screen.
+- Attendance, salary, advance, balance and labour-income questions: use the ATTENDANCE · SALARY · LABOUR INCOME section. Every figure there is pre-calculated — quote it, never recompute. If a staff member's rate is not set, say exactly that and tell the owner to set it in Staff → Edit; do not guess a rate.
+- Never say salary/attendance data is unavailable if that section exists in the context.
 - Always reference actual data from context
 - If vehicle search: check the job history data
 - Keep responses concise but complete`;
