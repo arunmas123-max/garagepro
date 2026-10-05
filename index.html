@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.4</title>
+<title>Garage Pro Kerala v12.5</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.4</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.5</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -383,17 +383,17 @@ textarea{resize:vertical;min-height:65px}
 <div class="pg" id="job">
   <div class="card">
     <div class="card-t">👤 Customer</div>
+    <!-- Vehicle No first: returning customers auto-fill from it -->
+    <div class="r2">
+      <div class="fg"><label>Vehicle No * <span style="font-weight:400;text-transform:none;color:var(--green)">(auto-fill)</span></label><input id="fV" type="text" placeholder="KL07AB1234" autocomplete="off" style="text-transform:uppercase;font-weight:700" oninput="this.value=this.value.toUpperCase();onVnumInput()" onblur="vnumLookup()"></div>
+      <div class="fg"><label>KM Reading</label><input id="fKm" type="number" placeholder="45000"></div>
+    </div>
+    <div id="vnumResult" style="display:none;margin-bottom:8px"></div>
     <div class="r2">
       <div class="fg"><label>Name *</label><input id="fN" type="text" placeholder="Customer name"></div>
       <div class="fg"><label>Phone *</label><input id="fPh" type="tel" maxlength="10" placeholder="9876543210"></div>
     </div>
     <div class="fg"><label>Address / Place</label><input id="fAddr" type="text" placeholder="e.g. Kalady, Trivandrum"></div>
-    <div class="r2">
-      <div class="fg"><label>Vehicle No *</label><input id="fV" type="text" placeholder="KL07AB1234" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onblur="vnumLookup()"></div>
-      <div class="fg"><label>KM Reading</label><input id="fKm" type="number" placeholder="45000"></div>
-    </div>
-    <div id="vnumResult" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:9px;padding:10px 12px;margin-bottom:4px;cursor:pointer" onclick="applyVnumResult()">
-    </div>
     <div class="fg"><label>Assign Mechanic</label>
       <select id="fMech"><option value="">-- Select Mechanic --</option></select>
     </div>
@@ -2917,7 +2917,8 @@ function saveJob(){
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('vnumResult').style.display='none';
-  _vnumMatch=null;
+  _vnumMatch=null;_vnumFilledFor='';
+  document.getElementById('fKm').placeholder='45000';
   document.getElementById('fUrgent').checked=false;
   document.getElementById('fPartsWait').checked=false;
   document.getElementById('fPartsWaitList').value='';
@@ -3642,42 +3643,116 @@ document.addEventListener('click',e=>{
     menu.style.display='none';
   }
 });
-function vnumLookup(){
-  const vnum=document.getElementById('fV').value.trim().toUpperCase();
-  const box=document.getElementById('vnumResult');
-  if(vnum.length<4){box.style.display='none';_vnumMatch=null;return;}
-  const jobs=DB.jobs.filter(j=>j.vnum&&j.vnum.toUpperCase()===vnum).sort((a,b)=>new Date(b.at)-new Date(a.at));
-  const cx=DB.customers.find(c=>c.vnum&&c.vnum.toUpperCase()===vnum);
-  if(!jobs.length&&!cx){box.style.display='none';_vnumMatch=null;return;}
+// ====================== VEHICLE NO → AUTO-FILL (v12.5) ======================
+// Compare plates ignoring spaces/dashes: "KL 01 AZ 3202" == "KL01AZ3202"
+function normVnum(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+let _vnumTimer=null,_vnumFilledFor='',_vnumLastQ='';
+function onVnumInput(){
+  clearTimeout(_vnumTimer);
+  _vnumTimer=setTimeout(vnumLookup,350); // look up while typing, no need to leave the field
+}
+// Build the returning-customer record for one plate (latest visit wins, edited customer record preferred)
+function vnumRecord(nv){
+  const jobs=DB.jobs.filter(j=>!j.deleted&&normVnum(j.vnum)===nv).sort((a,b)=>new Date(b.at)-new Date(a.at));
   const last=jobs[0];
-  const cx2=cx||DB.customers.find(c=>c.phone===last?.phone);
-  _vnumMatch={name:cx2?.name||last?.name||'',phone:cx2?.phone||last?.phone||'',addr:cx2?.addr||last?.addr||'',car:last?.car||'',cat:last?.cat||''};
-  const lastDate=last?new Date(last.at).toLocaleDateString('en-IN'):'';
-  const complaints=jobs.slice(0,3).map(j=>j.complaint?j.complaint.slice(0,40):'').filter(Boolean);
-  box.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <div style="font-weight:700;font-size:13px;color:var(--green)">✅ Customer Found — Tap to fill</div>
-      <div style="font-size:10px;color:var(--gray)">${jobs.length} previous visit${jobs.length>1?'s':''}</div>
-    </div>
-    <div style="font-size:13px;font-weight:600">${_vnumMatch.name} | 📞 ${_vnumMatch.phone}</div>
-    ${_vnumMatch.addr?`<div style="font-size:11px;color:var(--gray)">📍 ${_vnumMatch.addr}</div>`:''}
-    ${last?.car?`<div style="font-size:11px;color:var(--blue)">🚗 ${last.car} | Last visit: ${lastDate}</div>`:''}
-    ${complaints.length?`<div style="font-size:10px;color:#9ca3af;margin-top:3px">Past: ${complaints.join(' • ')}</div>`:''}`;
+  const cx=(last&&DB.customers.find(c=>c.phone===last.phone))||DB.customers.find(c=>normVnum(c.vnum)===nv);
+  if(!last&&!cx)return null;
+  return {vnum:last?.vnum||cx?.vnum||nv,name:cx?.name||last?.name||'',phone:cx?.phone||last?.phone||'',
+    addr:cx?.addr||last?.addr||'',car:last?.car||cx?.car||'',cat:last?.cat||'',km:last?.km||'',
+    jobs,lastAt:last?.at||cx?.lastVisit||''};
+}
+function vnumLookup(){
+  const inp=document.getElementById('fV');
+  const box=document.getElementById('vnumResult');
+  const nv=normVnum(inp.value);
+  if(nv.length<4){box.style.display='none';_vnumMatch=null;_vnumFilledFor='';return;}
+  if(nv===_vnumFilledFor)return; // already filled for this plate
+  if(nv===_vnumLastQ&&box.style.display==='block')return; // list already showing for this text
+  _vnumLastQ=nv;
+  const rec=vnumRecord(nv);
+  if(rec){fillFromVnum(rec);return;}
+  // No exact match yet — suggest close plates (partial / last digits)
+  const seen=new Set(),sugg=[];
+  for(const j of [...DB.jobs].sort((a,b)=>new Date(b.at)-new Date(a.at))){
+    if(j.deleted)continue;
+    const n=normVnum(j.vnum);
+    if(n&&n.includes(nv)&&!seen.has(n)){seen.add(n);sugg.push(j);if(sugg.length>=4)break;}
+  }
+  _vnumMatch=null;
+  if(!sugg.length){
+    box.innerHTML=nv.length>=8?`<div style="font-size:11px;color:var(--gray);padding:4px 2px">🆕 New vehicle — customer details enter ചെയ്യൂ</div>`:'';
+    box.style.display=nv.length>=8?'block':'none';
+    return;
+  }
+  box.innerHTML=`<div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;overflow:hidden">
+    <div style="font-size:10px;font-weight:700;color:var(--gray);padding:6px 10px;background:#f8f9fa">Matching vehicles — tap to fill</div>
+    ${sugg.map(j=>`<div onpointerdown="event.preventDefault()" onclick="pickVnum('${esc(normVnum(j.vnum))}')" style="padding:9px 10px;border-top:1px solid #f3f4f6;cursor:pointer;display:flex;justify-content:space-between;gap:8px">
+      <span style="font-weight:700;font-size:13px">${esc(j.vnum)}</span>
+      <span style="font-size:11px;color:var(--gray);text-align:right">${esc(j.name||'')} • ${esc(j.car||'')}</span>
+    </div>`).join('')}
+  </div>`;
   box.style.display='block';
 }
-function applyVnumResult(){
-  if(!_vnumMatch)return;
-  document.getElementById('fN').value=_vnumMatch.name;
-  document.getElementById('fPh').value=_vnumMatch.phone;
-  document.getElementById('fAddr').value=_vnumMatch.addr||'';
-  if(_vnumMatch.car){
-    document.getElementById('carSrch').value=_vnumMatch.car;
-    const cm=DB.carModels.find(m=>m.model===_vnumMatch.car||m.brand+' '+m.model===_vnumMatch.car);
-    if(cm){renderCarPicker();selectCarModel(cm.id);}
-  }
-  document.getElementById('vnumResult').style.display='none';
-  _vnumMatch=null;
+function pickVnum(nv){
+  const rec=vnumRecord(nv);if(!rec)return;
+  document.getElementById('fV').value=rec.vnum;
+  fillFromVnum(rec);
 }
+// Fill only empty fields — never overwrite what staff already typed
+function fillFromVnum(rec){
+  const box=document.getElementById('vnumResult');
+  const setIfEmpty=(id,val)=>{const el=document.getElementById(id);if(el&&!el.value.trim()&&val)el.value=val;};
+  setIfEmpty('fN',rec.name);
+  setIfEmpty('fPh',rec.phone);
+  setIfEmpty('fAddr',rec.addr);
+  if(rec.car&&!JOB.car){
+    const cm=(DB.carModels||[]).find(m=>(m.brand+' '+m.model)===rec.car||m.model===rec.car);
+    if(cm){selectCarModel(cm.id);}
+    else{ // model not in list (old/custom name) — use saved name so Save is not blocked
+      JOB.car=rec.car;JOB.cat=rec.cat||'hb';
+      document.getElementById('carSrch').value=rec.car;
+      document.getElementById('carPicker').style.display='none';
+      document.getElementById('selCarLabel').textContent='✓ '+rec.car;
+      updateCatBadge();
+    }
+  }
+  _vnumFilledFor=normVnum(rec.vnum);
+  _vnumMatch=rec;
+  const lastDate=rec.lastAt?new Date(rec.lastAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'';
+  const days=rec.lastAt?Math.floor((Date.now()-new Date(rec.lastAt))/864e5):null;
+  const due=rec.jobs.reduce((s,j)=>s+Math.max(0,(j.total||0)-(j.amtPaid||0)),0);
+  const open=rec.jobs.filter(j=>j.status!=='completed');
+  const past=rec.jobs.slice(0,3).map(j=>j.complaint?esc(j.complaint.slice(0,40)):'').filter(Boolean);
+  box.innerHTML=`<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:9px;padding:10px 12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div style="font-weight:700;font-size:13px;color:var(--green)">✅ Returning customer — details filled</div>
+      <button type="button" onclick="clearVnumFill()" style="background:#fff;border:1px solid #86efac;color:#166534;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer">✕ Clear</button>
+    </div>
+    <div style="font-size:13px;font-weight:600">${esc(rec.name)} | 📞 ${esc(rec.phone)}</div>
+    ${rec.addr?`<div style="font-size:11px;color:var(--gray)">📍 ${esc(rec.addr)}</div>`:''}
+    ${rec.car?`<div style="font-size:11px;color:var(--blue)">🚗 ${esc(rec.car)}${lastDate?` | Last visit: ${lastDate}${days!==null?` (${days}d ago)`:''}`:''}</div>`:''}
+    <div style="font-size:11px;color:var(--gray);margin-top:2px">${rec.jobs.length} previous visit${rec.jobs.length!==1?'s':''}${rec.km?` • Last KM: ${esc(rec.km)}`:''}</div>
+    ${due>0?`<div style="font-size:11px;color:#dc2626;font-weight:700;margin-top:2px">⚠️ Old balance due: ₹${due.toLocaleString('en-IN')}</div>`:''}
+    ${open.length?`<div style="font-size:11px;color:#c2410c;font-weight:700;margin-top:2px">🔧 ${open.length} job${open.length>1?'s':''} still open for this vehicle</div>`:''}
+    ${past.length?`<div style="font-size:10px;color:#9ca3af;margin-top:3px">Past: ${past.join(' • ')}</div>`:''}
+  </div>`;
+  box.style.display='block';
+  // Next useful field: KM reading
+  const km=document.getElementById('fKm');if(km&&!km.value)km.placeholder=rec.km?('Last: '+rec.km):'45000';
+}
+function clearVnumFill(){
+  ['fV','fN','fPh','fAddr'].forEach(id=>document.getElementById(id).value='');
+  JOB.car='';JOB.cat='';
+  document.getElementById('carSrch').value='';
+  document.getElementById('selCarLabel').textContent='';
+  updateCatBadge();
+  document.getElementById('vnumResult').style.display='none';
+  _vnumMatch=null;_vnumFilledFor='';_vnumLastQ='';
+  document.getElementById('fKm').placeholder='45000';
+  document.getElementById('fV').focus();
+}
+// Kept for old onclick references
+function applyVnumResult(){if(_vnumMatch)fillFromVnum(_vnumMatch);}
 function collectPay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   _payJobId=id;_payMode=null;
