@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.5</title>
+<title>Garage Pro Kerala v12.6</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.5</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.6</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -391,7 +391,7 @@ textarea{resize:vertical;min-height:65px}
     <div id="vnumResult" style="display:none;margin-bottom:8px"></div>
     <div class="r2">
       <div class="fg"><label>Name *</label><input id="fN" type="text" placeholder="Customer name"></div>
-      <div class="fg"><label>Phone *</label><input id="fPh" type="tel" maxlength="10" placeholder="9876543210"></div>
+      <div class="fg"><label>Phone *</label><input id="fPh" type="tel" maxlength="10" placeholder="9876543210" inputmode="numeric" oninput="onPhoneInput()"></div>
     </div>
     <div class="fg"><label>Address / Place</label><input id="fAddr" type="text" placeholder="e.g. Kalady, Trivandrum"></div>
     <div class="fg"><label>Assign Mechanic</label>
@@ -2917,7 +2917,7 @@ function saveJob(){
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
   ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('vnumResult').style.display='none';
-  _vnumMatch=null;_vnumFilledFor='';
+  _vnumMatch=null;_vnumFilledFor='';_phoneFilledFor='';
   document.getElementById('fKm').placeholder='45000';
   document.getElementById('fUrgent').checked=false;
   document.getElementById('fPartsWait').checked=false;
@@ -3553,12 +3553,17 @@ function goMore(pg){
   go(pg);
 }
 // ====================== VEHICLE SEARCH ======================
+// Search match: plate ignoring spaces, customer name, or phone (4+ digits)
+function jobMatchesQuery(j,val){
+  const q=String(val||'').trim().toUpperCase(),nq=normVnum(q),dq=q.replace(/\D/g,'');
+  return (nq&&normVnum(j.vnum).includes(nq))||(j.name||'').toUpperCase().includes(q)||(dq.length>=4&&(j.phone||'').includes(dq));
+}
 function onHomeVSearch(val){
   const drop=document.getElementById('homeVSearchDrop');
   if(!val||val.length<2){drop.style.display='none';return;}
   const q=val.trim().toUpperCase();
-  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
-  const vnums=[...new Set(matches.map(j=>j.vnum).filter(Boolean))].slice(0,4);
+  const matches=DB.jobs.filter(j=>jobMatchesQuery(j,val));
+  const vnums=[...new Map(matches.filter(j=>j.vnum).map(j=>[normVnum(j.vnum),j.vnum])).values()].slice(0,4);
   const names=[...new Set(matches.map(j=>j.name).filter(Boolean))].slice(0,3);
   const items=[...vnums.map(v=>({label:'🚗 '+v,val:v})),...names.map(n=>({label:'👤 '+n,val:n}))];
   if(!items.length){drop.style.display='none';return;}
@@ -3580,22 +3585,22 @@ function doVehicleSearch(val){
   if(!el)return;
   if(!val||val.length<2){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">Vehicle No. അല്ലെങ്കിൽ Customer name type ചെയ്യൂ</div>';return;}
   const q=val.trim().toUpperCase();
-  const matches=DB.jobs.filter(j=>(j.vnum||'').toUpperCase().includes(q)||(j.name||'').toUpperCase().includes(q));
+  const matches=DB.jobs.filter(j=>jobMatchesQuery(j,val));
   if(!matches.length){el.innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af;font-size:13px">🔍 "'+val+'" — results ഇല്ല</div>';return;}
   const grouped={};
-  matches.forEach(j=>{const key=(j.vnum||'NO-REG').toUpperCase();if(!grouped[key])grouped[key]=[];grouped[key].push(j);});
+  matches.forEach(j=>{const key=normVnum(j.vnum)||'NO-REG';if(!grouped[key])grouped[key]=[];grouped[key].push(j);});
   let html='';
   Object.entries(grouped).sort((a,b)=>new Date(b[1][0].at)-new Date(a[1][0].at)).forEach(([vnum,jobs])=>{
     jobs.sort((a,b)=>new Date(b.at)-new Date(a.at));
     const latest=jobs[0];
     const totalAmt=jobs.reduce((s,j)=>s+(j.total||0),0);
-    const totalPaid=jobs.reduce((s,j)=>s+(j.paid||0),0);
-    const pending=totalAmt-totalPaid;
+    const totalPaid=jobs.reduce((s,j)=>s+Math.min(j.amtPaid??j.paid??0,j.total||0),0);
+    const pending=Math.max(0,totalAmt-totalPaid);
     const lastKm=jobs.find(j=>j.km&&j.km!='0')?.km||'—';
     html+=`<div class="card" style="border-top:3px solid var(--blue);margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
-          <div style="font-size:16px;font-weight:800">${vnum==='NO-REG'?'No Reg.':vnum}</div>
+          <div style="font-size:16px;font-weight:800">${vnum==='NO-REG'?'No Reg.':esc(latest.vnum)}</div>
           <div style="font-size:12px;color:var(--gray)">${latest.name} ${latest.car?'• '+latest.car:''}</div>
         </div>
         <div style="text-align:right">
@@ -3741,6 +3746,7 @@ function fillFromVnum(rec){
   const km=document.getElementById('fKm');if(km&&!km.value)km.placeholder=rec.km?('Last: '+rec.km):'45000';
 }
 function clearVnumFill(){
+  _phoneFilledFor='';
   ['fV','fN','fPh','fAddr'].forEach(id=>document.getElementById(id).value='');
   JOB.car='';JOB.cat='';
   document.getElementById('carSrch').value='';
@@ -3753,6 +3759,41 @@ function clearVnumFill(){
 }
 // Kept for old onclick references
 function applyVnumResult(){if(_vnumMatch)fillFromVnum(_vnumMatch);}
+
+// ====================== PHONE → AUTO-FILL (v12.6) ======================
+// 10-digit phone → fill name/address; customer's vehicles listed to pick
+let _phoneFilledFor='';
+function onPhoneInput(){
+  const inp=document.getElementById('fPh');
+  const ph=inp.value.replace(/\D/g,'').slice(-10);
+  if(ph.length<10){_phoneFilledFor='';return;}
+  if(ph===_phoneFilledFor||_vnumFilledFor)return; // plate already filled everything
+  const jobs=DB.jobs.filter(j=>!j.deleted&&(j.phone||'').replace(/\D/g,'').slice(-10)===ph).sort((a,b)=>new Date(b.at)-new Date(a.at));
+  const cx=DB.customers.find(c=>(c.phone||'').replace(/\D/g,'').slice(-10)===ph);
+  if(!jobs.length&&!cx)return;
+  _phoneFilledFor=ph;
+  const setIfEmpty=(id,val)=>{const el=document.getElementById(id);if(el&&!el.value.trim()&&val)el.value=val;};
+  setIfEmpty('fN',cx?.name||jobs[0]?.name);
+  setIfEmpty('fAddr',cx?.addr||jobs[0]?.addr);
+  // This customer's vehicles (one entry per plate, spaces ignored)
+  const veh=new Map();
+  jobs.forEach(j=>{const n=normVnum(j.vnum);if(n&&!veh.has(n))veh.set(n,j);});
+  if(cx?.vnum&&!veh.has(normVnum(cx.vnum)))veh.set(normVnum(cx.vnum),{vnum:cx.vnum,car:cx.car,at:cx.lastVisit});
+  const list=[...veh.values()];
+  const box=document.getElementById('vnumResult');
+  const plateTyped=normVnum(document.getElementById('fV').value);
+  if(list.length===1&&!plateTyped){pickVnum(normVnum(list[0].vnum));return;} // one car → fill fully
+  if(!list.length||plateTyped){showToast('✅ '+(cx?.name||jobs[0]?.name||'Customer')+' — details filled');return;}
+  box.innerHTML=`<div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:9px;overflow:hidden">
+    <div style="font-size:12px;font-weight:700;color:#1e40af;padding:8px 10px">✅ ${esc(cx?.name||jobs[0]?.name||'')} — ${list.length} vehicles. ഏത് വണ്ടി?</div>
+    ${list.map(j=>`<div onpointerdown="event.preventDefault()" onclick="pickVnum('${esc(normVnum(j.vnum))}')" style="padding:9px 10px;border-top:1px solid #dbeafe;background:#fff;cursor:pointer;display:flex;justify-content:space-between;gap:8px">
+      <span style="font-weight:700;font-size:13px">${esc(j.vnum)}</span>
+      <span style="font-size:11px;color:var(--gray);text-align:right">${esc(j.car||'')}${j.at?' • '+new Date(j.at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}):''}</span>
+    </div>`).join('')}
+    <div onpointerdown="event.preventDefault()" onclick="document.getElementById('vnumResult').style.display='none';document.getElementById('fV').focus()" style="padding:9px 10px;border-top:1px solid #dbeafe;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:var(--rust)">➕ New vehicle for this customer</div>
+  </div>`;
+  box.style.display='block';
+}
 function collectPay(id){
   const j=DB.jobs.find(x=>x.id===id);if(!j)return;
   _payJobId=id;_payMode=null;
