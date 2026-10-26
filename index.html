@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.6</title>
+<title>Garage Pro Kerala v12.7</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.6</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.7</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -266,7 +266,7 @@ textarea{resize:vertical;min-height:65px}
 <main>
 <!-- HOME -->
 <div class="pg on" id="home">
-  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="attTodayCard"></div><div id="svcReminderCard"></div>
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="promiseBanner"></div><div id="attTodayCard"></div><div id="svcReminderCard"></div>
   <!-- Daily Target Widget -->
   <div id="dailyTargetWidget"></div>
   <div class="sg">
@@ -425,6 +425,17 @@ textarea{resize:vertical;min-height:65px}
         </select>
       </div>
     </div>
+    <div class="fg" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:9px;padding:8px 10px">
+      <label style="color:#c2410c">📅 Promised Delivery *</label>
+      <div class="r2" style="margin-bottom:6px"><input id="fPromDate" type="date"><input id="fPromTime" type="time"></div>
+      <div class="chips" style="margin-bottom:0">
+        <div class="chip" onclick="setPromise('f',0,'18:00')">Today 6pm</div>
+        <div class="chip" onclick="setPromise('f',1,'17:00')">Tomorrow</div>
+        <div class="chip" onclick="setPromise('f',2,'17:00')">+2 days</div>
+        <div class="chip" onclick="setPromise('f',3,'17:00')">+3 days</div>
+        <div class="chip" onclick="setPromise('f',7,'17:00')">1 week</div>
+      </div>
+    </div>
     <div class="r2">
       <div class="fg"><label>Job Type</label>
         <select id="fJobType">
@@ -496,6 +507,7 @@ textarea{resize:vertical;min-height:65px}
 <div class="pg" id="jobs">
   <div class="chips" id="jfChips">
     <div class="chip on" data-jf="all">All</div>
+    <div class="chip" data-jf="due">📅 By Delivery</div>
     <div class="chip" data-jf="pending">Pending</div>
     <div class="chip" data-jf="in-progress">Working</div>
     <div class="chip" data-jf="ready">Ready</div>
@@ -1354,6 +1366,32 @@ const CARS={
 let DB={jobs:[],customers:[],mechanics:[],stock:[],spareHistory:[],customRates:{},carModels:[],customLabour:[],lrDisabled:{},todos:[],partsList:[],paintMaterialCosts:{},payLedger:[],attendance:{},settings:{},reminders:{}};
 // HTML-escape user-entered text before putting it in innerHTML (XSS guard)
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// ====================== PROMISED DELIVERY (v12.7) ======================
+// Stored on job as promiseDate 'YYYY-MM-DD' + optional promiseTime 'HH:MM' (no time = 6pm)
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmt12(t){const[h,m]=String(t).split(':').map(Number);return((h%12)||12)+(m?':'+String(m).padStart(2,'0'):'')+(h<12?'am':'pm');}
+function promiseTs(j){if(!j||!j.promiseDate)return null;const t=new Date(j.promiseDate+'T'+(j.promiseTime||'18:00')).getTime();return isNaN(t)?null:t;}
+function promiseInfo(j){
+  const ts=promiseTs(j);if(ts===null)return null;
+  const d=new Date(ts),now=new Date();
+  const diffDays=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(now.getFullYear(),now.getMonth(),now.getDate()))/864e5);
+  const time=j.promiseTime?' '+fmt12(j.promiseTime):'';
+  let label=diffDays===0?'Today'+time:diffDays===1?'Tomorrow'+time:diffDays===-1?'Yesterday'+time:d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})+time;
+  const done=j.status==='completed',overdue=!done&&ts<Date.now();
+  let col=done?'#6b7280':overdue?'#dc2626':diffDays===0?'#ea580c':diffDays===1?'#d97706':'#16a34a';
+  if(overdue)label='Overdue · '+label;
+  return {ts,label,col,overdue,today:!overdue&&diffDays===0,tomorrow:diffDays===1,diffDays};
+}
+function promiseBadge(j,size){const p=promiseInfo(j);if(!p)return '';return `<span style="font-size:${size||9}px;font-weight:700;color:${p.col};background:${p.col}1a;padding:1px 6px;border-radius:8px;white-space:nowrap">📅 ${esc(p.label)}</span>`;}
+// Delivery order: earliest promise first; jobs without a date go last (urgent ones first, then oldest)
+function byPromise(a,b){const pa=promiseTs(a),pb=promiseTs(b);
+  if(pa!==null&&pb!==null)return pa-pb;if(pa!==null)return -1;if(pb!==null)return 1;
+  return (b.urgent?1:0)-(a.urgent?1:0)||new Date(a.at)-new Date(b.at);}
+function setPromise(prefix,days,time){
+  const d=new Date();d.setDate(d.getDate()+days);
+  document.getElementById(prefix+'PromDate').value=localDateStr(d);
+  document.getElementById(prefix+'PromTime').value=time||'';
+}
 let JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
 let lpCat='all',rCat='all',jFilter='all',rPeriod='today';
 let rFromDate=null,rToDate=null;
@@ -1979,6 +2017,22 @@ function renderHome(){
     </div>`;
   else ub.innerHTML='';
 
+  // ── 3b. Promised delivery alert ──────────────────────────────────
+  const openJobs=DB.jobs.filter(j=>j.status!=='completed');
+  const pInfos=openJobs.map(promiseInfo);
+  const nOver=pInfos.filter(p=>p&&p.overdue).length,nToday=pInfos.filter(p=>p&&p.today).length,nTmr=pInfos.filter(p=>p&&p.tomorrow&&!p.overdue).length;
+  const nNoDate=pInfos.filter(p=>!p).length;
+  const pb=document.getElementById('promiseBanner');
+  if(nOver||nToday||nTmr){
+    const bad=nOver>0;
+    pb.innerHTML=`<div onclick="filterAndGoJobs('due')" style="background:${bad?'#fef2f2':'#fff7ed'};border:2px solid ${bad?'#dc2626':'#f97316'};border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer">
+      <div style="font-size:13px;font-weight:800;color:${bad?'#991b1b':'#c2410c'}">⏰ Delivery: ${[nOver?nOver+' overdue':'',nToday?nToday+' today':'',nTmr?nTmr+' tomorrow':''].filter(Boolean).join(' • ')}</div>
+      <div style="font-size:10px;color:#9a3412;margin-top:2px">Tap ചെയ്ത് delivery order-ൽ കാണൂ${nNoDate?` • ${nNoDate} open jobs-ന് date ഇല്ല`:''}</div>
+    </div>`;
+  } else if(nNoDate){
+    pb.innerHTML=`<div onclick="filterAndGoJobs('due')" style="background:#f8f9fa;border:1.5px dashed #d1d5db;border-radius:9px;padding:8px 12px;margin-bottom:6px;cursor:pointer;font-size:11px;color:var(--gray)">📅 ${nNoDate} open jobs-ന് promised delivery date ഇല്ല — tap ചെയ്ത് ചേർക്കൂ</div>`;
+  } else pb.innerHTML='';
+
   renderTodos();renderPartsBuy();renderBriefing(low);renderTeamCards();
 
   // ── 4. Stats ─────────────────────────────────────────────────────
@@ -2493,17 +2547,19 @@ function renderBriefing(low){
 function renderKanban(){
   const cols={pending:[],  'in-progress':[], ready:[], completed:[]};
   DB.jobs.forEach(j=>{if(cols[j.status])cols[j.status].push(j);});
+  ['pending','in-progress','ready'].forEach(st=>cols[st].sort(byPromise)); // earliest promised delivery on top
   const lbl={pending:'⏳ Pending','in-progress':'🔧 Working',ready:'✅ Ready',completed:'🚗 Delivered'};
   document.getElementById('kanbanBoard').innerHTML=Object.entries(cols).map(([st,jobs])=>`
     <div class="kb-col kb-${st}">
       <div class="kb-head">${lbl[st]}<br><small style="font-weight:400;opacity:.8">${jobs.length}</small></div>
       ${jobs.length?jobs.map(j=>`
-        <div class="kb-card" onclick="openJob('${j.id}')" style="${j.partsAwaited?'border-left:3px solid #1d4ed8;':j.urgent?'border-left:3px solid #dc2626;':''}">
+        <div class="kb-card" onclick="openJob('${j.id}')" style="${promiseInfo(j)?.overdue?'border-left:3px solid #dc2626;background:#fef2f2;':j.partsAwaited?'border-left:3px solid #1d4ed8;':j.urgent?'border-left:3px solid #dc2626;':''}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div class="kb-name">${j.urgent?'🚨 ':''}${j.partsAwaited?'🔩 ':''}${esc(j.name)}</div>
             ${(()=>{const age=Math.floor((Date.now()-new Date(j.at))/864e5);const c=age>14?'#dc2626':age>7?'#d97706':'#16a34a';return `<span style="font-size:8px;font-weight:700;color:${c};background:${c}20;padding:1px 5px;border-radius:8px;white-space:nowrap;margin-left:4px">${age===0?'Today':age+'d'}</span>`;})()}
           </div>
           <div class="kb-sub">${j.car||''} ${j.vnum?'• '+j.vnum:''}</div>
+          ${j.status!=='completed'&&j.promiseDate?`<div style="margin-top:3px">${promiseBadge(j)}</div>`:''}
           ${esc(j.mechName)?`<div style="font-size:9px;color:var(--blue);margin-top:2px">👷 ${esc(j.mechName)}</div>`:'<div style="font-size:9px;color:#f59e0b;margin-top:2px">⚠️ No mechanic</div>'}
           ${j.partsAwaited&&j.partsAwaitedList?`<div style="font-size:9px;color:#1d4ed8;margin-top:2px;font-weight:600">${j.partsAwaitedList.slice(0,35)}${j.partsAwaitedList.length>35?'...':''}</div>`:''}
           <div class="kb-amt">₹${(j.total||0).toLocaleString('en-IN')}</div>
@@ -2890,9 +2946,13 @@ function saveJob(){
   const urgent=document.getElementById('fUrgent').checked;
   const partsAwaited=document.getElementById('fPartsWait').checked;
   const partsAwaitedList=document.getElementById('fPartsWaitList').value.trim();
+  const promiseDate=document.getElementById('fPromDate').value;
+  const promiseTime=promiseDate?document.getElementById('fPromTime').value:'';
   if(!name||!phone||!vnum||!JOB.car){
     alert('⚠️ Fill:\n• Customer name\n• Phone\n• Vehicle number\n• Car model');return;
   }
+  if(!promiseDate&&!confirm('📅 Promised delivery date കൊടുത്തിട്ടില്ല.\nDate ഇല്ലാതെ save ചെയ്യണോ?')){document.getElementById('fPromDate').focus();return;}
+  if(promiseDate&&promiseTs({promiseDate,promiseTime})<Date.now()&&!confirm('⚠️ Promised delivery കഴിഞ്ഞുപോയ ഒരു സമയമാണ്. തുടരണോ?'))return;
   const labour=JOB.labourItems.reduce((s,it)=>s+it.price*(it.qty||1),0);
   const partsTotal=JOB.spareItems.reduce((s,it)=>s+it.sell*(it.qty||1),0);
   const sub=labour+partsTotal;
@@ -2906,7 +2966,7 @@ function saveJob(){
     labourItems:[...JOB.labourItems],spareItems:[...JOB.spareItems],
     photos:[...JOB.photos],status:'pending',
     mechId,mechName:DB.mechanics.find(m=>m.id===mechId)?.name||'',
-    nextSvc,payMode:effectivePayMode,amtPaid,paid:amtPaid,payHistory,labour,partsTotal,sub,gst,total,
+    nextSvc,promiseDate,promiseTime,payMode:effectivePayMode,amtPaid,paid:amtPaid,payHistory,labour,partsTotal,sub,gst,total,
     at: jd ? new Date(jd+'T'+new Date().toTimeString().slice(0,8)).toISOString() : new Date().toISOString()
   };
   DB.jobs.unshift(job);
@@ -2915,7 +2975,7 @@ function saveJob(){
   else DB.customers.push({name,phone,vnum,addr,car:JOB.car,cars:[JOB.car],spent:total,jobs:1,lastVisit:job.at});
   save();
   JOB={car:'',cat:'',brand:'',model:'',variant:'',labourItems:[],spareItems:[],photos:[]};
-  ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel'].forEach(id=>document.getElementById(id).value='');
+  ['fN','fPh','fV','fKm','fC','fNextSvc','fPartial','fAddr','fDate','fFuel','fPromDate','fPromTime'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('vnumResult').style.display='none';
   _vnumMatch=null;_vnumFilledFor='';_phoneFilledFor='';
   document.getElementById('fKm').placeholder='45000';
@@ -2944,7 +3004,7 @@ function sendWA(job){
   const labour=job.labourItems?.map(i=>`• ${i.name} — ₹${(i.price*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
   const spares=job.spareItems?.map(i=>`• ${i.name}${i.brand?' ('+i.brand+')':''}${i.custSup?' [Customer part]':''} — ₹${(i.sell*(i.qty||1)).toLocaleString('en-IN')}`).join('\n')||'';
   const payS=job.payMode==='pending'?'⏳ Pending':job.payMode==='partial'?`⚡ Partial (₹${job.amtPaid} paid, ₹${job.total-job.amtPaid} balance)`:'✅ Paid';
-  const msg=`🔧 *Garage Pro Kerala — Estimate*\n\nNamaskaaram ${job.name}!\n\n🚗 *${job.car}* (${job.vnum})${job.km?'\n🔢 KM: '+job.km:''}\n📋 Job ID: ${job.id}\n\n${labour?'*Labour:*\n'+labour+'\n\n':''}${spares?'*Spare Parts:*\n'+spares+'\n\n':''}💰 *Bill:*\n*TOTAL: ₹${job.total?.toLocaleString('en-IN')}*\n\n💳 Payment: ${payS}${job.nextSvc?'\n\n📅 Next Service: '+new Date(job.nextSvc).toLocaleDateString('en-IN'):''}\n\nThank you! 🙏`;
+  const msg=`🔧 *Garage Pro Kerala — Estimate*\n\nNamaskaaram ${job.name}!\n\n🚗 *${job.car}* (${job.vnum})${job.km?'\n🔢 KM: '+job.km:''}\n📋 Job ID: ${job.id}${job.promiseDate?'\n📅 Expected delivery: '+new Date(job.promiseDate+'T00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})+(job.promiseTime?', '+fmt12(job.promiseTime):''):''}\n\n${labour?'*Labour:*\n'+labour+'\n\n':''}${spares?'*Spare Parts:*\n'+spares+'\n\n':''}💰 *Bill:*\n*TOTAL: ₹${job.total?.toLocaleString('en-IN')}*\n\n💳 Payment: ${payS}${job.nextSvc?'\n\n📅 Next Service: '+new Date(job.nextSvc).toLocaleDateString('en-IN'):''}\n\nThank you! 🙏`;
   const ph=job.phone.replace(/\D/g,'');
   window.open(`https://wa.me/${ph.length===10?'91'+ph:ph}?text=${encodeURIComponent(msg)}`,'_blank');
 }
@@ -2953,10 +3013,13 @@ function sendWA(job){
 function renderJobs(){
   const search=document.getElementById('jSrch').value.toLowerCase();
   const jobs=DB.jobs.filter(j=>{
-    if(jFilter!=='all'&&j.status!==jFilter)return false;
+    if(jFilter==='due'){if(j.status==='completed')return false;}
+    else if(jFilter!=='all'&&j.status!==jFilter)return false;
     if(search&&!`${j.name}${j.phone}${j.vnum}${j.car}${j.id}`.toLowerCase().includes(search))return false;
     return true;
   });
+  // Work queues are shown in promised-delivery order
+  if(['due','pending','in-progress','ready'].includes(jFilter))jobs.sort(byPromise);
   const el=document.getElementById('jobList');
   if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs</div>';return;}
   el.innerHTML=jobs.map(j=>{
@@ -2972,6 +3035,7 @@ function renderJobs(){
         </div>
       </div>
       <div class="jd">🚗 ${esc(j.car)} • ${esc(j.vnum)}${esc(j.mechName)?' • 👷 '+esc(j.mechName):''}</div>
+      ${j.status!=='completed'?`<div class="jd">${j.promiseDate?promiseBadge(j,11):'<span style="font-size:11px;color:#9ca3af">📅 Promised date ഇല്ല</span>'}</div>`:''}
       <div class="jd">₹${j.total?.toLocaleString('en-IN')}${j.photos?.length?' • 📸'+j.photos.length:''}${j.cat?' • '+catBadgeHtml(j.cat):''}</div>
     </div>`;
   }).join('');
@@ -3001,6 +3065,7 @@ function openJob(id){
         ${j.cat?`<div>${catBadgeHtml(j.cat)}</div>`:''}
         <div>📅 ${new Date(j.at).toLocaleString('en-IN')}</div>
         <div>Status: <span class="badge ${bc}">${j.status}</span></div>
+        ${j.promiseDate?`<div>🎯 Promised: ${promiseBadge(j,12)}${j.promiseChanges?` <span style="font-size:10px;color:#9ca3af">(rescheduled ${j.promiseChanges}×)</span>`:''}</div>`:(j.status!=='completed'?'<div style="color:#c2410c;font-size:12px">🎯 Promised date ഇല്ല — താഴെ Edit-ൽ ചേർക്കൂ</div>':'')}
         ${esc(j.mechName)?`<div>👷 ${esc(j.mechName)}</div>`:''}
         ${esc(j.complaint)?`<div>🔧 ${esc(j.complaint)}</div>`:''}
         ${j.nextSvc?`<div>📅 Next: ${new Date(j.nextSvc).toLocaleDateString('en-IN')}</div>`:''}
@@ -3034,6 +3099,17 @@ function openJob(id){
         <option ${j.fuel==='Full'?'selected':''}>Full</option>
       </select></div>
       <div class="fg"><label>Address</label><input id="jdAddr" value="${j.addr?j.addr.replace(/"/g,'&quot;'):''}"></div>
+      <div class="fg" style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:9px;padding:8px 10px">
+        <label style="color:#c2410c">📅 Promised Delivery</label>
+        <div class="r2" style="margin-bottom:6px"><input id="jdPromDate" type="date" value="${j.promiseDate||''}"><input id="jdPromTime" type="time" value="${j.promiseTime||''}"></div>
+        <div class="chips" style="margin-bottom:0">
+        <div class="chip" onclick="setPromise('jd',0,'18:00')">Today 6pm</div>
+        <div class="chip" onclick="setPromise('jd',1,'17:00')">Tomorrow</div>
+        <div class="chip" onclick="setPromise('jd',2,'17:00')">+2 days</div>
+        <div class="chip" onclick="setPromise('jd',3,'17:00')">+3 days</div>
+        <div class="chip" onclick="setPromise('jd',7,'17:00')">1 week</div>
+      </div>
+      </div>
       <label style="display:flex;align-items:center;gap:7px;margin:6px 0;font-size:13px;font-weight:600;color:#991b1b"><input id="jdUrgent" type="checkbox" style="width:auto" ${j.urgent?'checked':''}> 🚨 Urgent Job</label>
       <label style="display:flex;align-items:center;gap:7px;margin:4px 0 2px;font-size:13px;font-weight:600;color:#1d4ed8"><input id="jdPartsWait" type="checkbox" style="width:auto" ${j.partsAwaited?'checked':''} onchange="document.getElementById('jdPartsWaitBox').style.display=this.checked?'block':'none'"> 🔩 Parts Awaited (spares കിട്ടാൻ കാത്തിരിക്കുന്നു)</label>
       <div id="jdPartsWaitBox" style="display:${j.partsAwaited?'block':'none'}">
@@ -3125,6 +3201,12 @@ function updateJobDetails(id){
   j.urgent=document.getElementById('jdUrgent').checked;
   j.partsAwaited=document.getElementById('jdPartsWait').checked;
   j.partsAwaitedList=document.getElementById('jdPartsWaitList').value.trim();
+  const pd=document.getElementById('jdPromDate').value,pt=pd?document.getElementById('jdPromTime').value:'';
+  if(j.promiseDate&&(pd!==j.promiseDate||pt!==(j.promiseTime||''))&&j.status!=='completed'){
+    if(!j.promiseOrig)j.promiseOrig=j.promiseDate+(j.promiseTime?' '+j.promiseTime:'');
+    j.promiseChanges=(j.promiseChanges||0)+1; // track reschedules
+  }
+  j.promiseDate=pd;j.promiseTime=pt;
   save();openJob(id);
 }
 function openQuickCash(){
