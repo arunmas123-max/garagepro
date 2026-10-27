@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.7</title>
+<title>Garage Pro Kerala v12.8</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.7</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.8</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -740,6 +740,34 @@ textarea{resize:vertical;min-height:65px}
     <div class="mhead"><div class="mt">Labour Rate List</div><button class="mc" onclick="closeM('lpM')">×</button></div>
     <div class="mbody">
       <div id="lpCatInfo" style="background:var(--blue2);color:var(--blue);padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:8px;display:none"></div>
+      <!-- ⏱️ EXTRA TIME (v12.8): rusted bolts, broken studs etc. billed at man-hour rate -->
+      <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:9px;padding:9px 10px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-weight:700;font-size:12px;color:#1e40af">⏱️ Extra Time (rusted bolt, broken stud…)</div>
+          <button type="button" onclick="editManHourRate()" style="background:#fff;border:1px solid #93c5fd;color:#1e40af;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer" id="lpExRateBtn">₹400/hr ✏️</button>
+        </div>
+        <div class="chips" id="lpExReason" style="margin-bottom:4px">
+          <div class="chip on" data-r="Rusted/seized bolt">🔩 Rusted bolt</div>
+          <div class="chip" data-r="Broken stud/bolt extraction">🪛 Broken stud</div>
+          <div class="chip" data-r="Heating & removal">🔥 Heating</div>
+          <div class="chip" data-r="Previous bad repair">🛠️ Old bad repair</div>
+          <div class="chip" data-r="Extra work">➕ Other</div>
+        </div>
+        <input id="lpExNote" placeholder="Detail (optional) — e.g. caliper bolt, exhaust stud" style="margin-bottom:6px">
+        <div class="chips" id="lpExMins" style="margin-bottom:4px">
+          <div class="chip on" data-m="30">30 min</div>
+          <div class="chip" data-m="60">1 hr</div>
+          <div class="chip" data-m="90">1½ hr</div>
+          <div class="chip" data-m="120">2 hr</div>
+          <div class="chip" data-m="180">3 hr</div>
+        </div>
+        <div class="chips" id="lpExWtype" style="margin-bottom:0">
+          <div class="chip on" data-wt="mech">🔧 Mechanical</div>
+          <div class="chip" data-wt="body">🚗 Body</div>
+          <div class="chip" data-wt="paint">🎨 Paint</div>
+        </div>
+        <button class="btn b-blue" style="margin-top:6px" id="lpExAddBtn" onclick="addExtraTime()">➕ Add Extra Time — ₹200</button>
+      </div>
       <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:9px;padding:9px 10px;margin-bottom:10px">
         <div style="font-weight:700;font-size:12px;margin-bottom:6px;color:var(--rust)">✏️ Custom Charge (one-time, ഈ job-ന് മാത്രം)</div>
         <div style="display:flex;gap:6px">
@@ -2713,6 +2741,7 @@ function openLabourPicker(){
   if(JOB.cat){ci.textContent=`✓ ${CAT_NAMES[JOB.cat]} rates showing — change car to see different rates`;ci.style.display='block';}
   else{ci.style.display='none';}
   document.querySelectorAll('#lpCustWtype .chip').forEach(c=>c.classList.toggle('on',c.dataset.wt==='mech'));
+  resetExtraTime();
   openM('lpM');renderLpList();
 }
 function renderLpList(){
@@ -2783,6 +2812,53 @@ document.querySelectorAll('#lpCustWtype .chip').forEach(c=>c.addEventListener('c
   document.querySelectorAll('#lpCustWtype .chip').forEach(x=>x.classList.remove('on'));
   c.classList.add('on');
 }));
+
+// ====================== EXTRA TIME (v12.8) ======================
+// Man-hour rate lives in DB.settings so every phone uses the same rate
+function manHourRate(){return parseInt(DB.settings?.manHourRate)||400;}
+function extraTimeAmount(){
+  const mins=parseInt(document.querySelector('#lpExMins .chip.on')?.dataset.m)||30;
+  return {mins,amt:Math.round(manHourRate()*mins/60/10)*10}; // round to ₹10
+}
+function fmtMins(m){const h=Math.floor(m/60),r=m%60;return (h?h+' hr':'')+(h&&r?' ':'')+(r?r+' min':'');}
+function refreshExtraTime(){
+  const {amt}=extraTimeAmount();
+  document.getElementById('lpExRateBtn').textContent='₹'+manHourRate()+'/hr ✏️';
+  document.getElementById('lpExAddBtn').textContent='➕ Add Extra Time — ₹'+amt.toLocaleString('en-IN');
+}
+function editManHourRate(){
+  const v=prompt('Man-hour rate (₹ per hour):\n(എല്ലാ phone-ലും ഈ rate ഉപയോഗിക്കും)',manHourRate());
+  if(v===null)return;
+  const n=parseInt(String(v).replace(/[^0-9]/g,''));
+  if(!n||n<50){alert('Valid rate enter ചെയ്യൂ');return;}
+  DB.settings=DB.settings||{};DB.settings.manHourRate=n;save();refreshExtraTime();
+  showToast('✅ Man-hour rate ₹'+n+'/hr');
+}
+function resetExtraTime(){
+  ['lpExReason','lpExMins','lpExWtype'].forEach(id=>document.querySelectorAll('#'+id+' .chip').forEach((c,i)=>c.classList.toggle('on',i===0)));
+  document.getElementById('lpExNote').value='';
+  refreshExtraTime();
+}
+function addExtraTime(){
+  const reason=document.querySelector('#lpExReason .chip.on')?.dataset.r||'Extra work';
+  const note=document.getElementById('lpExNote').value.trim();
+  const wtype=document.querySelector('#lpExWtype .chip.on')?.dataset.wt||'mech';
+  const {mins,amt}=extraTimeAmount();
+  const name=`⏱️ Extra time — ${reason}${note?' ('+note+')':''} · ${fmtMins(mins)}`;
+  const item={name,price:amt,qty:1,type:'labour',wtype,extraTime:{mins,rate:manHourRate(),reason,note}};
+  if(editingJobId){
+    const j=DB.jobs.find(x=>x.id===editingJobId);
+    if(j){if(!j.labourItems)j.labourItems=[];j.labourItems.push({...item,cat:j.cat});recalcJob(j);save();}
+    const jid=editingJobId;editingJobId=null;
+    closeM('lpM');openJob(jid);showToast('⏱️ Extra time ₹'+amt+' added');return;
+  }
+  JOB.labourItems.push({...item,cat:JOB.cat});
+  renderJobItems();closeM('lpM');showToast('⏱️ Extra time ₹'+amt+' added');
+}
+['lpExReason','lpExMins','lpExWtype'].forEach(id=>document.querySelectorAll('#'+id+' .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#'+id+' .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on');refreshExtraTime();
+})));
 
 // ====================== SPARES ======================
 function openSpareEntry(){
