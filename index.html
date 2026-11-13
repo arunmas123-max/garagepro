@@ -2382,7 +2382,7 @@ function renderIncomeJobs(el,mJobs){
         <div style="font-size:13px;font-weight:800;color:var(--rust)">₹${(j.total||0).toLocaleString('en-IN')}</div>
         ${due>0?`<div style="font-size:9px;color:#dc2626">₹${due.toLocaleString('en-IN')} due</div>`:'<div style="font-size:9px;color:var(--green)">✅ Paid</div>'}
         <span class="badge b-${j.status==='completed'?'done':j.status==='ready'?'rdy':j.status==='in-progress'?'prog':'pend'}" style="font-size:8px">${j.status}</span>
-      </div>
+      </div> 
     </div>`;
   }).join('');
   el.innerHTML=html||'<div style="text-align:center;padding:20px;color:#9ca3af">ഈ month-ൽ jobs ഇല്ല</div>';
