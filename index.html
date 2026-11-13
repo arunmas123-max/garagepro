@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Garage Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>Garage Pro Kerala v12.8</title>
+<title>Garage Pro Kerala v12.10</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -222,7 +222,7 @@ textarea{resize:vertical;min-height:65px}
   <div class="hdr-top">
     <div class="logo">
       <div class="logo-ic">🔧</div>
-      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.8</div></div>
+      <div><div class="logo-t">Garage Pro</div><div class="logo-s">Kerala v12.10</div></div>
     </div>
     <div style="display:flex;gap:5px">
       <button class="hbtn" onclick="doBackup()">💾 Backup</button>
@@ -256,6 +256,7 @@ textarea{resize:vertical;min-height:65px}
   <div onclick="goMore('stock')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">📦 Stock</div>
   <div onclick="goMore('rates')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔩 Rates</div>
   <div onclick="goMore('search')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🔍 Search</div>
+  <div onclick="openSupSheet()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🖨️ Supervisor Sheet</div>
   <div onclick="openStaffPay()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">💰 Staff Pay</div>
   <div onclick="openDataHealth()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">🏥 Data Health</div>
   <div onclick="openCloudSettings()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6">☁️ Cloud Login</div>
@@ -266,7 +267,8 @@ textarea{resize:vertical;min-height:65px}
 <main>
 <!-- HOME -->
 <div class="pg on" id="home">
-  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="promiseBanner"></div><div id="attTodayCard"></div><div id="svcReminderCard"></div>
+  <div id="instBar"></div><div id="bkWarn"></div><div id="lowBanner"></div><div id="unassignBanner"></div><div id="promiseBanner"></div><div id="payDueBanner"></div><div id="attTodayCard"></div><div id="svcReminderCard"></div>
+  <button class="btn b-gray" onclick="openSupSheet()" style="margin:0 0 8px;padding:10px;font-size:13px">🖨️ Supervisor Daily Sheet — Print</button>
   <!-- Daily Target Widget -->
   <div id="dailyTargetWidget"></div>
   <div class="sg">
@@ -512,6 +514,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="chip" data-jf="in-progress">Working</div>
     <div class="chip" data-jf="ready">Ready</div>
     <div class="chip" data-jf="completed">Done</div>
+    <div class="chip" data-jf="payDue">💰 Payment Due</div>
   </div>
   <div class="srch"><input id="jSrch" placeholder="Search name, vehicle, ID..."></div>
   <div id="jobList"></div>
@@ -740,7 +743,7 @@ textarea{resize:vertical;min-height:65px}
     <div class="mhead"><div class="mt">Labour Rate List</div><button class="mc" onclick="closeM('lpM')">×</button></div>
     <div class="mbody">
       <div id="lpCatInfo" style="background:var(--blue2);color:var(--blue);padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:8px;display:none"></div>
-      <!-- ⏱️ EXTRA TIME (v12.8): rusted bolts, broken studs etc. billed at man-hour rate -->
+      <!-- ⏱️ EXTRA TIME (v12.10): rusted bolts, broken studs etc. billed at man-hour rate -->
       <div style="background:#eff6ff;border:1.5px solid #93c5fd;border-radius:9px;padding:9px 10px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <div style="font-weight:700;font-size:12px;color:#1e40af">⏱️ Extra Time (rusted bolt, broken stud…)</div>
@@ -2070,6 +2073,14 @@ function renderHome(){
   document.getElementById('hJ').textContent=todayJ.length;
   document.getElementById('hR').textContent=todayRev.toLocaleString('en-IN');
   document.getElementById('hP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
+  { // Payment Due (delivered, money pending) — separate from pending work
+    const pd=payDueJobs(),pdb=document.getElementById('payDueBanner');
+    if(pdb){
+      if(pd.length){const tot=pd.reduce((a,j)=>a+payBal(j),0);
+        pdb.innerHTML=`<div onclick="filterAndGoJobs('payDue')" style="background:#fffbeb;border:2px solid #d97706;border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer"><div style="font-size:13px;font-weight:800;color:#92400e">💰 Payment Due: ${pd.length} delivered cars • <span class="money-sensitive">₹${tot.toLocaleString('en-IN')}</span></div><div style="font-size:11px;color:#78350f;margin-top:2px">Tap ചെയ്ത് collect ചെയ്യൂ — ഇവ Pending-ൽ ഉൾപ്പെടില്ല</div></div>`;
+      }else pdb.innerHTML='';
+    }
+  }
   document.getElementById('hLow').textContent=low.length;
   document.getElementById('sJ').textContent=DB.jobs.length;
   document.getElementById('sP').textContent=DB.jobs.filter(j=>j.status!=='completed').length;
@@ -2813,7 +2824,7 @@ document.querySelectorAll('#lpCustWtype .chip').forEach(c=>c.addEventListener('c
   c.classList.add('on');
 }));
 
-// ====================== EXTRA TIME (v12.8) ======================
+// ====================== EXTRA TIME (v12.10) ======================
 // Man-hour rate lives in DB.settings so every phone uses the same rate
 function manHourRate(){return parseInt(DB.settings?.manHourRate)||400;}
 function extraTimeAmount(){
@@ -3086,16 +3097,21 @@ function sendWA(job){
 }
 
 // ====================== JOBS LIST ======================
+// Delivered cars whose money is still to be collected — kept OUT of the pending (work) count
+function payBal(j){return Math.max(0,(j.total||0)-(j.amtPaid||0));}
+function payDueJobs(){return DB.jobs.filter(j=>j.status==='completed'&&payBal(j)>0).sort((a,b)=>new Date(a.completedAt||a.at)-new Date(b.completedAt||b.at));}
 function renderJobs(){
   const search=document.getElementById('jSrch').value.toLowerCase();
   const jobs=DB.jobs.filter(j=>{
-    if(jFilter==='due'){if(j.status==='completed')return false;}
+    if(jFilter==='payDue'){if(!(j.status==='completed'&&payBal(j)>0))return false;}
+    else if(jFilter==='due'){if(j.status==='completed')return false;}
     else if(jFilter!=='all'&&j.status!==jFilter)return false;
     if(search&&!`${j.name}${j.phone}${j.vnum}${j.car}${j.id}`.toLowerCase().includes(search))return false;
     return true;
   });
   // Work queues are shown in promised-delivery order
   if(['due','pending','in-progress','ready'].includes(jFilter))jobs.sort(byPromise);
+  if(jFilter==='payDue')jobs.sort((a,b)=>new Date(a.completedAt||a.at)-new Date(b.completedAt||b.at));
   const el=document.getElementById('jobList');
   if(!jobs.length){el.innerHTML='<div class="empty"><div class="empty-i">📋</div>No jobs</div>';return;}
   el.innerHTML=jobs.map(j=>{
@@ -3111,6 +3127,7 @@ function renderJobs(){
         </div>
       </div>
       <div class="jd">🚗 ${esc(j.car)} • ${esc(j.vnum)}${esc(j.mechName)?' • 👷 '+esc(j.mechName):''}</div>
+      ${j.status==='completed'&&payBal(j)>0?`<div class="jd" style="color:#dc2626;font-weight:700">💰 Balance ₹${payBal(j).toLocaleString('en-IN')} • delivered ${Math.max(0,Math.floor((Date.now()-new Date(j.completedAt||j.at))/864e5))} ദിവസം മുമ്പ്</div>`:''}
       ${j.status!=='completed'?`<div class="jd">${j.promiseDate?promiseBadge(j,11):'<span style="font-size:11px;color:#9ca3af">📅 Promised date ഇല്ല</span>'}</div>`:''}
       <div class="jd">₹${j.total?.toLocaleString('en-IN')}${j.photos?.length?' • 📸'+j.photos.length:''}${j.cat?' • '+catBadgeHtml(j.cat):''}</div>
     </div>`;
@@ -4136,6 +4153,114 @@ async function printInv(id){
   <button onclick="window.print()" style="margin-top:12px;padding:10px 20px;background:#c2410c;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Print</button>
   </body></html>`);w.document.close();
 }
+
+// ====================== SUPERVISOR DAILY SHEET (v12.10) ======================
+// Printable daily sheet for the floor supervisor — NO prices/payments shown.
+const SUP_SECS={urgent:'🚨 Urgent works',deliv:'📅 Delivery promises',jobs:'⏳ Pending job details',spares:'🔩 Spares needed'};
+function supStaff(j){
+  const nm=id=>(DB.mechanics||[]).find(m=>m.id===id)?.name;
+  return [...new Set([j.mechName||nm(j.mechId),nm(j.tinkerId),nm(j.painterId)].filter(Boolean))];
+}
+function supWork(j){
+  const items=(j.labourItems||[]).map(i=>String(i.name||'').replace(/^⏱️\s*/,'')).filter(Boolean);
+  let w=items.slice(0,4).join(', ');
+  if(items.length>4)w+=` +${items.length-4} more`;
+  return w;
+}
+function supOpenJobs(){return DB.jobs.filter(j=>j.status!=='completed').sort(byPromise);}
+function supSpares(){
+  const rows=[],seen=new Set();
+  const add=(name,qty,ref,src)=>{
+    const k=(String(name).toLowerCase().trim()+'|'+String(ref).toLowerCase().trim());
+    if(!name||seen.has(k))return;seen.add(k);rows.push({name,qty,ref,src});
+  };
+  DB.jobs.filter(j=>j.partsAwaited&&j.status!=='completed').forEach(j=>
+    add(j.partsAwaitedList||'(parts list ഇല്ല)','—',(j.vnum?j.vnum+' · ':'')+(j.car||j.name||''),'Job'));
+  (DB.partsList||[]).filter(p=>!p.bought).forEach(p=>add(p.name,p.qty&&p.qty!=='—'?p.qty:'—',p.ref||'—','Buy list'));
+  (DB.stock||[]).filter(s=>s.qty<=s.min).forEach(s=>add(s.name,`stock ${s.qty} / min ${s.min}`,'Workshop stock','Low stock'));
+  return rows;
+}
+function supHtml(sel){
+  const open=supOpenJobs(),now=new Date();
+  const stL={pending:'Waiting','in-progress':'Working',ready:'Ready'};
+  const th='style="border:1px solid #444;padding:3px 4px;background:#eee;text-align:left;font-size:10px"';
+  const td='style="border:1px solid #888;padding:3px 4px;font-size:10px;vertical-align:top"';
+  const h2=t=>`<h2 style="font-size:14px;margin:14px 0 5px;border-bottom:2px solid #000;padding-bottom:2px">${t}</h2>`;
+  const veh=j=>`<b style="white-space:nowrap">${esc(j.vnum||'—')}</b><br><span style="font-size:10px">${esc(j.car||'')}</span>`;
+  let h=`<div style="text-align:center"><div style="font-size:18px;font-weight:800">MAS CAR CARE — DAILY WORK SHEET</div>
+    <div style="font-size:12px">${now.toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short',year:'numeric'})} · ${now.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})} · Open jobs: <b>${open.length}</b></div></div>`;
+  if(sel.urgent){
+    const u=open.filter(j=>{const p=promiseInfo(j);return j.urgent||(p&&(p.overdue||p.today));});
+    h+=h2(SUP_SECS.urgent+` (${u.length})`);
+    h+=u.length?`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>#</th><th ${th}>Vehicle</th><th ${th}>Work / Complaint</th><th ${th}>Staff</th><th ${th}>Why urgent</th><th ${th}>Promise</th></tr>`+
+      u.map((j,i)=>{const p=promiseInfo(j);const why=[j.urgent?'URGENT':'',p?.overdue?'OVERDUE':'',p?.today?'DUE TODAY':''].filter(Boolean).join(' · ');
+        return `<tr><td ${td}>${i+1}</td><td ${td}>${veh(j)}</td><td ${td}>${esc(j.complaint||supWork(j)||'—')}</td><td ${td}>${esc(supStaff(j).join(', ')||'⚠ NOT ASSIGNED')}</td><td ${td}><b>${why}</b></td><td ${td}>${p?esc(p.label):'—'}</td></tr>`;}).join('')+'</table>'
+      :'<div style="font-size:11px">Urgent work ഇല്ല ✅</div>';
+  }
+  if(sel.deliv){
+    h+=h2(SUP_SECS.deliv);
+    const dated=open.filter(j=>j.promiseDate),undated=open.filter(j=>!j.promiseDate);
+    if(dated.length){
+      h+=`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>When</th><th ${th}>Vehicle</th><th ${th}>Customer</th><th ${th}>Status</th><th ${th}>Staff</th></tr>`+
+        dated.map(j=>{const p=promiseInfo(j);const d=new Date(promiseTs(j));
+          const when=d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})+' · '+fmt12(j.promiseTime||'18:00');
+          return `<tr style="${p.overdue?'background:#fde8e8':''}"><td ${td}><b>${esc(when)}</b>${p.overdue?'<br><b>OVERDUE</b>':p.today?'<br><b>TODAY</b>':p.tomorrow?'<br>Tomorrow':''}</td><td ${td}>${veh(j)}</td><td ${td}>${esc(j.name||'')}</td><td ${td}>${stL[j.status]||esc(j.status)}</td><td ${td}>${esc(supStaff(j).join(', ')||'—')}</td></tr>`;}).join('')+'</table>';
+    }else h+='<div style="font-size:11px">Delivery date ഉള്ള jobs ഇല്ല</div>';
+    if(undated.length)h+=`<div style="font-size:11px;margin-top:5px"><b>Date ഇല്ലാത്തവ (${undated.length}):</b> ${undated.map(j=>esc(j.vnum||j.name)).join(', ')}</div>`;
+  }
+  if(sel.jobs){
+    h+=h2(SUP_SECS.jobs+` (${open.length})`);
+    h+=open.length?`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>#</th><th ${th}>Vehicle</th><th ${th}>Customer</th><th ${th}>Complaint / Work</th><th ${th}>Staff</th><th ${th}>Status</th><th ${th}>Days</th><th ${th}>Due</th></tr>`+
+      open.map((j,i)=>{const p=promiseInfo(j);const days=Math.max(0,Math.floor((Date.now()-new Date(j.at))/864e5));
+        return `<tr><td ${td}>${i+1}</td><td ${td}>${veh(j)}${j.urgent?'<br><b>🚨URGENT</b>':''}</td><td ${td}>${esc(j.name||'')}</td>
+        <td ${td}>${esc(j.complaint||'')}${supWork(j)?`<br><i>${esc(supWork(j))}</i>`:''}${j.partsAwaited?'<br><b>🔩 Parts awaited</b>':''}</td>
+        <td ${td}>${esc(supStaff(j).join(', ')||'⚠ —')}</td><td ${td}>${stL[j.status]||esc(j.status)}</td><td ${td}>${days}d</td><td ${td}>${p?esc(p.label):'—'}</td></tr>`;}).join('')+'</table>'
+      :'<div style="font-size:11px">Pending jobs ഇല്ല ✅</div>';
+  }
+  if(sel.spares){
+    const sp=supSpares();
+    h+=h2(SUP_SECS.spares+` (${sp.length})`);
+    h+=sp.length?`<table style="width:100%;border-collapse:collapse"><tr><th ${th}>#</th><th ${th}>Spare</th><th ${th}>Qty</th><th ${th}>For</th><th ${th}>Source</th><th ${th}>✔</th></tr>`+
+      sp.map((s,i)=>`<tr><td ${td}>${i+1}</td><td ${td}><b>${esc(s.name)}</b></td><td ${td}>${esc(String(s.qty))}</td><td ${td}>${esc(s.ref)}</td><td ${td}>${s.src}</td><td ${td}>&nbsp;&nbsp;&nbsp;</td></tr>`).join('')+'</table>'
+      :'<div style="font-size:11px">Spares ആവശ്യമില്ല ✅</div>';
+  }
+  h+=`<div style="margin-top:16px;font-size:11px">Supervisor notes:<div style="border-bottom:1px solid #777;height:22px"></div><div style="border-bottom:1px solid #777;height:22px"></div><div style="margin-top:18px;display:flex;justify-content:space-between"><span>Issued by: ____________</span><span>Supervisor sign: ____________</span></div></div>`;
+  return h;
+}
+function supText(sel){
+  const open=supOpenJobs(),L=[];
+  L.push(`*MAS CAR CARE — Daily Work Sheet*\n${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'short'})} · Open jobs: ${open.length}`);
+  if(sel.urgent){const u=open.filter(j=>{const p=promiseInfo(j);return j.urgent||(p&&(p.overdue||p.today));});
+    L.push(`\n🚨 *URGENT (${u.length})*`);u.forEach((j,i)=>L.push(`${i+1}. ${j.vnum||j.name} ${j.car||''} — ${j.complaint||supWork(j)||''} ${promiseInfo(j)?'['+promiseInfo(j).label+']':''}`));}
+  if(sel.deliv){L.push(`\n📅 *DELIVERY PROMISES*`);open.filter(j=>j.promiseDate).forEach(j=>L.push(`• ${promiseInfo(j).label} — ${j.vnum||j.name} ${j.car||''}`));
+    const nd=open.filter(j=>!j.promiseDate);if(nd.length)L.push(`Date ഇല്ല: ${nd.map(j=>j.vnum||j.name).join(', ')}`);}
+  if(sel.jobs){L.push(`\n⏳ *PENDING JOBS (${open.length})*`);open.forEach((j,i)=>L.push(`${i+1}. ${j.vnum||j.name} ${j.car||''} — ${j.complaint||supWork(j)||''} (${supStaff(j).join(', ')||'no staff'}, ${j.status})`));}
+  if(sel.spares){const sp=supSpares();L.push(`\n🔩 *SPARES NEEDED (${sp.length})*`);sp.forEach((s,i)=>L.push(`${i+1}. ${s.name}${s.qty&&s.qty!=='—'?' ×'+s.qty:''} — ${s.ref}`));}
+  return L.join('\n');
+}
+function supSel(){const s={};Object.keys(SUP_SECS).forEach(k=>{const el=document.getElementById('supC_'+k);s[k]=el?el.checked:true;});return s;}
+function openSupSheet(){
+  document.getElementById('moreMenu').style.display='none';
+  let ov=document.getElementById('supOv');if(ov)ov.remove();
+  ov=document.createElement('div');ov.id='supOv';
+  ov.style.cssText='position:fixed;inset:0;z-index:500;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch';
+  ov.innerHTML=`<style>@media print{body>*:not(#supOv){display:none!important}#supOv{position:static!important;overflow:visible!important}.supNoPrint{display:none!important}@page{size:A4;margin:10mm}}</style>
+  <div class="supNoPrint" style="position:sticky;top:0;background:#1a1a2e;color:#fff;padding:10px 12px;z-index:2">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">🖨️ Supervisor Daily Sheet</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;margin-bottom:8px">
+      ${Object.keys(SUP_SECS).map(k=>`<label style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="supC_${k}" checked onchange="supRefresh()" style="width:18px;height:18px;-webkit-appearance:checkbox;appearance:auto;accent-color:#c2410c;padding:0"> ${SUP_SECS[k]}</label>`).join('')}
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onclick="window.print()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#c2410c;color:#fff;font-weight:700;font-size:13px">🖨️ Print</button>
+      <button onclick="supWA()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-weight:700;font-size:13px">💬 WhatsApp</button>
+      <button onclick="document.getElementById('supOv').remove()" style="padding:10px 14px;border:none;border-radius:8px;background:#6b7280;color:#fff;font-weight:700;font-size:13px">✕</button>
+    </div>
+  </div>
+  <div id="supBody" style="padding:10px;color:#000;font-family:Arial,sans-serif"></div>`;
+  document.body.appendChild(ov);supRefresh();
+}
+function supRefresh(){const b=document.getElementById('supBody');if(b)b.innerHTML=supHtml(supSel());}
+function supWA(){window.open('https://wa.me/?text='+encodeURIComponent(supText(supSel())),'_blank');}
 
 // ====================== REPORTS ======================
 function getFiltJobs(){
